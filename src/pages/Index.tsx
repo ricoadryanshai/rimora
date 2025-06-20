@@ -1,11 +1,11 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Copy, BookOpen, Scissors } from "lucide-react";
+import { Copy, BookOpen, Scissors, RotateCcw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const Index = () => {
@@ -39,6 +39,30 @@ Totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architec
 
 Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit.`;
 
+  // Load data from localStorage on component mount
+  useEffect(() => {
+    const savedText = localStorage.getItem('novelSeparator_originalText');
+    const savedParagraphCount = localStorage.getItem('novelSeparator_paragraphCount');
+    const savedCards = localStorage.getItem('novelSeparator_separatedCards');
+
+    if (savedText) setOriginalText(savedText);
+    if (savedParagraphCount) setParagraphCount(Number(savedParagraphCount));
+    if (savedCards) setSeparatedCards(JSON.parse(savedCards));
+  }, []);
+
+  // Save to localStorage whenever data changes
+  useEffect(() => {
+    localStorage.setItem('novelSeparator_originalText', originalText);
+  }, [originalText]);
+
+  useEffect(() => {
+    localStorage.setItem('novelSeparator_paragraphCount', paragraphCount.toString());
+  }, [paragraphCount]);
+
+  useEffect(() => {
+    localStorage.setItem('novelSeparator_separatedCards', JSON.stringify(separatedCards));
+  }, [separatedCards]);
+
   const separateChapter = () => {
     const textToProcess = originalText || dummyText;
     const paragraphs = textToProcess.split('\n').filter(p => p.trim() !== '');
@@ -53,6 +77,22 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
     toast({
       title: "Chapter Separated Successfully!",
       description: `Created ${cards.length} cards with ${paragraphCount} paragraphs each.`,
+    });
+  };
+
+  const resetAll = () => {
+    setOriginalText('');
+    setParagraphCount(5);
+    setSeparatedCards([]);
+    
+    // Clear localStorage
+    localStorage.removeItem('novelSeparator_originalText');
+    localStorage.removeItem('novelSeparator_paragraphCount');
+    localStorage.removeItem('novelSeparator_separatedCards');
+    
+    toast({
+      title: "Reset Complete",
+      description: "All data has been cleared and reset to initial state.",
     });
   };
 
@@ -103,7 +143,7 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="grid md:grid-cols-2 gap-6">
+            <div className="grid md:grid-cols-3 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="paragraphCount" className="text-sm font-medium">
                   Paragraphs per Card
@@ -125,6 +165,16 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                   className="w-full border-blue-200 text-blue-600 hover:bg-blue-50"
                 >
                   Load Sample Text
+                </Button>
+              </div>
+              <div className="flex items-end">
+                <Button 
+                  onClick={resetAll}
+                  variant="outline"
+                  className="w-full border-red-200 text-red-600 hover:bg-red-50"
+                >
+                  <RotateCcw className="mr-2 h-4 w-4" />
+                  Reset All
                 </Button>
               </div>
             </div>
