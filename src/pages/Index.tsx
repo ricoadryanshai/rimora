@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -71,10 +70,12 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
       }
 
       if (data) {
+        console.log('Loaded session data:', data); // Debug log
         setOriginalText(data.original_text);
         setParagraphCount(data.paragraph_count);
         // Fix: Properly handle the Json type conversion to string[]
         const cards = Array.isArray(data.separated_cards) ? data.separated_cards as string[] : [];
+        console.log('Loaded separated cards:', cards); // Debug log
         setSeparatedCards(cards);
         setCurrentSessionId(data.id);
       }
@@ -96,11 +97,13 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
     setIsSaving(true);
 
     try {
+      console.log('Saving to database:', { originalText, paragraphCount, separatedCards }); // Debug log
+      
       const sessionData = {
         user_id: user.id,
         original_text: originalText,
         paragraph_count: paragraphCount,
-        separated_cards: separatedCards,
+        separated_cards: separatedCards, // This should be saved as JSONB array
         updated_at: new Date().toISOString(),
       };
 
@@ -126,6 +129,8 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
       if (result.error) {
         throw result.error;
       }
+
+      console.log('Save result:', result.data); // Debug log
 
       if (result.data && !currentSessionId) {
         setCurrentSessionId(result.data.id);
@@ -157,13 +162,16 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
       cards.push(cardContent);
     }
     
+    console.log('Created separated cards:', cards); // Debug log
     setSeparatedCards(cards);
     
-    // Auto-save for authenticated users
+    // Auto-save for authenticated users - wait for state to update
     if (user) {
-      setTimeout(() => {
-        saveToDatabase();
-      }, 500);
+      // Use a longer delay to ensure state has updated
+      setTimeout(async () => {
+        // Force save with the new cards data
+        await saveToDatabase();
+      }, 1000);
     }
 
     toast({
