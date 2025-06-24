@@ -73,7 +73,9 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
       if (data) {
         setOriginalText(data.original_text);
         setParagraphCount(data.paragraph_count);
-        setSeparatedCards(data.separated_cards || []);
+        // Fix: Properly handle the Json type conversion to string[]
+        const cards = Array.isArray(data.separated_cards) ? data.separated_cards as string[] : [];
+        setSeparatedCards(cards);
         setCurrentSessionId(data.id);
       }
     } catch (error) {
