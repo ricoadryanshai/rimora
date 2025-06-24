@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -5,15 +6,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Copy, BookOpen, Scissors, RotateCcw, LogIn } from "lucide-react";
+import { Copy, BookOpen, Scissors, RotateCcw, LogIn, Save, Database } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 
 const Index = () => {
   const [originalText, setOriginalText] = useState('');
   const [paragraphCount, setParagraphCount] = useState<number>(5);
   const [separatedCards, setSeparatedCards] = useState<string[]>([]);
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
   const { user, loading } = useAuth();
 
@@ -42,31 +46,106 @@ Totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architec
 
 Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit.`;
 
-  // Load data from localStorage on component mount
+  // Load user's last session when authenticated
   useEffect(() => {
-    const savedText = localStorage.getItem('novelSeparator_originalText');
-    const savedParagraphCount = localStorage.getItem('novelSeparator_paragraphCount');
-    const savedCards = localStorage.getItem('novelSeparator_separatedCards');
+    if (user) {
+      loadLastSession();
+    }
+  }, [user]);
 
-    if (savedText) setOriginalText(savedText);
-    if (savedParagraphCount) setParagraphCount(Number(savedParagraphCount));
-    if (savedCards) setSeparatedCards(JSON.parse(savedCards));
-  }, []);
+  const loadLastSession = async () => {
+    if (!user) return;
 
-  // Save to localStorage whenever data changes
-  useEffect(() => {
-    localStorage.setItem('novelSeparator_originalText', originalText);
-  }, [originalText]);
+    try {
+      const { data, error } = await supabase
+        .from('chapter_sessions')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-  useEffect(() => {
-    localStorage.setItem('novelSeparator_paragraphCount', paragraphCount.toString());
-  }, [paragraphCount]);
+      if (error) {
+        console.error('Error loading session:', error);
+        return;
+      }
 
-  useEffect(() => {
-    localStorage.setItem('novelSeparator_separatedCards', JSON.stringify(separatedCards));
-  }, [separatedCards]);
+      if (data) {
+        setOriginalText(data.original_text);
+        setParagraphCount(data.paragraph_count);
+        setSeparatedCards(data.separated_cards || []);
+        setCurrentSessionId(data.id);
+      }
+    } catch (error) {
+      console.error('Error loading session:', error);
+    }
+  };
 
-  const separateChapter = () => {
+  const saveToDatabase = async () => {
+    if (!user) {
+      toast({
+        title: "Sign In Required",
+        description: "Please sign in to save your work to the database.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSaving(true);
+
+    try {
+      const sessionData = {
+        user_id: user.id,
+        original_text: originalText,
+        paragraph_count: paragraphCount,
+        separated_cards: separatedCards,
+        updated_at: new Date().toISOString(),
+      };
+
+      let result;
+      if (currentSessionId) {
+        // Update existing session
+        result = await supabase
+          .from('chapter_sessions')
+          .update(sessionData)
+          .eq('id', currentSessionId)
+          .eq('user_id', user.id)
+          .select()
+          .single();
+      } else {
+        // Create new session
+        result = await supabase
+          .from('chapter_sessions')
+          .insert(sessionData)
+          .select()
+          .single();
+      }
+
+      if (result.error) {
+        throw result.error;
+      }
+
+      if (result.data && !currentSessionId) {
+        setCurrentSessionId(result.data.id);
+      }
+
+      toast({
+        title: "Saved Successfully!",
+        description: "Your chapter session has been saved to the database.",
+      });
+    } catch (error) {
+      console.error('Error saving to database:', error);
+      toast({
+        title: "Save Failed",
+        description: "Failed to save your session. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const separateChapter = async () => {
     const textToProcess = originalText || dummyText;
     const paragraphs = textToProcess.split('\n').filter(p => p.trim() !== '');
     
@@ -77,21 +156,25 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
     }
     
     setSeparatedCards(cards);
+    
+    // Auto-save for authenticated users
+    if (user) {
+      setTimeout(() => {
+        saveToDatabase();
+      }, 500);
+    }
+
     toast({
       title: "Chapter Separated Successfully!",
-      description: `Created ${cards.length} cards with ${paragraphCount} paragraphs each.`,
+      description: `Created ${cards.length} cards with ${paragraphCount} paragraphs each.${!user ? ' Sign in to save your work!' : ''}`,
     });
   };
 
-  const resetAll = () => {
+  const resetAll = async () => {
     setOriginalText('');
     setParagraphCount(5);
     setSeparatedCards([]);
-    
-    // Clear localStorage
-    localStorage.removeItem('novelSeparator_originalText');
-    localStorage.removeItem('novelSeparator_paragraphCount');
-    localStorage.removeItem('novelSeparator_separatedCards');
+    setCurrentSessionId(null);
     
     toast({
       title: "Reset Complete",
@@ -144,7 +227,10 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <LogIn className="h-5 w-5 text-blue-600" />
-                  <span className="text-blue-800">Sign in to save your work and access advanced features</span>
+                  <div>
+                    <span className="text-blue-800 font-medium">Sign in to save your work permanently</span>
+                    <p className="text-blue-600 text-sm">Your separated chapters will only be temporary without an account</p>
+                  </div>
                 </div>
                 <Link to="/auth">
                   <Button variant="outline" size="sm" className="border-blue-300 text-blue-700 hover:bg-blue-100">
@@ -179,7 +265,7 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="grid md:grid-cols-3 gap-6">
+            <div className="grid md:grid-cols-4 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="paragraphCount" className="text-sm font-medium">
                   Paragraphs per Card
@@ -203,6 +289,19 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                   Load Sample Text
                 </Button>
               </div>
+              {user && (
+                <div className="flex items-end">
+                  <Button 
+                    onClick={saveToDatabase}
+                    disabled={isSaving}
+                    variant="outline"
+                    className="w-full border-green-200 text-green-600 hover:bg-green-50"
+                  >
+                    <Database className="mr-2 h-4 w-4" />
+                    {isSaving ? 'Saving...' : 'Save to DB'}
+                  </Button>
+                </div>
+              )}
               <div className="flex items-end">
                 <Button 
                   onClick={resetAll}
@@ -248,6 +347,12 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
               </h2>
               <p className="text-gray-600">
                 {separatedCards.length} cards created • {paragraphCount} paragraphs per card
+                {user && currentSessionId && (
+                  <span className="text-green-600 ml-2">• Saved to database</span>
+                )}
+                {!user && (
+                  <span className="text-orange-600 ml-2">• Not saved (sign in to save)</span>
+                )}
               </p>
             </div>
             
