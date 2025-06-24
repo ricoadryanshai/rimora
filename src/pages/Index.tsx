@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -84,7 +85,7 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
     }
   };
 
-  const saveToDatabase = async () => {
+  const saveToDatabase = async (cardsToSave?: string[]) => {
     if (!user) {
       toast({
         title: "Sign In Required",
@@ -97,13 +98,15 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
     setIsSaving(true);
 
     try {
-      console.log('Saving to database:', { originalText, paragraphCount, separatedCards }); // Debug log
+      // Use the passed cards or the current state
+      const cardsData = cardsToSave || separatedCards;
+      console.log('Saving to database:', { originalText, paragraphCount, cardsData }); // Debug log
       
       const sessionData = {
         user_id: user.id,
         original_text: originalText,
         paragraph_count: paragraphCount,
-        separated_cards: separatedCards, // This should be saved as JSONB array
+        separated_cards: cardsData, // Use the correct cards data
         updated_at: new Date().toISOString(),
       };
 
@@ -165,13 +168,10 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
     console.log('Created separated cards:', cards); // Debug log
     setSeparatedCards(cards);
     
-    // Auto-save for authenticated users - wait for state to update
+    // Auto-save for authenticated users - pass the cards directly
     if (user) {
-      // Use a longer delay to ensure state has updated
-      setTimeout(async () => {
-        // Force save with the new cards data
-        await saveToDatabase();
-      }, 1000);
+      // Save immediately with the new cards data
+      await saveToDatabase(cards);
     }
 
     toast({
@@ -302,7 +302,7 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
               {user && (
                 <div className="flex items-end">
                   <Button 
-                    onClick={saveToDatabase}
+                    onClick={() => saveToDatabase()}
                     disabled={isSaving}
                     variant="outline"
                     className="w-full border-green-200 text-green-600 hover:bg-green-50"
