@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -11,12 +10,14 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
+import WordReplacements from "@/components/WordReplacements";
 
 const Index = () => {
   const [originalText, setOriginalText] = useState('');
   const [paragraphCount, setParagraphCount] = useState<number>(5);
   const [separatedCards, setSeparatedCards] = useState<string[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const [wordReplacements, setWordReplacements] = useState<any[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
   const { user, loading } = useAuth();
@@ -83,6 +84,18 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
     } catch (error) {
       console.error('Error loading session:', error);
     }
+  };
+
+  const applyWordReplacements = (text: string, replacements: any[]) => {
+    let processedText = text;
+    
+    replacements.forEach(({ original_word, replacement_word }) => {
+      // Use global case-insensitive replace
+      const regex = new RegExp(original_word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+      processedText = processedText.replace(regex, replacement_word);
+    });
+    
+    return processedText;
   };
 
   const saveToDatabase = async (cardsToSave?: string[]) => {
@@ -157,7 +170,11 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
 
   const separateChapter = async () => {
     const textToProcess = originalText || dummyText;
-    const paragraphs = textToProcess.split('\n').filter(p => p.trim() !== '');
+    
+    // Apply word replacements before separating into paragraphs
+    const processedText = applyWordReplacements(textToProcess, wordReplacements);
+    
+    const paragraphs = processedText.split('\n').filter(p => p.trim() !== '');
     
     const cards: string[] = [];
     for (let i = 0; i < paragraphs.length; i += paragraphCount) {
@@ -174,9 +191,10 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
       await saveToDatabase(cards);
     }
 
+    const replacementCount = wordReplacements.length;
     toast({
       title: "Chapter Separated Successfully!",
-      description: `Created ${cards.length} cards with ${paragraphCount} paragraphs each.${!user ? ' Sign in to save your work!' : ''}`,
+      description: `Created ${cards.length} cards with ${paragraphCount} paragraphs each.${replacementCount > 0 ? ` Applied ${replacementCount} word replacements.` : ''}${!user ? ' Sign in to save your work!' : ''}`,
     });
   };
 
@@ -214,6 +232,10 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
       title: "Dummy Data Loaded",
       description: "Sample chapter text has been loaded for testing.",
     });
+  };
+
+  const handleWordReplacementsChange = (replacements: any[]) => {
+    setWordReplacements(replacements);
   };
 
   if (loading) {
@@ -343,10 +365,18 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
               disabled={!originalText && !dummyText}
             >
               <Scissors className="mr-2 h-5 w-5" />
-              Separate Chapter
+              Apply Replacements & Separate Chapter
             </Button>
           </CardContent>
         </Card>
+
+        {/* Word Replacements Section */}
+        <div className="mb-8">
+          <WordReplacements 
+            sessionId={currentSessionId}
+            onReplacementsChange={handleWordReplacementsChange}
+          />
+        </div>
 
         {/* Results Section */}
         {separatedCards.length > 0 && (

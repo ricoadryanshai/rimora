@@ -84,6 +84,38 @@ export type Database = {
         }
         Relationships: []
       }
+      word_replacements: {
+        Row: {
+          created_at: string
+          id: string
+          original_word: string
+          replacement_word: string
+          session_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          original_word: string
+          replacement_word: string
+          session_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          original_word?: string
+          replacement_word?: string
+          session_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "word_replacements_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "chapter_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
