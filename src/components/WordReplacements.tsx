@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -84,7 +83,6 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
         .order('created_at', { ascending: true });
 
       if (error) {
-        console.error('Error loading replacements:', error);
         return;
       }
 

@@ -67,17 +67,14 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
         .maybeSingle();
 
       if (error) {
-        console.error('Error loading session:', error);
         return;
       }
 
       if (data) {
-        console.log('Loaded session data:', data); // Debug log
         setOriginalText(data.original_text);
         setParagraphCount(data.paragraph_count);
         // Fix: Properly handle the Json type conversion to string[]
         const cards = Array.isArray(data.separated_cards) ? data.separated_cards as string[] : [];
-        console.log('Loaded separated cards:', cards); // Debug log
         setSeparatedCards(cards);
         setCurrentSessionId(data.id);
       }
@@ -113,7 +110,6 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
     try {
       // Use the passed cards or the current state
       const cardsData = cardsToSave || separatedCards;
-      console.log('Saving to database:', { originalText, paragraphCount, cardsData }); // Debug log
       
       const sessionData = {
         user_id: user.id,
@@ -145,8 +141,6 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
       if (result.error) {
         throw result.error;
       }
-
-      console.log('Save result:', result.data); // Debug log
 
       if (result.data && !currentSessionId) {
         setCurrentSessionId(result.data.id);
@@ -182,7 +176,6 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
       cards.push(cardContent);
     }
     
-    console.log('Created separated cards:', cards); // Debug log
     setSeparatedCards(cards);
     
     // Auto-save for authenticated users - pass the cards directly
