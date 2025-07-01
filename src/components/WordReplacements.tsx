@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious, PaginationEllipsis } from "@/components/ui/pagination";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Trash2, Save, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -307,6 +307,41 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
     }
   };
 
+  // Helper function to get visible page numbers for responsive pagination
+  const getVisiblePages = () => {
+    const delta = 2; // Number of pages to show on each side of current page
+    const range = [];
+    const rangeWithDots = [];
+
+    // Always show first page
+    range.push(1);
+
+    // Add pages around current page
+    for (let i = Math.max(2, currentPage - delta); i <= Math.min(totalPages - 1, currentPage + delta); i++) {
+      range.push(i);
+    }
+
+    // Always show last page if more than 1 page
+    if (totalPages > 1) {
+      range.push(totalPages);
+    }
+
+    // Remove duplicates and sort
+    const uniqueRange = [...new Set(range)].sort((a, b) => a - b);
+
+    // Add ellipsis where needed
+    let prev = 0;
+    for (const page of uniqueRange) {
+      if (page - prev > 1) {
+        rangeWithDots.push('...');
+      }
+      rangeWithDots.push(page);
+      prev = page;
+    }
+
+    return rangeWithDots;
+  };
+
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
   };
@@ -497,34 +532,47 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
                 </div>
               </div>
               
-              {/* Pagination */}
+              {/* Responsive Pagination */}
               {totalPages > 1 && (
                 <div className="flex justify-center">
                   <Pagination>
-                    <PaginationContent>
+                    <PaginationContent className="flex flex-wrap justify-center gap-1">
+                      {/* Previous Button */}
                       <PaginationItem>
                         <PaginationPrevious 
                           onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
-                          className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                          className={cn(
+                            "cursor-pointer text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2",
+                            currentPage === 1 && "pointer-events-none opacity-50"
+                          )}
                         />
                       </PaginationItem>
                       
-                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                        <PaginationItem key={page}>
-                          <PaginationLink
-                            onClick={() => handlePageChange(page)}
-                            isActive={currentPage === page}
-                            className="cursor-pointer"
-                          >
-                            {page}
-                          </PaginationLink>
+                      {/* Page Numbers - Responsive Logic */}
+                      {getVisiblePages().map((page, index) => (
+                        <PaginationItem key={index}>
+                          {page === '...' ? (
+                            <PaginationEllipsis className="h-8 w-8 sm:h-9 sm:w-9" />
+                          ) : (
+                            <PaginationLink
+                              onClick={() => handlePageChange(page as number)}
+                              isActive={currentPage === page}
+                              className="cursor-pointer h-8 w-8 sm:h-9 sm:w-9 text-xs sm:text-sm p-0 flex items-center justify-center"
+                            >
+                              {page}
+                            </PaginationLink>
+                          )}
                         </PaginationItem>
                       ))}
                       
+                      {/* Next Button */}
                       <PaginationItem>
                         <PaginationNext 
                           onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
-                          className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                          className={cn(
+                            "cursor-pointer text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2",
+                            currentPage === totalPages && "pointer-events-none opacity-50"
+                          )}
                         />
                       </PaginationItem>
                     </PaginationContent>
