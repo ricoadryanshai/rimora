@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +7,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Plus, Trash2, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import CSVManager from "./CSVManager";
 
 interface WordReplacement {
   id: string;
@@ -26,6 +27,7 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
   const [newReplacement, setNewReplacement] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
+  const { userRole } = useAuth();
 
   // Load existing replacements when sessionId changes
   useEffect(() => {
@@ -196,112 +198,163 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
     }
   };
 
+  const handleImportReplacements = async (importedReplacements: Omit<WordReplacement, 'id'>[]) => {
+    if (!sessionId) {
+      // Add to local state only if no session
+      const newReplacements = importedReplacements.map(r => ({
+        ...r,
+        id: Date.now().toString() + Math.random().toString(),
+      }));
+      setReplacements([...replacements, ...newReplacements]);
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const { data, error } = await supabase
+        .from('word_replacements')
+        .insert(
+          importedReplacements.map(r => ({
+            session_id: sessionId,
+            original_word: r.original_word,
+            replacement_word: r.replacement_word,
+          }))
+        )
+        .select();
+
+      if (error) {
+        throw error;
+      }
+
+      setReplacements([...replacements, ...data]);
+    } catch (error) {
+      console.error('Error importing replacements:', error);
+      toast({
+        title: "Import Failed",
+        description: "Failed to import word replacements to database.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
-    <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm">
-      <CardHeader className="pb-4">
-        <CardTitle className="flex items-center gap-2 text-xl">
-          <Plus className="h-5 w-5 text-blue-600" />
-          Find & Replace Words
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Add new replacement form */}
-        <div className="grid md:grid-cols-3 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="originalWord" className="text-sm font-medium">
-              Original Word
-            </Label>
-            <Input
-              id="originalWord"
-              placeholder="Word to replace"
-              value={newOriginal}
-              onChange={(e) => setNewOriginal(e.target.value)}
-              className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="replacementWord" className="text-sm font-medium">
-              Replacement Word
-            </Label>
-            <Input
-              id="replacementWord"
-              placeholder="Replace with"
-              value={newReplacement}
-              onChange={(e) => setNewReplacement(e.target.value)}
-              className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-            />
-          </div>
-          <div className="flex items-end">
-            <Button
-              onClick={addReplacement}
-              disabled={isSaving}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Add
-            </Button>
-          </div>
-        </div>
+    <div className="space-y-6">
+      {/* CSV Import/Export Section */}
+      <CSVManager 
+        replacements={replacements}
+        onImport={handleImportReplacements}
+        userRole={userRole}
+      />
 
-        {/* Replacements table */}
-        {replacements.length > 0 && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-medium">Word Replacements ({replacements.length})</h3>
-              {sessionId && (
-                <Button
-                  onClick={saveReplacementsToDatabase}
-                  disabled={isSaving}
-                  variant="outline"
-                  size="sm"
-                  className="border-green-200 text-green-600 hover:bg-green-50"
-                >
-                  <Save className="mr-2 h-4 w-4" />
-                  {isSaving ? 'Saving...' : 'Save All'}
-                </Button>
-              )}
+      {/* Existing Word Replacements Form */}
+      <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm">
+        <CardHeader className="pb-4">
+          <CardTitle className="flex items-center gap-2 text-xl">
+            <Plus className="h-5 w-5 text-blue-600" />
+            Find & Replace Words
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Add new replacement form */}
+          <div className="grid md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="originalWord" className="text-sm font-medium">
+                Original Word
+              </Label>
+              <Input
+                id="originalWord"
+                placeholder="Word to replace"
+                value={newOriginal}
+                onChange={(e) => setNewOriginal(e.target.value)}
+                className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+              />
             </div>
-            <div className="border rounded-lg overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Original Word</TableHead>
-                    <TableHead>Replacement Word</TableHead>
-                    <TableHead className="w-20">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {replacements.map((replacement) => (
-                    <TableRow key={replacement.id}>
-                      <TableCell className="font-medium">{replacement.original_word}</TableCell>
-                      <TableCell>{replacement.replacement_word}</TableCell>
-                      <TableCell>
-                        <Button
-                          onClick={() => removeReplacement(replacement.id)}
-                          variant="ghost"
-                          size="sm"
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
+            <div className="space-y-2">
+              <Label htmlFor="replacementWord" className="text-sm font-medium">
+                Replacement Word
+              </Label>
+              <Input
+                id="replacementWord"
+                placeholder="Replace with"
+                value={newReplacement}
+                onChange={(e) => setNewReplacement(e.target.value)}
+                className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+              />
+            </div>
+            <div className="flex items-end">
+              <Button
+                onClick={addReplacement}
+                disabled={isSaving}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Add
+              </Button>
+            </div>
+          </div>
+
+          {/* Replacements table */}
+          {replacements.length > 0 && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-medium">Word Replacements ({replacements.length})</h3>
+                {sessionId && (
+                  <Button
+                    onClick={saveReplacementsToDatabase}
+                    disabled={isSaving}
+                    variant="outline"
+                    size="sm"
+                    className="border-green-200 text-green-600 hover:bg-green-50"
+                  >
+                    <Save className="mr-2 h-4 w-4" />
+                    {isSaving ? 'Saving...' : 'Save All'}
+                  </Button>
+                )}
+              </div>
+              <div className="border rounded-lg overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Original Word</TableHead>
+                      <TableHead>Replacement Word</TableHead>
+                      <TableHead className="w-20">Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {replacements.map((replacement) => (
+                      <TableRow key={replacement.id}>
+                        <TableCell className="font-medium">{replacement.original_word}</TableCell>
+                        <TableCell>{replacement.replacement_word}</TableCell>
+                        <TableCell>
+                          <Button
+                            onClick={() => removeReplacement(replacement.id)}
+                            variant="ghost"
+                            size="sm"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {replacements.length === 0 && (
-          <div className="text-center py-8 text-gray-500">
-            <Plus className="h-12 w-12 text-gray-300 mx-auto mb-2" />
-            <p>No word replacements added yet</p>
-            <p className="text-sm">Add words above to replace them in your chapter</p>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+          {replacements.length === 0 && (
+            <div className="text-center py-8 text-gray-500">
+              <Plus className="h-12 w-12 text-gray-300 mx-auto mb-2" />
+              <p>No word replacements added yet</p>
+              <p className="text-sm">Add words above to replace them in your chapter</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 
