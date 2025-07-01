@@ -5,7 +5,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
-import { Plus, Trash2, Save } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Plus, Trash2, Save, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -29,19 +30,32 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
   const [isSaving, setIsSaving] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const { toast } = useToast();
   const { userRole } = useAuth();
 
+  // Filter replacements based on search term
+  const filteredReplacements = replacements.filter(replacement =>
+    replacement.original_word.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    replacement.replacement_word.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   // Calculate pagination
-  const totalPages = Math.ceil(replacements.length / itemsPerPage);
+  const totalPages = Math.ceil(filteredReplacements.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const currentReplacements = replacements.slice(startIndex, endIndex);
+  const currentReplacements = filteredReplacements.slice(startIndex, endIndex);
 
-  // Reset to first page when replacements change
+  // Reset to first page when replacements change or search term changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [replacements.length]);
+  }, [replacements.length, searchTerm]);
+
+  // Clear selected items when search term changes
+  useEffect(() => {
+    setSelectedItems(new Set());
+  }, [searchTerm]);
 
   // Load existing replacements when sessionId changes
   useEffect(() => {
@@ -170,6 +184,46 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
     }
   };
 
+  const removeSelectedReplacements = async () => {
+    if (selectedItems.size === 0) return;
+
+    if (!sessionId) {
+      // Remove from local state only if no session
+      setReplacements(replacements.filter(r => !selectedItems.has(r.id)));
+      setSelectedItems(new Set());
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('word_replacements')
+        .delete()
+        .in('id', Array.from(selectedItems));
+
+      if (error) {
+        throw error;
+      }
+
+      setReplacements(replacements.filter(r => !selectedItems.has(r.id)));
+      setSelectedItems(new Set());
+
+      toast({
+        title: "Word Replacements Removed",
+        description: `${selectedItems.size} word replacements have been deleted.`,
+      });
+    } catch (error) {
+      console.error('Error removing replacements:', error);
+      toast({
+        title: "Error",
+        description: "Failed to remove selected word replacements.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const saveReplacementsToDatabase = async () => {
     if (!sessionId || replacements.length === 0) return;
 
@@ -257,6 +311,32 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
     setCurrentPage(page);
   };
 
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      const currentIds = new Set(currentReplacements.map(r => r.id));
+      setSelectedItems(prev => new Set([...prev, ...currentIds]));
+    } else {
+      const currentIds = new Set(currentReplacements.map(r => r.id));
+      setSelectedItems(prev => new Set([...prev].filter(id => !currentIds.has(id))));
+    }
+  };
+
+  const handleSelectItem = (id: string, checked: boolean) => {
+    setSelectedItems(prev => {
+      const newSet = new Set(prev);
+      if (checked) {
+        newSet.add(id);
+      } else {
+        newSet.delete(id);
+      }
+      return newSet;
+    });
+  };
+
+  const isAllCurrentSelected = currentReplacements.length > 0 && 
+    currentReplacements.every(r => selectedItems.has(r.id));
+  const isSomeCurrentSelected = currentReplacements.some(r => selectedItems.has(r.id));
+
   return (
     <div className="space-y-6">
       {/* CSV Import/Export Section */}
@@ -276,7 +356,7 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Add new replacement form */}
-          <div className="grid md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="originalWord" className="text-sm font-medium">
                 Original Word
@@ -313,12 +393,44 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
             </div>
           </div>
 
-          {/* Replacements table */}
+          {/* Search and Bulk Actions */}
           {replacements.length > 0 && (
+            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  placeholder="Search word replacements..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-9 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                />
+              </div>
+              
+              {selectedItems.size > 0 && (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600">
+                    {selectedItems.size} selected
+                  </span>
+                  <Button
+                    onClick={removeSelectedReplacements}
+                    disabled={isSaving}
+                    variant="destructive"
+                    size="sm"
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete Selected
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Replacements table */}
+          {filteredReplacements.length > 0 && (
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <h3 className="text-lg font-medium">
-                  Word Replacements ({replacements.length})
+                  Word Replacements ({filteredReplacements.length})
                   {totalPages > 1 && (
                     <span className="text-sm font-normal text-gray-500 ml-2">
                       Page {currentPage} of {totalPages}
@@ -338,34 +450,51 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
                   </Button>
                 )}
               </div>
+              
               <div className="border rounded-lg overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Original Word</TableHead>
-                      <TableHead>Replacement Word</TableHead>
-                      <TableHead className="w-20">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {currentReplacements.map((replacement) => (
-                      <TableRow key={replacement.id}>
-                        <TableCell className="font-medium">{replacement.original_word}</TableCell>
-                        <TableCell>{replacement.replacement_word}</TableCell>
-                        <TableCell>
-                          <Button
-                            onClick={() => removeReplacement(replacement.id)}
-                            variant="ghost"
-                            size="sm"
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-12">
+                          <Checkbox
+                            checked={isAllCurrentSelected}
+                            onCheckedChange={handleSelectAll}
+                            className="data-[state=indeterminate]:bg-primary data-[state=indeterminate]:text-primary-foreground"
+                            {...(isSomeCurrentSelected && !isAllCurrentSelected ? { 'data-state': 'indeterminate' } : {})}
+                          />
+                        </TableHead>
+                        <TableHead className="min-w-[120px]">Original Word</TableHead>
+                        <TableHead className="min-w-[120px]">Replacement Word</TableHead>
+                        <TableHead className="w-20">Actions</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {currentReplacements.map((replacement) => (
+                        <TableRow key={replacement.id}>
+                          <TableCell>
+                            <Checkbox
+                              checked={selectedItems.has(replacement.id)}
+                              onCheckedChange={(checked) => handleSelectItem(replacement.id, checked as boolean)}
+                            />
+                          </TableCell>
+                          <TableCell className="font-medium break-words">{replacement.original_word}</TableCell>
+                          <TableCell className="break-words">{replacement.replacement_word}</TableCell>
+                          <TableCell>
+                            <Button
+                              onClick={() => removeReplacement(replacement.id)}
+                              variant="ghost"
+                              size="sm"
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               </div>
               
               {/* Pagination */}
@@ -402,6 +531,14 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
                   </Pagination>
                 </div>
               )}
+            </div>
+          )}
+
+          {filteredReplacements.length === 0 && replacements.length > 0 && (
+            <div className="text-center py-8 text-gray-500">
+              <Search className="h-12 w-12 text-gray-300 mx-auto mb-2" />
+              <p>No word replacements found</p>
+              <p className="text-sm">Try adjusting your search terms</p>
             </div>
           )}
 
