@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { Plus, Trash2, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,8 +27,21 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
   const [newOriginal, setNewOriginal] = useState('');
   const [newReplacement, setNewReplacement] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
   const { toast } = useToast();
   const { userRole } = useAuth();
+
+  // Calculate pagination
+  const totalPages = Math.ceil(replacements.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentReplacements = replacements.slice(startIndex, endIndex);
+
+  // Reset to first page when replacements change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [replacements.length]);
 
   // Load existing replacements when sessionId changes
   useEffect(() => {
@@ -239,6 +253,10 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
     }
   };
 
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
   return (
     <div className="space-y-6">
       {/* CSV Import/Export Section */}
@@ -299,7 +317,14 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
           {replacements.length > 0 && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-medium">Word Replacements ({replacements.length})</h3>
+                <h3 className="text-lg font-medium">
+                  Word Replacements ({replacements.length})
+                  {totalPages > 1 && (
+                    <span className="text-sm font-normal text-gray-500 ml-2">
+                      Page {currentPage} of {totalPages}
+                    </span>
+                  )}
+                </h3>
                 {sessionId && (
                   <Button
                     onClick={saveReplacementsToDatabase}
@@ -323,7 +348,7 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {replacements.map((replacement) => (
+                    {currentReplacements.map((replacement) => (
                       <TableRow key={replacement.id}>
                         <TableCell className="font-medium">{replacement.original_word}</TableCell>
                         <TableCell>{replacement.replacement_word}</TableCell>
@@ -342,6 +367,41 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
                   </TableBody>
                 </Table>
               </div>
+              
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex justify-center">
+                  <Pagination>
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious 
+                          onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
+                          className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                        />
+                      </PaginationItem>
+                      
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                        <PaginationItem key={page}>
+                          <PaginationLink
+                            onClick={() => handlePageChange(page)}
+                            isActive={currentPage === page}
+                            className="cursor-pointer"
+                          >
+                            {page}
+                          </PaginationLink>
+                        </PaginationItem>
+                      ))}
+                      
+                      <PaginationItem>
+                        <PaginationNext 
+                          onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
+                          className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                </div>
+              )}
             </div>
           )}
 
