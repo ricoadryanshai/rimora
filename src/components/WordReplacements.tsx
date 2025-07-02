@@ -346,13 +346,15 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
     setCurrentPage(page);
   };
 
+  // Updated select all functionality to work across all pages
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      const currentIds = new Set(currentReplacements.map(r => r.id));
-      setSelectedItems(prev => new Set([...prev, ...currentIds]));
+      // Select ALL filtered items (across all pages)
+      const allFilteredIds = new Set(filteredReplacements.map(r => r.id));
+      setSelectedItems(allFilteredIds);
     } else {
-      const currentIds = new Set(currentReplacements.map(r => r.id));
-      setSelectedItems(prev => new Set([...prev].filter(id => !currentIds.has(id))));
+      // Deselect all items
+      setSelectedItems(new Set());
     }
   };
 
@@ -368,9 +370,10 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
     });
   };
 
-  const isAllCurrentSelected = currentReplacements.length > 0 && 
-    currentReplacements.every(r => selectedItems.has(r.id));
-  const isSomeCurrentSelected = currentReplacements.some(r => selectedItems.has(r.id));
+  // Updated logic for select all checkbox state
+  const isAllFilteredSelected = filteredReplacements.length > 0 && 
+    filteredReplacements.every(r => selectedItems.has(r.id));
+  const isSomeFilteredSelected = filteredReplacements.some(r => selectedItems.has(r.id));
 
   return (
     <div className="space-y-6">
@@ -493,11 +496,18 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
                       <TableRow>
                         <TableHead className="w-12">
                           <Checkbox
-                            checked={isAllCurrentSelected}
+                            checked={isAllFilteredSelected}
                             onCheckedChange={handleSelectAll}
-                            className="data-[state=indeterminate]:bg-primary data-[state=indeterminate]:text-primary-foreground"
-                            {...(isSomeCurrentSelected && !isAllCurrentSelected ? { 'data-state': 'indeterminate' } : {})}
+                            className={cn(
+                              "data-[state=indeterminate]:bg-primary data-[state=indeterminate]:text-primary-foreground",
+                              isSomeFilteredSelected && !isAllFilteredSelected && "data-[state=indeterminate]"
+                            )}
                           />
+                          {selectedItems.size > 0 && (
+                            <span className="ml-2 text-xs text-gray-500">
+                              ({selectedItems.size}/{filteredReplacements.length})
+                            </span>
+                          )}
                         </TableHead>
                         <TableHead className="min-w-[120px]">Original Word</TableHead>
                         <TableHead className="min-w-[120px]">Replacement Word</TableHead>
