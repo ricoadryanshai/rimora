@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -5,7 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Copy, BookOpen, Scissors, RotateCcw, LogIn, Save, Database } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Copy, BookOpen, Scissors, RotateCcw, LogIn, Save, Database, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -234,9 +236,12 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
-        <div className="text-center">
-          <BookOpen className="h-12 w-12 text-blue-600 mx-auto mb-4 animate-pulse" />
-          <p className="text-gray-600">Loading...</p>
+        <div className="text-center space-y-4">
+          <BookOpen className="h-16 w-16 text-blue-600 mx-auto animate-pulse" />
+          <div className="space-y-2">
+            <h3 className="text-xl font-semibold text-gray-700">Loading your workspace...</h3>
+            <p className="text-gray-500">Please wait while we set things up</p>
+          </div>
         </div>
       </div>
     );
@@ -244,21 +249,30 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-6 lg:py-8 max-w-7xl">
         {/* Authentication prompt for non-authenticated users */}
         {!user && (
-          <Card className="mb-8 shadow-lg border-0 bg-blue-50/80 backdrop-blur-sm border-blue-200">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <LogIn className="h-5 w-5 text-blue-600" />
-                  <div>
-                    <span className="text-blue-800 font-medium">Sign in to save your work permanently</span>
-                    <p className="text-blue-600 text-sm">Your separated chapters will only be temporary without an account</p>
+          <Card className="mb-8 shadow-md border-l-4 border-l-blue-500 bg-gradient-to-r from-blue-50 to-indigo-50">
+            <CardContent className="p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-start gap-4">
+                  <div className="bg-blue-100 p-3 rounded-full">
+                    <LogIn className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="text-blue-900 font-semibold text-lg">Save Your Work Permanently</h3>
+                    <p className="text-blue-700 text-sm leading-relaxed">
+                      Create an account to save your separated chapters, word replacements, and continue working across sessions.
+                    </p>
                   </div>
                 </div>
                 <Link to="/auth">
-                  <Button variant="outline" size="sm" className="border-blue-300 text-blue-700 hover:bg-blue-100">
+                  <Button 
+                    variant="outline" 
+                    size="lg" 
+                    className="border-blue-300 text-blue-700 hover:bg-blue-100 hover:border-blue-400 transition-colors duration-200 whitespace-nowrap"
+                  >
+                    <LogIn className="mr-2 h-4 w-4" />
                     Sign In
                   </Button>
                 </Link>
@@ -270,29 +284,51 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
         {/* Header for authenticated users */}
         <Header />
 
-        {/* Header */}
-        <div className="text-center mb-12">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <BookOpen className="h-8 w-8 text-blue-600" />
-            <h1 className="text-4xl font-bold text-gray-800">Novel Chapter Separator</h1>
+        {/* Main Header */}
+        <div className="text-center mb-12 space-y-6">
+          <div className="space-y-4">
+            <div className="flex items-center justify-center gap-3 mb-4">
+              <div className="bg-blue-100 p-3 rounded-full">
+                <BookOpen className="h-8 w-8 text-blue-600" />
+              </div>
+              <h1 className="text-4xl lg:text-5xl font-bold text-gray-800">Novel Chapter Separator</h1>
+            </div>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+              Transform long chapters into manageable sections with smart word replacement and organized card layouts.
+            </p>
           </div>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Transform long chapters into manageable sections. Input your text and specify how many paragraphs per card.
-          </p>
+          
+          {/* Feature badges */}
+          <div className="flex flex-wrap justify-center gap-3">
+            <Badge variant="secondary" className="px-4 py-2 text-sm bg-blue-50 text-blue-700 border-blue-200">
+              <Sparkles className="mr-2 h-4 w-4" />
+              Smart Text Processing
+            </Badge>
+            <Badge variant="secondary" className="px-4 py-2 text-sm bg-green-50 text-green-700 border-green-200">
+              <Database className="mr-2 h-4 w-4" />
+              Auto-Save
+            </Badge>
+            <Badge variant="secondary" className="px-4 py-2 text-sm bg-purple-50 text-purple-700 border-purple-200">
+              <Copy className="mr-2 h-4 w-4" />
+              One-Click Copy
+            </Badge>
+          </div>
         </div>
 
         {/* Input Section */}
-        <Card className="mb-8 shadow-lg border-0 bg-white/80 backdrop-blur-sm">
-          <CardHeader className="pb-6">
-            <CardTitle className="flex items-center gap-2 text-xl">
-              <Scissors className="h-5 w-5 text-blue-600" />
+        <Card className="mb-8 shadow-lg border-0 bg-white/90 backdrop-blur-sm">
+          <CardHeader className="pb-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-t-lg">
+            <CardTitle className="flex items-center gap-3 text-xl">
+              <div className="bg-blue-100 p-2 rounded-lg">
+                <Scissors className="h-5 w-5 text-blue-600" />
+              </div>
               Chapter Input & Settings
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="grid md:grid-cols-4 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="paragraphCount" className="text-sm font-medium">
+          <CardContent className="p-6 space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="space-y-3">
+                <Label htmlFor="paragraphCount" className="text-sm font-semibold text-gray-700">
                   Paragraphs per Card
                 </Label>
                 <Input
@@ -302,16 +338,18 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                   max="20"
                   value={paragraphCount}
                   onChange={(e) => setParagraphCount(Number(e.target.value))}
-                  className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                  className="border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition-colors duration-200 text-center font-medium"
                 />
               </div>
               <div className="flex items-end">
                 <Button 
                   onClick={loadDummyData}
                   variant="outline"
-                  className="w-full border-blue-200 text-blue-600 hover:bg-blue-50"
+                  size="lg"
+                  className="w-full border-blue-200 text-blue-600 hover:bg-blue-50 hover:border-blue-300 transition-all duration-200"
                 >
-                  Load Sample Text
+                  <BookOpen className="mr-2 h-4 w-4" />
+                  Load Sample
                 </Button>
               </div>
               {user && (
@@ -320,7 +358,8 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                     onClick={() => saveToDatabase()}
                     disabled={isSaving}
                     variant="outline"
-                    className="w-full border-green-200 text-green-600 hover:bg-green-50"
+                    size="lg"
+                    className="w-full border-green-200 text-green-600 hover:bg-green-50 hover:border-green-300 transition-all duration-200 disabled:opacity-50"
                   >
                     <Database className="mr-2 h-4 w-4" />
                     {isSaving ? 'Saving...' : 'Save to DB'}
@@ -331,7 +370,8 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                 <Button 
                   onClick={resetAll}
                   variant="outline"
-                  className="w-full border-red-200 text-red-600 hover:bg-red-50"
+                  size="lg"
+                  className="w-full border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 transition-all duration-200"
                 >
                   <RotateCcw className="mr-2 h-4 w-4" />
                   Reset All
@@ -339,25 +379,26 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
               </div>
             </div>
             
-            <div className="space-y-2">
-              <Label htmlFor="originalText" className="text-sm font-medium">
+            <div className="space-y-3">
+              <Label htmlFor="originalText" className="text-sm font-semibold text-gray-700">
                 Original Chapter Text
               </Label>
               <Textarea
                 id="originalText"
-                placeholder="Paste your chapter text here, or use the sample text button above..."
+                placeholder="Paste your chapter text here, or use the sample text button above to get started..."
                 value={originalText}
                 onChange={(e) => setOriginalText(e.target.value)}
-                className="min-h-[200px] border-gray-300 focus:border-blue-500 focus:ring-blue-500 resize-none"
+                className="min-h-[200px] border-gray-300 focus:border-blue-500 focus:ring-blue-500 resize-none transition-colors duration-200 text-gray-700 leading-relaxed"
               />
             </div>
             
             <Button 
               onClick={separateChapter}
-              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white py-3 text-lg font-medium transition-all duration-200 transform hover:scale-[1.02]"
+              size="lg"
+              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white py-4 text-lg font-semibold transition-all duration-200 transform hover:scale-[1.02] shadow-lg hover:shadow-xl"
               disabled={!originalText && !dummyText}
             >
-              <Scissors className="mr-2 h-5 w-5" />
+              <Scissors className="mr-3 h-5 w-5" />
               Apply Replacements & Separate Chapter
             </Button>
           </CardContent>
@@ -373,50 +414,67 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
 
         {/* Results Section */}
         {separatedCards.length > 0 && (
-          <div className="space-y-6">
-            <div className="text-center">
-              <h2 className="text-2xl font-bold text-gray-800 mb-2">
-                Separated Chapter Cards
+          <div className="space-y-8">
+            <div className="text-center space-y-4">
+              <h2 className="text-3xl font-bold text-gray-800 mb-4">
+                Your Separated Chapter Cards
               </h2>
-              <p className="text-gray-600">
-                {separatedCards.length} cards created • {paragraphCount} paragraphs per card
+              <div className="flex flex-wrap justify-center items-center gap-3">
+                <Badge variant="outline" className="px-4 py-2 text-base bg-blue-50 text-blue-700 border-blue-200">
+                  {separatedCards.length} cards created
+                </Badge>
+                <Badge variant="outline" className="px-4 py-2 text-base bg-purple-50 text-purple-700 border-purple-200">
+                  {paragraphCount} paragraphs per card
+                </Badge>
                 {user && currentSessionId && (
-                  <span className="text-green-600 ml-2">• Saved to database</span>
+                  <Badge variant="outline" className="px-4 py-2 text-base bg-green-50 text-green-700 border-green-200">
+                    <Database className="mr-2 h-3 w-3" />
+                    Saved to database
+                  </Badge>
                 )}
                 {!user && (
-                  <span className="text-orange-600 ml-2">• Not saved (sign in to save)</span>
+                  <Badge variant="outline" className="px-4 py-2 text-base bg-orange-50 text-orange-700 border-orange-200">
+                    Not saved (sign in to save)
+                  </Badge>
                 )}
-              </p>
+              </div>
             </div>
             
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
               {separatedCards.map((cardContent, index) => (
                 <Card 
                   key={index} 
-                  className="shadow-lg border-0 bg-white/90 backdrop-blur-sm hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02]"
+                  className="shadow-lg border-0 bg-white/95 backdrop-blur-sm hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] group"
                 >
-                  <CardHeader className="pb-4">
+                  <CardHeader className="pb-4 bg-gradient-to-r from-gray-50 to-blue-50 rounded-t-lg">
                     <CardTitle className="flex items-center justify-between text-lg">
-                      <span className="text-gray-700">Card {index + 1}</span>
+                      <div className="flex items-center gap-2">
+                        <div className="bg-blue-100 p-2 rounded-lg group-hover:bg-blue-200 transition-colors duration-200">
+                          <BookOpen className="h-4 w-4 text-blue-600" />
+                        </div>
+                        <span className="text-gray-700 font-semibold">Card {index + 1}</span>
+                      </div>
                       <Button
                         onClick={() => copyToClipboard(cardContent, index)}
                         size="sm"
                         variant="outline"
-                        className="border-blue-200 text-blue-600 hover:bg-blue-50 hover:border-blue-300"
+                        className="border-blue-200 text-blue-600 hover:bg-blue-50 hover:border-blue-300 transition-all duration-200"
                       >
-                        <Copy className="h-4 w-4 mr-1" />
+                        <Copy className="h-4 w-4 mr-2" />
                         Copy
                       </Button>
                     </CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <div className="bg-gray-50 rounded-lg p-4 max-h-64 overflow-y-auto">
+                  <CardContent className="p-6">
+                    <div className="bg-gray-50 rounded-lg p-4 max-h-64 overflow-y-auto border border-gray-200">
                       <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">
                         {cardContent}
                       </p>
                     </div>
-                    <div className="mt-3 text-xs text-gray-500 text-center">
-                      {cardContent.split('\n\n').length} paragraphs
+                    <div className="mt-4 flex items-center justify-center">
+                      <Badge variant="secondary" className="text-xs bg-gray-100 text-gray-600">
+                        {cardContent.split('\n\n').length} paragraphs • {cardContent.length} characters
+                      </Badge>
                     </div>
                   </CardContent>
                 </Card>
@@ -427,15 +485,30 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
 
         {/* Empty State */}
         {separatedCards.length === 0 && (
-          <Card className="text-center py-12 bg-white/50 backdrop-blur-sm border-dashed border-2 border-gray-300">
-            <CardContent>
-              <BookOpen className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-xl font-medium text-gray-700 mb-2">
-                Ready to Separate Your Chapter
-              </h3>
-              <p className="text-gray-500">
-                Input your chapter text above and click "Separate Chapter" to get started.
-              </p>
+          <Card className="text-center py-16 bg-white/70 backdrop-blur-sm border-dashed border-2 border-gray-300 hover:border-blue-300 transition-colors duration-200">
+            <CardContent className="space-y-6">
+              <div className="bg-blue-50 p-6 rounded-full w-24 h-24 mx-auto flex items-center justify-center">
+                <BookOpen className="h-12 w-12 text-blue-400" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-2xl font-semibold text-gray-700">
+                  Ready to Separate Your Chapter
+                </h3>
+                <p className="text-gray-500 max-w-md mx-auto leading-relaxed">
+                  Input your chapter text above, configure your word replacements, and click "Separate Chapter" to get started.
+                </p>
+              </div>
+              <div className="flex justify-center">
+                <Button 
+                  onClick={loadDummyData}
+                  variant="outline"
+                  size="lg"
+                  className="border-blue-200 text-blue-600 hover:bg-blue-50 hover:border-blue-300 transition-all duration-200"
+                >
+                  <Sparkles className="mr-2 h-5 w-5" />
+                  Try with Sample Text
+                </Button>
+              </div>
             </CardContent>
           </Card>
         )}

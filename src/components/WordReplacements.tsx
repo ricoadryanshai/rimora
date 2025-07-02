@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,7 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious, PaginationEllipsis } from "@/components/ui/pagination";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Trash2, Save, Search } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Plus, Trash2, Save, Search, FileText, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -376,7 +378,7 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
   const isSomeFilteredSelected = filteredReplacements.some(r => selectedItems.has(r.id));
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* CSV Import/Export Section */}
       <CSVManager 
         replacements={replacements}
@@ -384,153 +386,183 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
         userRole={userRole}
       />
 
-      {/* Existing Word Replacements Form */}
-      <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm">
-        <CardHeader className="pb-4">
-          <CardTitle className="flex items-center gap-2 text-xl">
-            <Plus className="h-5 w-5 text-blue-600" />
+      {/* Main Word Replacements Form */}
+      <Card className="shadow-lg border-0 bg-white/90 backdrop-blur-sm">
+        <CardHeader className="pb-6 bg-gradient-to-r from-green-50 to-blue-50 rounded-t-lg">
+          <CardTitle className="flex items-center gap-3 text-xl">
+            <div className="bg-green-100 p-2 rounded-lg">
+              <FileText className="h-5 w-5 text-green-600" />
+            </div>
             Find & Replace Words
+            {replacements.length > 0 && (
+              <Badge variant="secondary" className="ml-2 bg-blue-100 text-blue-700">
+                {replacements.length} active
+              </Badge>
+            )}
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="p-6 space-y-6">
           {/* Add new replacement form */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="originalWord" className="text-sm font-medium">
-                Original Word
-              </Label>
-              <Input
-                id="originalWord"
-                placeholder="Word to replace"
-                value={newOriginal}
-                onChange={(e) => setNewOriginal(e.target.value)}
-                className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="replacementWord" className="text-sm font-medium">
-                Replacement Word
-              </Label>
-              <Input
-                id="replacementWord"
-                placeholder="Replace with"
-                value={newReplacement}
-                onChange={(e) => setNewReplacement(e.target.value)}
-                className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-              />
-            </div>
-            <div className="flex items-end">
-              <Button
-                onClick={addReplacement}
-                disabled={isSaving}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Add
-              </Button>
+          <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+              <Plus className="h-5 w-5 text-blue-600" />
+              Add New Word Replacement
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="originalWord" className="text-sm font-semibold text-gray-700">
+                  Original Word
+                </Label>
+                <Input
+                  id="originalWord"
+                  placeholder="Word to replace"
+                  value={newOriginal}
+                  onChange={(e) => setNewOriginal(e.target.value)}
+                  className="border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition-colors duration-200"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="replacementWord" className="text-sm font-semibold text-gray-700">
+                  Replacement Word
+                </Label>
+                <Input
+                  id="replacementWord"
+                  placeholder="Replace with"
+                  value={newReplacement}
+                  onChange={(e) => setNewReplacement(e.target.value)}
+                  className="border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition-colors duration-200"
+                />
+              </div>
+              <div className="flex items-end">
+                <Button
+                  onClick={addReplacement}
+                  disabled={isSaving || !newOriginal.trim() || !newReplacement.trim()}
+                  size="lg"
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white transition-colors duration-200 disabled:opacity-50"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Replacement
+                </Button>
+              </div>
             </div>
           </div>
 
           {/* Search and Bulk Actions */}
           {replacements.length > 0 && (
-            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+            <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between bg-blue-50 p-4 rounded-lg border border-blue-200">
               <div className="relative flex-1 max-w-md">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
                   placeholder="Search word replacements..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                  className="pl-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500 bg-white"
                 />
               </div>
               
-              {selectedItems.size > 0 && (
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-600">
-                    {selectedItems.size} selected
-                  </span>
-                  <Button
-                    onClick={removeSelectedReplacements}
-                    disabled={isSaving}
-                    variant="destructive"
-                    size="sm"
-                  >
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Delete Selected
-                  </Button>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Replacements table */}
-          {filteredReplacements.length > 0 && (
-            <div className="space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <h3 className="text-lg font-medium">
-                  Word Replacements ({filteredReplacements.length})
-                  {totalPages > 1 && (
-                    <span className="text-sm font-normal text-gray-500 ml-2">
-                      Page {currentPage} of {totalPages}
-                    </span>
-                  )}
-                </h3>
+              <div className="flex items-center gap-4">
+                {selectedItems.size > 0 && (
+                  <div className="flex items-center gap-3">
+                    <Badge variant="outline" className="px-3 py-1 bg-white text-blue-700 border-blue-300">
+                      {selectedItems.size} selected
+                    </Badge>
+                    <Button
+                      onClick={removeSelectedReplacements}
+                      disabled={isSaving}
+                      variant="destructive"
+                      size="sm"
+                      className="transition-colors duration-200"
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Delete Selected
+                    </Button>
+                  </div>
+                )}
+                
                 {sessionId && (
                   <Button
                     onClick={saveReplacementsToDatabase}
                     disabled={isSaving}
                     variant="outline"
                     size="sm"
-                    className="border-green-200 text-green-600 hover:bg-green-50"
+                    className="border-green-200 text-green-600 hover:bg-green-50 transition-colors duration-200"
                   >
                     <Save className="mr-2 h-4 w-4" />
                     {isSaving ? 'Saving...' : 'Save All'}
                   </Button>
                 )}
               </div>
+            </div>
+          )}
+
+          {/* Replacements table */}
+          {filteredReplacements.length > 0 && (
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <h3 className="text-lg font-semibold text-gray-800">
+                    Word Replacements ({filteredReplacements.length})
+                  </h3>
+                  {totalPages > 1 && (
+                    <p className="text-sm text-gray-600">
+                      Showing page {currentPage} of {totalPages}
+                    </p>
+                  )}
+                </div>
+              </div>
               
-              <div className="border rounded-lg overflow-hidden">
+              <div className="border rounded-lg overflow-hidden bg-white shadow-sm">
                 <div className="overflow-x-auto">
                   <Table>
-                    <TableHeader>
+                    <TableHeader className="bg-gray-50">
                       <TableRow>
-                        <TableHead className="w-12">
-                          <Checkbox
-                            checked={isAllFilteredSelected}
-                            onCheckedChange={handleSelectAll}
-                            className={cn(
-                              "data-[state=indeterminate]:bg-primary data-[state=indeterminate]:text-primary-foreground",
-                              isSomeFilteredSelected && !isAllFilteredSelected && "data-[state=indeterminate]"
+                        <TableHead className="w-16 p-4">
+                          <div className="flex items-center gap-2">
+                            <Checkbox
+                              checked={isAllFilteredSelected}
+                              onCheckedChange={handleSelectAll}
+                              className={cn(
+                                "data-[state=indeterminate]:bg-primary data-[state=indeterminate]:text-primary-foreground",
+                                isSomeFilteredSelected && !isAllFilteredSelected && "data-[state=indeterminate]"
+                              )}
+                            />
+                            {selectedItems.size > 0 && (
+                              <Badge variant="secondary" className="text-xs px-2 py-0.5">
+                                {selectedItems.size}/{filteredReplacements.length}
+                              </Badge>
                             )}
-                          />
-                          {selectedItems.size > 0 && (
-                            <span className="ml-2 text-xs text-gray-500">
-                              ({selectedItems.size}/{filteredReplacements.length})
-                            </span>
-                          )}
+                          </div>
                         </TableHead>
-                        <TableHead className="min-w-[120px]">Original Word</TableHead>
-                        <TableHead className="min-w-[120px]">Replacement Word</TableHead>
-                        <TableHead className="w-20">Actions</TableHead>
+                        <TableHead className="min-w-[150px] font-semibold">Original Word</TableHead>
+                        <TableHead className="min-w-[150px] font-semibold">Replacement Word</TableHead>
+                        <TableHead className="w-24 text-center font-semibold">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {currentReplacements.map((replacement) => (
-                        <TableRow key={replacement.id}>
-                          <TableCell>
+                      {currentReplacements.map((replacement, index) => (
+                        <TableRow key={replacement.id} className="hover:bg-gray-50 transition-colors duration-150">
+                          <TableCell className="p-4">
                             <Checkbox
                               checked={selectedItems.has(replacement.id)}
                               onCheckedChange={(checked) => handleSelectItem(replacement.id, checked as boolean)}
                             />
                           </TableCell>
-                          <TableCell className="font-medium break-words">{replacement.original_word}</TableCell>
-                          <TableCell className="break-words">{replacement.replacement_word}</TableCell>
-                          <TableCell>
+                          <TableCell className="font-medium break-words p-4">
+                            <code className="bg-red-50 text-red-700 px-2 py-1 rounded text-sm">
+                              {replacement.original_word}
+                            </code>
+                          </TableCell>
+                          <TableCell className="break-words p-4">
+                            <code className="bg-green-50 text-green-700 px-2 py-1 rounded text-sm">
+                              {replacement.replacement_word}
+                            </code>
+                          </TableCell>
+                          <TableCell className="text-center p-4">
                             <Button
                               onClick={() => removeReplacement(replacement.id)}
                               variant="ghost"
                               size="sm"
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50 transition-colors duration-200"
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -552,7 +584,7 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
                         <PaginationPrevious 
                           onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
                           className={cn(
-                            "cursor-pointer text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2",
+                            "cursor-pointer text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2 transition-colors duration-200",
                             currentPage === 1 && "pointer-events-none opacity-50"
                           )}
                         />
@@ -567,7 +599,7 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
                             <PaginationLink
                               onClick={() => handlePageChange(page as number)}
                               isActive={currentPage === page}
-                              className="cursor-pointer h-8 w-8 sm:h-9 sm:w-9 text-xs sm:text-sm p-0 flex items-center justify-center"
+                              className="cursor-pointer h-8 w-8 sm:h-9 sm:w-9 text-xs sm:text-sm p-0 flex items-center justify-center transition-colors duration-200"
                             >
                               {page}
                             </PaginationLink>
@@ -580,7 +612,7 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
                         <PaginationNext 
                           onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
                           className={cn(
-                            "cursor-pointer text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2",
+                            "cursor-pointer text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2 transition-colors duration-200",
                             currentPage === totalPages && "pointer-events-none opacity-50"
                           )}
                         />
@@ -592,19 +624,29 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
             </div>
           )}
 
+          {/* No results found state */}
           {filteredReplacements.length === 0 && replacements.length > 0 && (
-            <div className="text-center py-8 text-gray-500">
-              <Search className="h-12 w-12 text-gray-300 mx-auto mb-2" />
-              <p>No word replacements found</p>
-              <p className="text-sm">Try adjusting your search terms</p>
+            <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+              <Search className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-700 mb-2">No matches found</h3>
+              <p className="text-gray-500">Try adjusting your search terms</p>
             </div>
           )}
 
+          {/* Empty state */}
           {replacements.length === 0 && (
-            <div className="text-center py-8 text-gray-500">
-              <Plus className="h-12 w-12 text-gray-300 mx-auto mb-2" />
-              <p>No word replacements added yet</p>
-              <p className="text-sm">Add words above to replace them in your chapter</p>
+            <div className="text-center py-12 bg-gradient-to-br from-blue-50 to-green-50 rounded-lg border-2 border-dashed border-gray-300">
+              <div className="bg-blue-100 p-4 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                <FileText className="h-8 w-8 text-blue-600" />
+              </div>
+              <h3 className="text-lg font-medium text-gray-700 mb-2">No word replacements yet</h3>
+              <p className="text-gray-500 mb-4 max-w-md mx-auto">
+                Add word replacement pairs above to automatically replace specific words in your chapter text
+              </p>
+              <div className="flex items-center justify-center gap-2 text-sm text-blue-600">
+                <AlertCircle className="h-4 w-4" />
+                <span>Tip: Use this to replace character names, locations, or any recurring words</span>
+              </div>
             </div>
           )}
         </CardContent>
