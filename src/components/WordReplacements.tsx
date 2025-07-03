@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import CSVManager from "./CSVManager";
+import DragDropUpload from "./DragDropUpload";
 
 interface WordReplacement {
   id: string;
@@ -36,7 +36,7 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const { toast } = useToast();
-  const { userRole } = useAuth();
+  const { userRole, user } = useAuth();
 
   const filteredReplacements = replacements.filter(replacement =>
     replacement.original_word.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -549,18 +549,26 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
           )}
 
           {replacements.length === 0 && (
-            <div className="text-center py-12 bg-gradient-to-br from-blue-50 to-green-50 rounded-lg border-2 border-dashed border-gray-300 hover:border-blue-300 transition-all duration-200">
-              <div className="bg-gradient-to-br from-blue-100 to-blue-200 p-4 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center shadow-lg">
-                <FileText className="h-8 w-8 text-blue-600" />
+            <div className="bg-gradient-to-br from-blue-50 to-green-50 rounded-lg p-6">
+              <div className="text-center mb-6">
+                <div className="bg-gradient-to-br from-blue-100 to-blue-200 p-4 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center shadow-lg">
+                  <FileText className="h-8 w-8 text-blue-600" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-700 mb-2">No word replacements yet</h3>
+                <p className="text-gray-500 mb-4 max-w-md mx-auto">
+                  Add word replacement pairs above or import from a CSV file below
+                </p>
               </div>
-              <h3 className="text-lg font-medium text-gray-700 mb-2">No word replacements yet</h3>
-              <p className="text-gray-500 mb-4 max-w-md mx-auto">
-                Add word replacement pairs above to automatically replace specific words in your chapter text
-              </p>
-              <div className="flex items-center justify-center gap-2 text-sm text-blue-600">
-                <AlertCircle className="h-4 w-4" />
-                <span>Tip: Use this to replace character names, locations, or any recurring words</span>
-              </div>
+              
+              <DragDropUpload 
+                onImport={handleImportReplacements}
+                canUseFeature={() => {
+                  if (!user) return false;
+                  if (userRole === 'super_user') return true;
+                  return userRole === 'user';
+                }}
+                user={user}
+              />
             </div>
           )}
         </CardContent>
