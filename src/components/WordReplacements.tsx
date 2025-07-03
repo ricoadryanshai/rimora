@@ -315,6 +315,12 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
     filteredReplacements.every(r => selectedItems.has(r.id));
   const isSomeFilteredSelected = filteredReplacements.some(r => selectedItems.has(r.id));
 
+  const canUseFeature = () => {
+    if (!user) return false;
+    if (userRole === 'super_user') return true;
+    return userRole === 'user';
+  };
+
   return (
     <div className="space-y-8">
       <CSVManager 
@@ -562,11 +568,7 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
               
               <DragDropUpload 
                 onImport={handleImportReplacements}
-                canUseFeature={() => {
-                  if (!user) return false;
-                  if (userRole === 'super_user') return true;
-                  return userRole === 'user';
-                }}
+                canUseFeature={canUseFeature()}
                 user={user}
               />
             </div>
