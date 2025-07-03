@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -7,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Copy, BookOpen, Scissors, RotateCcw, LogIn, Save, Database, Sparkles } from "lucide-react";
+import { Copy, BookOpen, Scissors, RotateCcw, LogIn, Database, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,7 +19,6 @@ const Index = () => {
   const [separatedCards, setSeparatedCards] = useState<string[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [wordReplacements, setWordReplacements] = useState<any[]>([]);
-  const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
   const { user, loading } = useAuth();
 
@@ -49,7 +47,6 @@ Totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architec
 
 Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit.`;
 
-  // Load user's last session when authenticated
   useEffect(() => {
     if (user) {
       loadLastSession();
@@ -75,7 +72,6 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
       if (data) {
         setOriginalText(data.original_text);
         setParagraphCount(data.paragraph_count);
-        // Fix: Properly handle the Json type conversion to string[]
         const cards = Array.isArray(data.separated_cards) ? data.separated_cards as string[] : [];
         setSeparatedCards(cards);
         setCurrentSessionId(data.id);
@@ -89,7 +85,6 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
     let processedText = text;
     
     replacements.forEach(({ original_word, replacement_word }) => {
-      // Use global case-insensitive replace
       const regex = new RegExp(original_word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
       processedText = processedText.replace(regex, replacement_word);
     });
@@ -107,23 +102,19 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
       return;
     }
 
-    setIsSaving(true);
-
     try {
-      // Use the passed cards or the current state
       const cardsData = cardsToSave || separatedCards;
       
       const sessionData = {
         user_id: user.id,
         original_text: originalText,
         paragraph_count: paragraphCount,
-        separated_cards: cardsData, // Use the correct cards data
+        separated_cards: cardsData,
         updated_at: new Date().toISOString(),
       };
 
       let result;
       if (currentSessionId) {
-        // Update existing session
         result = await supabase
           .from('chapter_sessions')
           .update(sessionData)
@@ -132,7 +123,6 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
           .select()
           .single();
       } else {
-        // Create new session
         result = await supabase
           .from('chapter_sessions')
           .insert(sessionData)
@@ -159,15 +149,12 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
         description: "Failed to save your session. Please try again.",
         variant: "destructive",
       });
-    } finally {
-      setIsSaving(false);
     }
   };
 
   const separateChapter = async () => {
     const textToProcess = originalText || dummyText;
     
-    // Apply word replacements before separating into paragraphs
     const processedText = applyWordReplacements(textToProcess, wordReplacements);
     
     const paragraphs = processedText.split('\n').filter(p => p.trim() !== '');
@@ -180,9 +167,7 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
     
     setSeparatedCards(cards);
     
-    // Auto-save for authenticated users - pass the cards directly
     if (user) {
-      // Save immediately with the new cards data
       await saveToDatabase(cards);
     }
 
@@ -250,16 +235,15 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       <div className="container mx-auto px-4 py-6 lg:py-8 max-w-7xl">
-        {/* Authentication prompt for non-authenticated users */}
         {!user && (
-          <Card className="mb-8 shadow-md border-l-4 border-l-blue-500 bg-gradient-to-r from-blue-50 to-indigo-50">
+          <Card className="mb-8 shadow-lg border-l-4 border-l-blue-500 bg-gradient-to-r from-blue-50 to-indigo-50 hover:shadow-xl transition-shadow duration-300">
             <CardContent className="p-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-start gap-4">
                   <div className="bg-blue-100 p-3 rounded-full">
                     <LogIn className="h-6 w-6 text-blue-600" />
                   </div>
-                  <div className="space-y-1">
+                  <div className="space-y-2">
                     <h3 className="text-blue-900 font-semibold text-lg">Save Your Work Permanently</h3>
                     <p className="text-blue-700 text-sm leading-relaxed">
                       Create an account to save your separated chapters, word replacements, and continue working across sessions.
@@ -270,7 +254,7 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                   <Button 
                     variant="outline" 
                     size="lg" 
-                    className="border-blue-300 text-blue-700 hover:bg-blue-100 hover:border-blue-400 transition-colors duration-200 whitespace-nowrap"
+                    className="border-blue-300 text-blue-700 hover:bg-blue-100 hover:border-blue-400 transition-all duration-200 whitespace-nowrap shadow-sm hover:shadow-md"
                   >
                     <LogIn className="mr-2 h-4 w-4" />
                     Sign In
@@ -281,34 +265,34 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
           </Card>
         )}
 
-        {/* Header for authenticated users */}
         <Header />
 
         {/* Main Header */}
         <div className="text-center mb-12 space-y-6">
           <div className="space-y-4">
             <div className="flex items-center justify-center gap-3 mb-4">
-              <div className="bg-blue-100 p-3 rounded-full">
+              <div className="bg-gradient-to-br from-blue-100 to-blue-200 p-3 rounded-2xl shadow-lg">
                 <BookOpen className="h-8 w-8 text-blue-600" />
               </div>
-              <h1 className="text-4xl lg:text-5xl font-bold text-gray-800">Novel Chapter Separator</h1>
+              <h1 className="text-4xl lg:text-5xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+                Novel Chapter Separator
+              </h1>
             </div>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
               Transform long chapters into manageable sections with smart word replacement and organized card layouts.
             </p>
           </div>
           
-          {/* Feature badges */}
           <div className="flex flex-wrap justify-center gap-3">
-            <Badge variant="secondary" className="px-4 py-2 text-sm bg-blue-50 text-blue-700 border-blue-200">
+            <Badge variant="secondary" className="px-4 py-2 text-sm bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 transition-colors">
               <Sparkles className="mr-2 h-4 w-4" />
               Smart Text Processing
             </Badge>
-            <Badge variant="secondary" className="px-4 py-2 text-sm bg-green-50 text-green-700 border-green-200">
+            <Badge variant="secondary" className="px-4 py-2 text-sm bg-green-50 text-green-700 border-green-200 hover:bg-green-100 transition-colors">
               <Database className="mr-2 h-4 w-4" />
               Auto-Save
             </Badge>
-            <Badge variant="secondary" className="px-4 py-2 text-sm bg-purple-50 text-purple-700 border-purple-200">
+            <Badge variant="secondary" className="px-4 py-2 text-sm bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100 transition-colors">
               <Copy className="mr-2 h-4 w-4" />
               One-Click Copy
             </Badge>
@@ -316,17 +300,17 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
         </div>
 
         {/* Input Section */}
-        <Card className="mb-8 shadow-lg border-0 bg-white/90 backdrop-blur-sm">
+        <Card className="mb-8 shadow-lg border-0 bg-white/95 backdrop-blur-sm hover:shadow-xl transition-all duration-300">
           <CardHeader className="pb-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-t-lg">
             <CardTitle className="flex items-center gap-3 text-xl">
-              <div className="bg-blue-100 p-2 rounded-lg">
+              <div className="bg-gradient-to-br from-blue-100 to-blue-200 p-2 rounded-lg shadow-sm">
                 <Scissors className="h-5 w-5 text-blue-600" />
               </div>
               Chapter Input & Settings
             </CardTitle>
           </CardHeader>
           <CardContent className="p-6 space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-3">
                 <Label htmlFor="paragraphCount" className="text-sm font-semibold text-gray-700">
                   Paragraphs per Card
@@ -338,7 +322,7 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                   max="20"
                   value={paragraphCount}
                   onChange={(e) => setParagraphCount(Number(e.target.value))}
-                  className="border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition-colors duration-200 text-center font-medium"
+                  className="border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition-all duration-200 text-center font-medium hover:border-gray-400"
                 />
               </div>
               <div className="flex items-end">
@@ -346,32 +330,18 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                   onClick={loadDummyData}
                   variant="outline"
                   size="lg"
-                  className="w-full border-blue-200 text-blue-600 hover:bg-blue-50 hover:border-blue-300 transition-all duration-200"
+                  className="w-full border-blue-200 text-blue-600 hover:bg-blue-50 hover:border-blue-300 transition-all duration-200 shadow-sm hover:shadow-md"
                 >
                   <BookOpen className="mr-2 h-4 w-4" />
                   Load Sample
                 </Button>
               </div>
-              {user && (
-                <div className="flex items-end">
-                  <Button 
-                    onClick={() => saveToDatabase()}
-                    disabled={isSaving}
-                    variant="outline"
-                    size="lg"
-                    className="w-full border-green-200 text-green-600 hover:bg-green-50 hover:border-green-300 transition-all duration-200 disabled:opacity-50"
-                  >
-                    <Database className="mr-2 h-4 w-4" />
-                    {isSaving ? 'Saving...' : 'Save to DB'}
-                  </Button>
-                </div>
-              )}
               <div className="flex items-end">
                 <Button 
                   onClick={resetAll}
                   variant="outline"
                   size="lg"
-                  className="w-full border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 transition-all duration-200"
+                  className="w-full border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 transition-all duration-200 shadow-sm hover:shadow-md"
                 >
                   <RotateCcw className="mr-2 h-4 w-4" />
                   Reset All
@@ -388,7 +358,7 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                 placeholder="Paste your chapter text here, or use the sample text button above to get started..."
                 value={originalText}
                 onChange={(e) => setOriginalText(e.target.value)}
-                className="min-h-[200px] border-gray-300 focus:border-blue-500 focus:ring-blue-500 resize-none transition-colors duration-200 text-gray-700 leading-relaxed"
+                className="min-h-[200px] border-gray-300 focus:border-blue-500 focus:ring-blue-500 resize-none transition-all duration-200 text-gray-700 leading-relaxed hover:border-gray-400"
               />
             </div>
             
@@ -404,7 +374,6 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
           </CardContent>
         </Card>
 
-        {/* Word Replacements Section */}
         <div className="mb-8">
           <WordReplacements 
             sessionId={currentSessionId}
@@ -412,28 +381,27 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
           />
         </div>
 
-        {/* Results Section */}
         {separatedCards.length > 0 && (
           <div className="space-y-8">
             <div className="text-center space-y-4">
-              <h2 className="text-3xl font-bold text-gray-800 mb-4">
+              <h2 className="text-3xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent mb-4">
                 Your Separated Chapter Cards
               </h2>
               <div className="flex flex-wrap justify-center items-center gap-3">
-                <Badge variant="outline" className="px-4 py-2 text-base bg-blue-50 text-blue-700 border-blue-200">
+                <Badge variant="outline" className="px-4 py-2 text-base bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 transition-colors">
                   {separatedCards.length} cards created
                 </Badge>
-                <Badge variant="outline" className="px-4 py-2 text-base bg-purple-50 text-purple-700 border-purple-200">
+                <Badge variant="outline" className="px-4 py-2 text-base bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100 transition-colors">
                   {paragraphCount} paragraphs per card
                 </Badge>
                 {user && currentSessionId && (
-                  <Badge variant="outline" className="px-4 py-2 text-base bg-green-50 text-green-700 border-green-200">
+                  <Badge variant="outline" className="px-4 py-2 text-base bg-green-50 text-green-700 border-green-200 hover:bg-green-100 transition-colors">
                     <Database className="mr-2 h-3 w-3" />
-                    Saved to database
+                    Auto-saved
                   </Badge>
                 )}
                 {!user && (
-                  <Badge variant="outline" className="px-4 py-2 text-base bg-orange-50 text-orange-700 border-orange-200">
+                  <Badge variant="outline" className="px-4 py-2 text-base bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100 transition-colors">
                     Not saved (sign in to save)
                   </Badge>
                 )}
@@ -449,7 +417,7 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                   <CardHeader className="pb-4 bg-gradient-to-r from-gray-50 to-blue-50 rounded-t-lg">
                     <CardTitle className="flex items-center justify-between text-lg">
                       <div className="flex items-center gap-2">
-                        <div className="bg-blue-100 p-2 rounded-lg group-hover:bg-blue-200 transition-colors duration-200">
+                        <div className="bg-gradient-to-br from-blue-100 to-blue-200 p-2 rounded-lg group-hover:from-blue-200 group-hover:to-blue-300 transition-all duration-200 shadow-sm">
                           <BookOpen className="h-4 w-4 text-blue-600" />
                         </div>
                         <span className="text-gray-700 font-semibold">Card {index + 1}</span>
@@ -458,7 +426,7 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                         onClick={() => copyToClipboard(cardContent, index)}
                         size="sm"
                         variant="outline"
-                        className="border-blue-200 text-blue-600 hover:bg-blue-50 hover:border-blue-300 transition-all duration-200"
+                        className="border-blue-200 text-blue-600 hover:bg-blue-50 hover:border-blue-300 transition-all duration-200 shadow-sm hover:shadow-md"
                       >
                         <Copy className="h-4 w-4 mr-2" />
                         Copy
@@ -466,13 +434,13 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-6">
-                    <div className="bg-gray-50 rounded-lg p-4 max-h-64 overflow-y-auto border border-gray-200">
+                    <div className="bg-gray-50 rounded-lg p-4 max-h-64 overflow-y-auto border border-gray-200 hover:bg-gray-100 transition-colors duration-200">
                       <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">
                         {cardContent}
                       </p>
                     </div>
                     <div className="mt-4 flex items-center justify-center">
-                      <Badge variant="secondary" className="text-xs bg-gray-100 text-gray-600">
+                      <Badge variant="secondary" className="text-xs bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors">
                         {cardContent.split('\n\n').length} paragraphs • {cardContent.length} characters
                       </Badge>
                     </div>
@@ -483,11 +451,10 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
           </div>
         )}
 
-        {/* Empty State */}
         {separatedCards.length === 0 && (
-          <Card className="text-center py-16 bg-white/70 backdrop-blur-sm border-dashed border-2 border-gray-300 hover:border-blue-300 transition-colors duration-200">
+          <Card className="text-center py-16 bg-white/70 backdrop-blur-sm border-dashed border-2 border-gray-300 hover:border-blue-300 transition-all duration-200 hover:bg-white/80">
             <CardContent className="space-y-6">
-              <div className="bg-blue-50 p-6 rounded-full w-24 h-24 mx-auto flex items-center justify-center">
+              <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-full w-24 h-24 mx-auto flex items-center justify-center shadow-lg">
                 <BookOpen className="h-12 w-12 text-blue-400" />
               </div>
               <div className="space-y-2">
@@ -503,7 +470,7 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                   onClick={loadDummyData}
                   variant="outline"
                   size="lg"
-                  className="border-blue-200 text-blue-600 hover:bg-blue-50 hover:border-blue-300 transition-all duration-200"
+                  className="border-blue-200 text-blue-600 hover:bg-blue-50 hover:border-blue-300 transition-all duration-200 shadow-sm hover:shadow-md"
                 >
                   <Sparkles className="mr-2 h-5 w-5" />
                   Try with Sample Text

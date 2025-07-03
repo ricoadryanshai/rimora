@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious, PaginationEllipsis } from "@/components/ui/pagination";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Save, Search, FileText, AlertCircle } from "lucide-react";
+import { Plus, Trash2, Search, FileText, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -38,29 +38,24 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
   const { toast } = useToast();
   const { userRole } = useAuth();
 
-  // Filter replacements based on search term
   const filteredReplacements = replacements.filter(replacement =>
     replacement.original_word.toLowerCase().includes(searchTerm.toLowerCase()) ||
     replacement.replacement_word.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Calculate pagination
   const totalPages = Math.ceil(filteredReplacements.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const currentReplacements = filteredReplacements.slice(startIndex, endIndex);
 
-  // Reset to first page when replacements change or search term changes
   useEffect(() => {
     setCurrentPage(1);
   }, [replacements.length, searchTerm]);
 
-  // Clear selected items when search term changes
   useEffect(() => {
     setSelectedItems(new Set());
   }, [searchTerm]);
 
-  // Load existing replacements when sessionId changes
   useEffect(() => {
     if (sessionId) {
       loadReplacements();
@@ -69,7 +64,6 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
     }
   }, [sessionId]);
 
-  // Notify parent component when replacements change
   useEffect(() => {
     onReplacementsChange(replacements);
   }, [replacements, onReplacementsChange]);
@@ -105,7 +99,6 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
     }
 
     if (!sessionId) {
-      // Add to local state only if no session
       const newRepl: WordReplacement = {
         id: Date.now().toString(),
         original_word: newOriginal.trim(),
@@ -155,7 +148,6 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
 
   const removeReplacement = async (id: string) => {
     if (!sessionId) {
-      // Remove from local state only if no session
       setReplacements(replacements.filter(r => r.id !== id));
       return;
     }
@@ -190,7 +182,6 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
     if (selectedItems.size === 0) return;
 
     if (!sessionId) {
-      // Remove from local state only if no session
       setReplacements(replacements.filter(r => !selectedItems.has(r.id)));
       setSelectedItems(new Set());
       return;
@@ -226,51 +217,8 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
     }
   };
 
-  const saveReplacementsToDatabase = async () => {
-    if (!sessionId || replacements.length === 0) return;
-
-    setIsSaving(true);
-    try {
-      // First, delete existing replacements for this session
-      await supabase
-        .from('word_replacements')
-        .delete()
-        .eq('session_id', sessionId);
-
-      // Then insert all current replacements
-      const { error } = await supabase
-        .from('word_replacements')
-        .insert(
-          replacements.map(r => ({
-            session_id: sessionId,
-            original_word: r.original_word,
-            replacement_word: r.replacement_word,
-          }))
-        );
-
-      if (error) {
-        throw error;
-      }
-
-      toast({
-        title: "Replacements Saved",
-        description: "All word replacements have been saved to the database.",
-      });
-    } catch (error) {
-      console.error('Error saving replacements:', error);
-      toast({
-        title: "Save Failed",
-        description: "Failed to save word replacements.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
   const handleImportReplacements = async (importedReplacements: Omit<WordReplacement, 'id'>[]) => {
     if (!sessionId) {
-      // Add to local state only if no session
       const newReplacements = importedReplacements.map(r => ({
         ...r,
         id: Date.now().toString() + Math.random().toString(),
@@ -309,29 +257,23 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
     }
   };
 
-  // Helper function to get visible page numbers for responsive pagination
   const getVisiblePages = () => {
-    const delta = 2; // Number of pages to show on each side of current page
+    const delta = 2;
     const range = [];
     const rangeWithDots = [];
 
-    // Always show first page
     range.push(1);
 
-    // Add pages around current page
     for (let i = Math.max(2, currentPage - delta); i <= Math.min(totalPages - 1, currentPage + delta); i++) {
       range.push(i);
     }
 
-    // Always show last page if more than 1 page
     if (totalPages > 1) {
       range.push(totalPages);
     }
 
-    // Remove duplicates and sort
     const uniqueRange = [...new Set(range)].sort((a, b) => a - b);
 
-    // Add ellipsis where needed
     let prev = 0;
     for (const page of uniqueRange) {
       if (page - prev > 1) {
@@ -348,14 +290,11 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
     setCurrentPage(page);
   };
 
-  // Updated select all functionality to work across all pages
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      // Select ALL filtered items (across all pages)
       const allFilteredIds = new Set(filteredReplacements.map(r => r.id));
       setSelectedItems(allFilteredIds);
     } else {
-      // Deselect all items
       setSelectedItems(new Set());
     }
   };
@@ -372,38 +311,34 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
     });
   };
 
-  // Updated logic for select all checkbox state
   const isAllFilteredSelected = filteredReplacements.length > 0 && 
     filteredReplacements.every(r => selectedItems.has(r.id));
   const isSomeFilteredSelected = filteredReplacements.some(r => selectedItems.has(r.id));
 
   return (
     <div className="space-y-8">
-      {/* CSV Import/Export Section */}
       <CSVManager 
         replacements={replacements}
         onImport={handleImportReplacements}
         userRole={userRole}
       />
 
-      {/* Main Word Replacements Form */}
-      <Card className="shadow-lg border-0 bg-white/90 backdrop-blur-sm">
+      <Card className="shadow-lg border-0 bg-white/95 backdrop-blur-sm hover:shadow-xl transition-all duration-300">
         <CardHeader className="pb-6 bg-gradient-to-r from-green-50 to-blue-50 rounded-t-lg">
           <CardTitle className="flex items-center gap-3 text-xl">
-            <div className="bg-green-100 p-2 rounded-lg">
+            <div className="bg-gradient-to-br from-green-100 to-green-200 p-2 rounded-lg shadow-sm">
               <FileText className="h-5 w-5 text-green-600" />
             </div>
             Find & Replace Words
             {replacements.length > 0 && (
-              <Badge variant="secondary" className="ml-2 bg-blue-100 text-blue-700">
+              <Badge variant="secondary" className="ml-2 bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors">
                 {replacements.length} active
               </Badge>
             )}
           </CardTitle>
         </CardHeader>
         <CardContent className="p-6 space-y-6">
-          {/* Add new replacement form */}
-          <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
+          <div className="bg-gradient-to-br from-gray-50 to-blue-50 rounded-lg p-6 border border-gray-200 shadow-sm">
             <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
               <Plus className="h-5 w-5 text-blue-600" />
               Add New Word Replacement
@@ -418,7 +353,7 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
                   placeholder="Word to replace"
                   value={newOriginal}
                   onChange={(e) => setNewOriginal(e.target.value)}
-                  className="border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition-colors duration-200"
+                  className="border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition-all duration-200 hover:border-gray-400"
                 />
               </div>
               <div className="space-y-2">
@@ -430,7 +365,7 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
                   placeholder="Replace with"
                   value={newReplacement}
                   onChange={(e) => setNewReplacement(e.target.value)}
-                  className="border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition-colors duration-200"
+                  className="border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition-all duration-200 hover:border-gray-400"
                 />
               </div>
               <div className="flex items-end">
@@ -438,7 +373,7 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
                   onClick={addReplacement}
                   disabled={isSaving || !newOriginal.trim() || !newReplacement.trim()}
                   size="lg"
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white transition-colors duration-200 disabled:opacity-50"
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white transition-all duration-200 disabled:opacity-50 shadow-sm hover:shadow-md"
                 >
                   <Plus className="mr-2 h-4 w-4" />
                   Add Replacement
@@ -447,55 +382,40 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
             </div>
           </div>
 
-          {/* Search and Bulk Actions */}
           {replacements.length > 0 && (
-            <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between bg-blue-50 p-4 rounded-lg border border-blue-200">
+            <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200 shadow-sm">
               <div className="relative flex-1 max-w-md">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
                   placeholder="Search word replacements..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500 bg-white"
+                  className="pl-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500 bg-white hover:border-gray-400 transition-all duration-200"
                 />
               </div>
               
               <div className="flex items-center gap-4">
                 {selectedItems.size > 0 && (
                   <div className="flex items-center gap-3">
-                    <Badge variant="outline" className="px-3 py-1 bg-white text-blue-700 border-blue-300">
-                      {selectedItems.size} selected
+                    <Badge variant="outline" className="px-3 py-1 bg-white text-blue-700 border-blue-300 hover:bg-blue-50 transition-colors">
+                      {selectedItems.size}/{filteredReplacements.length} selected
                     </Badge>
                     <Button
                       onClick={removeSelectedReplacements}
                       disabled={isSaving}
                       variant="destructive"
                       size="sm"
-                      className="transition-colors duration-200"
+                      className="transition-all duration-200 shadow-sm hover:shadow-md"
                     >
                       <Trash2 className="mr-2 h-4 w-4" />
                       Delete Selected
                     </Button>
                   </div>
                 )}
-                
-                {sessionId && (
-                  <Button
-                    onClick={saveReplacementsToDatabase}
-                    disabled={isSaving}
-                    variant="outline"
-                    size="sm"
-                    className="border-green-200 text-green-600 hover:bg-green-50 transition-colors duration-200"
-                  >
-                    <Save className="mr-2 h-4 w-4" />
-                    {isSaving ? 'Saving...' : 'Save All'}
-                  </Button>
-                )}
               </div>
             </div>
           )}
 
-          {/* Replacements table */}
           {filteredReplacements.length > 0 && (
             <div className="space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -511,10 +431,10 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
                 </div>
               </div>
               
-              <div className="border rounded-lg overflow-hidden bg-white shadow-sm">
+              <div className="border rounded-lg overflow-hidden bg-white shadow-lg hover:shadow-xl transition-shadow duration-300">
                 <div className="overflow-x-auto">
                   <Table>
-                    <TableHeader className="bg-gray-50">
+                    <TableHeader className="bg-gradient-to-r from-gray-50 to-blue-50">
                       <TableRow>
                         <TableHead className="w-16 p-4">
                           <div className="flex items-center gap-2">
@@ -527,20 +447,20 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
                               )}
                             />
                             {selectedItems.size > 0 && (
-                              <Badge variant="secondary" className="text-xs px-2 py-0.5">
-                                {selectedItems.size}/{filteredReplacements.length}
+                              <Badge variant="secondary" className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700">
+                                {selectedItems.size}
                               </Badge>
                             )}
                           </div>
                         </TableHead>
-                        <TableHead className="min-w-[150px] font-semibold">Original Word</TableHead>
-                        <TableHead className="min-w-[150px] font-semibold">Replacement Word</TableHead>
-                        <TableHead className="w-24 text-center font-semibold">Actions</TableHead>
+                        <TableHead className="min-w-[150px] font-semibold text-gray-700">Original Word</TableHead>
+                        <TableHead className="min-w-[150px] font-semibold text-gray-700">Replacement Word</TableHead>
+                        <TableHead className="w-24 text-center font-semibold text-gray-700">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {currentReplacements.map((replacement, index) => (
-                        <TableRow key={replacement.id} className="hover:bg-gray-50 transition-colors duration-150">
+                        <TableRow key={replacement.id} className="hover:bg-gradient-to-r hover:from-gray-50 hover:to-blue-50 transition-all duration-200">
                           <TableCell className="p-4">
                             <Checkbox
                               checked={selectedItems.has(replacement.id)}
@@ -548,12 +468,12 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
                             />
                           </TableCell>
                           <TableCell className="font-medium break-words p-4">
-                            <code className="bg-red-50 text-red-700 px-2 py-1 rounded text-sm">
+                            <code className="bg-red-50 text-red-700 px-3 py-1 rounded-md text-sm font-mono border border-red-200">
                               {replacement.original_word}
                             </code>
                           </TableCell>
                           <TableCell className="break-words p-4">
-                            <code className="bg-green-50 text-green-700 px-2 py-1 rounded text-sm">
+                            <code className="bg-green-50 text-green-700 px-3 py-1 rounded-md text-sm font-mono border border-green-200">
                               {replacement.replacement_word}
                             </code>
                           </TableCell>
@@ -562,7 +482,7 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
                               onClick={() => removeReplacement(replacement.id)}
                               variant="ghost"
                               size="sm"
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50 transition-colors duration-200"
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50 transition-all duration-200 shadow-sm hover:shadow-md"
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -574,23 +494,20 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
                 </div>
               </div>
               
-              {/* Responsive Pagination */}
               {totalPages > 1 && (
                 <div className="flex justify-center">
                   <Pagination>
                     <PaginationContent className="flex flex-wrap justify-center gap-1">
-                      {/* Previous Button */}
                       <PaginationItem>
                         <PaginationPrevious 
                           onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
                           className={cn(
-                            "cursor-pointer text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2 transition-colors duration-200",
+                            "cursor-pointer text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2 transition-all duration-200 hover:shadow-sm",
                             currentPage === 1 && "pointer-events-none opacity-50"
                           )}
                         />
                       </PaginationItem>
                       
-                      {/* Page Numbers - Responsive Logic */}
                       {getVisiblePages().map((page, index) => (
                         <PaginationItem key={index}>
                           {page === '...' ? (
@@ -599,7 +516,7 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
                             <PaginationLink
                               onClick={() => handlePageChange(page as number)}
                               isActive={currentPage === page}
-                              className="cursor-pointer h-8 w-8 sm:h-9 sm:w-9 text-xs sm:text-sm p-0 flex items-center justify-center transition-colors duration-200"
+                              className="cursor-pointer h-8 w-8 sm:h-9 sm:w-9 text-xs sm:text-sm p-0 flex items-center justify-center transition-all duration-200 hover:shadow-sm"
                             >
                               {page}
                             </PaginationLink>
@@ -607,12 +524,11 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
                         </PaginationItem>
                       ))}
                       
-                      {/* Next Button */}
                       <PaginationItem>
                         <PaginationNext 
                           onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
                           className={cn(
-                            "cursor-pointer text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2 transition-colors duration-200",
+                            "cursor-pointer text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2 transition-all duration-200 hover:shadow-sm",
                             currentPage === totalPages && "pointer-events-none opacity-50"
                           )}
                         />
@@ -624,19 +540,17 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
             </div>
           )}
 
-          {/* No results found state */}
           {filteredReplacements.length === 0 && replacements.length > 0 && (
-            <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+            <div className="text-center py-12 bg-gradient-to-br from-gray-50 to-blue-50 rounded-lg border-2 border-dashed border-gray-300 hover:border-blue-300 transition-colors duration-200">
               <Search className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-700 mb-2">No matches found</h3>
               <p className="text-gray-500">Try adjusting your search terms</p>
             </div>
           )}
 
-          {/* Empty state */}
           {replacements.length === 0 && (
-            <div className="text-center py-12 bg-gradient-to-br from-blue-50 to-green-50 rounded-lg border-2 border-dashed border-gray-300">
-              <div className="bg-blue-100 p-4 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+            <div className="text-center py-12 bg-gradient-to-br from-blue-50 to-green-50 rounded-lg border-2 border-dashed border-gray-300 hover:border-blue-300 transition-all duration-200">
+              <div className="bg-gradient-to-br from-blue-100 to-blue-200 p-4 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center shadow-lg">
                 <FileText className="h-8 w-8 text-blue-600" />
               </div>
               <h3 className="text-lg font-medium text-gray-700 mb-2">No word replacements yet</h3>
