@@ -174,7 +174,7 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
     const replacementCount = wordReplacements.length;
     toast({
       title: "Chapter Separated Successfully!",
-      description: `Created ${cards.length} cards with ${paragraphCount} paragraphs each.${replacementCount > 0 ? ` Applied ${replacementCount} word replacements.` : ''}${!user ? ' Sign in to save your work!' : ''}`,
+      description: `Created ${cards.length} cards with ${paragraphCount} paragraphs each.${replacementCount > 0 ? ` Applied ${replacementCount} glossary entries.` : ''}${!user ? ' Sign in to save your work!' : ''}`,
     });
   };
 
@@ -369,7 +369,7 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
               disabled={!originalText && !dummyText}
             >
               <Scissors className="mr-3 h-5 w-5" />
-              Apply Replacements & Separate Chapter
+              Apply Glossary & Separate Chapter
             </Button>
           </CardContent>
         </Card>
@@ -462,7 +462,7 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                   Ready to Separate Your Chapter
                 </h3>
                 <p className="text-gray-500 max-w-md mx-auto leading-relaxed">
-                  Input your chapter text above, configure your word replacements, and click "Separate Chapter" to get started.
+                  Input your chapter text above, configure your glossary entries, and click "Apply Glossary & Separate Chapter" to get started.
                 </p>
               </div>
               <div className="flex justify-center">

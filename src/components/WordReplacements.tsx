@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious, PaginationEllipsis } from "@/components/ui/pagination";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Search, FileText, AlertCircle } from "lucide-react";
+import { Plus, Trash2, Search, BookText, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -103,7 +103,7 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
     if (!newOriginal.trim() || !newReplacement.trim()) {
       toast({
         title: "Invalid Input",
-        description: "Both original and replacement words are required.",
+        description: "Both original and preferred terms are required.",
         variant: "destructive",
       });
       return;
@@ -144,14 +144,14 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
       setNewReplacement('');
 
       toast({
-        title: "Word Replacement Added",
+        title: "Glossary Entry Added",
         description: `"${newOriginal}" will be replaced with "${newReplacement}"`,
       });
     } catch (error) {
       console.error('Error adding replacement:', error);
       toast({
         title: "Error",
-        description: "Failed to add word replacement.",
+        description: "Failed to add glossary entry.",
         variant: "destructive",
       });
     } finally {
@@ -178,14 +178,14 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
       setReplacements(replacements.filter(r => r.id !== id));
 
       toast({
-        title: "Word Replacement Removed",
-        description: "The word replacement has been deleted.",
+        title: "Glossary Entry Removed",
+        description: "The glossary entry has been deleted.",
       });
     } catch (error) {
       console.error('Error removing replacement:', error);
       toast({
         title: "Error",
-        description: "Failed to remove word replacement.",
+        description: "Failed to remove glossary entry.",
         variant: "destructive",
       });
     }
@@ -215,14 +215,14 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
       setSelectedItems(new Set());
 
       toast({
-        title: "Word Replacements Removed",
-        description: `${selectedItems.size} word replacements have been deleted.`,
+        title: "Glossary Entries Removed",
+        description: `${selectedItems.size} glossary entries have been deleted.`,
       });
     } catch (error) {
       console.error('Error removing replacements:', error);
       toast({
         title: "Error",
-        description: "Failed to remove selected word replacements.",
+        description: "Failed to remove selected glossary entries.",
         variant: "destructive",
       });
     } finally {
@@ -264,7 +264,7 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
       console.error('Error importing replacements:', error);
       toast({
         title: "Import Failed",
-        description: "Failed to import word replacements to database.",
+        description: "Failed to import glossary entries to database.",
         variant: "destructive",
       });
     } finally {
@@ -348,12 +348,12 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
         <CardHeader className="pb-6 bg-gradient-to-r from-green-50 to-blue-50 rounded-t-lg">
           <CardTitle className="flex items-center gap-3 text-xl">
             <div className="bg-gradient-to-br from-green-100 to-green-200 p-2 rounded-lg shadow-sm">
-              <FileText className="h-5 w-5 text-green-600" />
+              <BookText className="h-5 w-5 text-green-600" />
             </div>
-            Find & Replace Words
+            Text Glossary
             {replacements.length > 0 && (
               <Badge variant="secondary" className="ml-2 bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors">
-                {replacements.length} active (sorted by length)
+                {replacements.length} entries (sorted by length)
               </Badge>
             )}
           </CardTitle>
@@ -362,16 +362,16 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
           <div className="bg-gradient-to-br from-gray-50 to-blue-50 rounded-lg p-6 border border-gray-200 shadow-sm">
             <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
               <Plus className="h-5 w-5 text-blue-600" />
-              Add New Word Replacement
+              Add New Glossary Entry
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="originalWord" className="text-sm font-semibold text-gray-700">
-                  Original Word
+                  Original Term
                 </Label>
                 <Input
                   id="originalWord"
-                  placeholder="Word to replace"
+                  placeholder="Term to replace"
                   value={newOriginal}
                   onChange={(e) => setNewOriginal(e.target.value)}
                   className="border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition-all duration-200 hover:border-gray-400"
@@ -379,7 +379,7 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
               </div>
               <div className="space-y-2">
                 <Label htmlFor="replacementWord" className="text-sm font-semibold text-gray-700">
-                  Replacement Word
+                  Preferred Term
                 </Label>
                 <Input
                   id="replacementWord"
@@ -397,7 +397,7 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
                   className="w-full bg-blue-600 hover:bg-blue-700 text-white transition-all duration-200 disabled:opacity-50 shadow-sm hover:shadow-md"
                 >
                   <Plus className="mr-2 h-4 w-4" />
-                  Add Replacement
+                  Add Entry
                 </Button>
               </div>
             </div>
@@ -408,7 +408,7 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
               <div className="relative flex-1 max-w-md">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
-                  placeholder="Search word replacements..."
+                  placeholder="Search glossary entries..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500 bg-white hover:border-gray-400 transition-all duration-200"
@@ -442,7 +442,7 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="space-y-1">
                   <h3 className="text-lg font-semibold text-gray-800">
-                    Word Replacements ({filteredReplacements.length})
+                    Glossary Entries ({filteredReplacements.length})
                   </h3>
                   {totalPages > 1 && (
                     <p className="text-sm text-gray-600">
@@ -474,8 +474,8 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
                             )}
                           </div>
                         </TableHead>
-                        <TableHead className="min-w-[150px] font-semibold text-gray-700">Original Word</TableHead>
-                        <TableHead className="min-w-[150px] font-semibold text-gray-700">Replacement Word</TableHead>
+                        <TableHead className="min-w-[150px] font-semibold text-gray-700">Original Term</TableHead>
+                        <TableHead className="min-w-[150px] font-semibold text-gray-700">Preferred Term</TableHead>
                         <TableHead className="w-24 text-center font-semibold text-gray-700">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -578,11 +578,11 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
             <div className="bg-gradient-to-br from-blue-50 to-green-50 rounded-lg p-6">
               <div className="text-center mb-6">
                 <div className="bg-gradient-to-br from-blue-100 to-blue-200 p-4 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center shadow-lg">
-                  <FileText className="h-8 w-8 text-blue-600" />
+                  <BookText className="h-8 w-8 text-blue-600" />
                 </div>
-                <h3 className="text-lg font-medium text-gray-700 mb-2">No word replacements yet</h3>
+                <h3 className="text-lg font-medium text-gray-700 mb-2">No glossary entries yet</h3>
                 <p className="text-gray-500 mb-4 max-w-md mx-auto">
-                  Add word replacement pairs above or import from a CSV file below
+                  Add glossary entries above or import from a CSV file below
                 </p>
               </div>
               
