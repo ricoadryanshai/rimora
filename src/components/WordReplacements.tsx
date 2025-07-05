@@ -38,6 +38,15 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
   const { toast } = useToast();
   const { userRole, user } = useAuth();
 
+  // Sort replacements by character count (descending) and then alphabetically
+  const sortReplacements = (replacements: WordReplacement[]) => {
+    return [...replacements].sort((a, b) => {
+      const lengthDiff = b.original_word.length - a.original_word.length;
+      if (lengthDiff !== 0) return lengthDiff;
+      return a.original_word.localeCompare(b.original_word);
+    });
+  };
+
   const filteredReplacements = replacements.filter(replacement =>
     replacement.original_word.toLowerCase().includes(searchTerm.toLowerCase()) ||
     replacement.replacement_word.toLowerCase().includes(searchTerm.toLowerCase())
@@ -82,7 +91,9 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
         return;
       }
 
-      setReplacements(data || []);
+      // Sort the loaded replacements
+      const sortedData = sortReplacements(data || []);
+      setReplacements(sortedData);
     } catch (error) {
       console.error('Error loading replacements:', error);
     }
@@ -104,7 +115,8 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
         original_word: newOriginal.trim(),
         replacement_word: newReplacement.trim(),
       };
-      setReplacements([...replacements, newRepl]);
+      const updatedReplacements = sortReplacements([...replacements, newRepl]);
+      setReplacements(updatedReplacements);
       setNewOriginal('');
       setNewReplacement('');
       return;
@@ -126,7 +138,8 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
         throw error;
       }
 
-      setReplacements([...replacements, data]);
+      const updatedReplacements = sortReplacements([...replacements, data]);
+      setReplacements(updatedReplacements);
       setNewOriginal('');
       setNewReplacement('');
 
@@ -223,7 +236,8 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
         ...r,
         id: Date.now().toString() + Math.random().toString(),
       }));
-      setReplacements([...replacements, ...newReplacements]);
+      const updatedReplacements = sortReplacements([...replacements, ...newReplacements]);
+      setReplacements(updatedReplacements);
       return;
     }
 
@@ -244,7 +258,8 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
         throw error;
       }
 
-      setReplacements([...replacements, ...data]);
+      const updatedReplacements = sortReplacements([...replacements, ...data]);
+      setReplacements(updatedReplacements);
     } catch (error) {
       console.error('Error importing replacements:', error);
       toast({
@@ -338,7 +353,7 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
             Find & Replace Words
             {replacements.length > 0 && (
               <Badge variant="secondary" className="ml-2 bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors">
-                {replacements.length} active
+                {replacements.length} active (sorted by length)
               </Badge>
             )}
           </CardTitle>
@@ -474,9 +489,14 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
                             />
                           </TableCell>
                           <TableCell className="font-medium break-words p-4">
-                            <code className="bg-red-50 text-red-700 px-3 py-1 rounded-md text-sm font-mono border border-red-200">
-                              {replacement.original_word}
-                            </code>
+                            <div className="flex items-center gap-2">
+                              <code className="bg-red-50 text-red-700 px-3 py-1 rounded-md text-sm font-mono border border-red-200">
+                                {replacement.original_word}
+                              </code>
+                              <Badge variant="outline" className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600">
+                                {replacement.original_word.length} chars
+                              </Badge>
+                            </div>
                           </TableCell>
                           <TableCell className="break-words p-4">
                             <code className="bg-green-50 text-green-700 px-3 py-1 rounded-md text-sm font-mono border border-green-200">
