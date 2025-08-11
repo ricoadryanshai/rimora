@@ -74,8 +74,8 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
       if (data) {
         setOriginalText(data.original_text);
         setParagraphCount(data.paragraph_count);
-        // Load card count from paragraph_count for backward compatibility
-        setCardCount(data.paragraph_count || 10);
+        setCardCount(data.card_count || data.paragraph_count || 10);
+        setSeparationMode((data.separation_mode as 'paragraph' | 'card') || 'paragraph');
         const cards = Array.isArray(data.separated_cards) ? data.separated_cards as string[] : [];
         setSeparatedCards(cards);
         setCurrentSessionId(data.id);
@@ -113,6 +113,8 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
         user_id: user.id,
         original_text: originalText,
         paragraph_count: paragraphCount,
+        card_count: cardCount,
+        separation_mode: separationMode,
         separated_cards: cardsData,
         updated_at: new Date().toISOString(),
       };
