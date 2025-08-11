@@ -16,6 +16,8 @@ import WordReplacements from "@/components/WordReplacements";
 const Index = () => {
   const [originalText, setOriginalText] = useState('');
   const [paragraphCount, setParagraphCount] = useState<number>(5);
+  const [cardCount, setCardCount] = useState<number>(10);
+  const [separationMode, setSeparationMode] = useState<'paragraph' | 'card'>('paragraph');
   const [separatedCards, setSeparatedCards] = useState<string[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [wordReplacements, setWordReplacements] = useState<any[]>([]);
@@ -72,6 +74,8 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
       if (data) {
         setOriginalText(data.original_text);
         setParagraphCount(data.paragraph_count);
+        // Load card count from paragraph_count for backward compatibility
+        setCardCount(data.paragraph_count || 10);
         const cards = Array.isArray(data.separated_cards) ? data.separated_cards as string[] : [];
         setSeparatedCards(cards);
         setCurrentSessionId(data.id);
@@ -159,10 +163,24 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
     
     const paragraphs = processedText.split('\n').filter(p => p.trim() !== '');
     
-    const cards: string[] = [];
-    for (let i = 0; i < paragraphs.length; i += paragraphCount) {
-      const cardContent = paragraphs.slice(i, i + paragraphCount).join('\n\n');
-      cards.push(cardContent);
+    let cards: string[] = [];
+    
+    if (separationMode === 'paragraph') {
+      for (let i = 0; i < paragraphs.length; i += paragraphCount) {
+        const cardContent = paragraphs.slice(i, i + paragraphCount).join('\n\n');
+        cards.push(cardContent);
+      }
+    } else {
+      // Separate by number of cards
+      const paragraphsPerCard = Math.ceil(paragraphs.length / cardCount);
+      for (let i = 0; i < cardCount; i++) {
+        const startIndex = i * paragraphsPerCard;
+        const endIndex = Math.min(startIndex + paragraphsPerCard, paragraphs.length);
+        if (startIndex < paragraphs.length) {
+          const cardContent = paragraphs.slice(startIndex, endIndex).join('\n\n');
+          cards.push(cardContent);
+        }
+      }
     }
     
     setSeparatedCards(cards);
@@ -172,15 +190,21 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
     }
 
     const replacementCount = wordReplacements.length;
+    const modeDesc = separationMode === 'paragraph' 
+      ? `${paragraphCount} paragraphs each` 
+      : `divided into ${cardCount} cards`;
+    
     toast({
       title: "Chapter Separated Successfully!",
-      description: `Created ${cards.length} cards with ${paragraphCount} paragraphs each.${replacementCount > 0 ? ` Applied ${replacementCount} glossary entries.` : ''}${!user ? ' Sign in to save your work!' : ''}`,
+      description: `Created ${cards.length} cards with ${modeDesc}.${replacementCount > 0 ? ` Applied ${replacementCount} glossary entries.` : ''}${!user ? ' Sign in to save your work!' : ''}`,
     });
   };
 
   const resetAll = async () => {
     setOriginalText('');
     setParagraphCount(5);
+    setCardCount(10);
+    setSeparationMode('paragraph');
     setSeparatedCards([]);
     setCurrentSessionId(null);
     
@@ -310,21 +334,64 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
             </CardTitle>
           </CardHeader>
           <CardContent className="p-6 space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="space-y-3">
-                <Label htmlFor="paragraphCount" className="text-sm font-semibold text-gray-700">
-                  Paragraphs per Card
+                <Label className="text-sm font-semibold text-gray-700">
+                  Separation Mode
                 </Label>
-                <Input
-                  id="paragraphCount"
-                  type="number"
-                  min="1"
-                  max="20"
-                  value={paragraphCount}
-                  onChange={(e) => setParagraphCount(Number(e.target.value))}
-                  className="border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition-all duration-200 text-center font-medium hover:border-gray-400"
-                />
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant={separationMode === 'paragraph' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setSeparationMode('paragraph')}
+                    className="flex-1 text-xs"
+                  >
+                    By Paragraphs
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={separationMode === 'card' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setSeparationMode('card')}
+                    className="flex-1 text-xs"
+                  >
+                    By Cards
+                  </Button>
+                </div>
               </div>
+              
+              {separationMode === 'paragraph' ? (
+                <div className="space-y-3">
+                  <Label htmlFor="paragraphCount" className="text-sm font-semibold text-gray-700">
+                    Paragraphs per Card
+                  </Label>
+                  <Input
+                    id="paragraphCount"
+                    type="number"
+                    min="1"
+                    max="20"
+                    value={paragraphCount}
+                    onChange={(e) => setParagraphCount(Number(e.target.value))}
+                    className="border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition-all duration-200 text-center font-medium hover:border-gray-400"
+                  />
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <Label htmlFor="cardCount" className="text-sm font-semibold text-gray-700">
+                    Number of Cards
+                  </Label>
+                  <Input
+                    id="cardCount"
+                    type="number"
+                    min="1"
+                    max="50"
+                    value={cardCount}
+                    onChange={(e) => setCardCount(Number(e.target.value))}
+                    className="border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition-all duration-200 text-center font-medium hover:border-gray-400"
+                  />
+                </div>
+              )}
               <div className="flex items-end">
                 <Button 
                   onClick={loadDummyData}
@@ -392,7 +459,9 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                   {separatedCards.length} cards created
                 </Badge>
                 <Badge variant="outline" className="px-4 py-2 text-base bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100 transition-colors">
-                  {paragraphCount} paragraphs per card
+                  {separationMode === 'paragraph' 
+                    ? `${paragraphCount} paragraphs per card` 
+                    : `${cardCount} total cards`}
                 </Badge>
                 {user && currentSessionId && (
                   <Badge variant="outline" className="px-4 py-2 text-base bg-green-50 text-green-700 border-green-200 hover:bg-green-100 transition-colors">

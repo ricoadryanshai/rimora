@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious, PaginationEllipsis } from "@/components/ui/pagination";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Search, BookText, AlertCircle } from "lucide-react";
+import { Plus, Trash2, Search, BookText, AlertCircle, Database } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -35,6 +35,7 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
   const [itemsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+  const [savedGlossaries, setSavedGlossaries] = useState<Array<{name: string, data: WordReplacement[]}>>([]);
   const { toast } = useToast();
   const { userRole, user } = useAuth();
 
@@ -76,6 +77,71 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
   useEffect(() => {
     onReplacementsChange(replacements);
   }, [replacements, onReplacementsChange]);
+
+  useEffect(() => {
+    loadSavedGlossaries();
+  }, []);
+
+  const loadSavedGlossaries = () => {
+    try {
+      const saved = localStorage.getItem('savedGlossaries');
+      if (saved) {
+        setSavedGlossaries(JSON.parse(saved));
+      }
+    } catch (error) {
+      console.error('Error loading saved glossaries:', error);
+    }
+  };
+
+  const saveGlossary = () => {
+    if (replacements.length === 0) {
+      toast({
+        title: "No Glossary to Save",
+        description: "Add some glossary entries before saving.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const name = prompt("Enter a name for this glossary:");
+    if (!name || !name.trim()) return;
+
+    const newGlossary = {
+      name: name.trim(),
+      data: replacements
+    };
+
+    const updatedGlossaries = [...savedGlossaries, newGlossary];
+    setSavedGlossaries(updatedGlossaries);
+    localStorage.setItem('savedGlossaries', JSON.stringify(updatedGlossaries));
+
+    toast({
+      title: "Glossary Saved",
+      description: `"${name}" has been saved with ${replacements.length} entries.`,
+    });
+  };
+
+  const loadGlossary = (glossaryData: WordReplacement[]) => {
+    const sortedData = sortReplacements(glossaryData);
+    setReplacements(sortedData);
+    
+    toast({
+      title: "Glossary Loaded",
+      description: `Loaded ${glossaryData.length} glossary entries.`,
+    });
+  };
+
+  const deleteGlossary = (index: number) => {
+    const glossaryName = savedGlossaries[index].name;
+    const updatedGlossaries = savedGlossaries.filter((_, i) => i !== index);
+    setSavedGlossaries(updatedGlossaries);
+    localStorage.setItem('savedGlossaries', JSON.stringify(updatedGlossaries));
+    
+    toast({
+      title: "Glossary Deleted",
+      description: `"${glossaryName}" has been deleted.`,
+    });
+  };
 
   const loadReplacements = async () => {
     if (!sessionId) return;
@@ -343,6 +409,67 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
         onImport={handleImportReplacements}
         userRole={userRole}
       />
+
+      {/* Save/Load Glossary Section */}
+      <Card className="shadow-lg border-0 bg-white/95 backdrop-blur-sm hover:shadow-xl transition-all duration-300">
+        <CardHeader className="pb-6 bg-gradient-to-r from-green-50 to-emerald-50 rounded-t-lg">
+          <CardTitle className="flex items-center gap-3 text-xl">
+            <div className="bg-gradient-to-br from-green-100 to-green-200 p-2 rounded-lg shadow-sm">
+              <Database className="h-5 w-5 text-green-600" />
+            </div>
+            Glossary Library
+            {savedGlossaries.length > 0 && (
+              <Badge variant="secondary" className="ml-2 bg-green-100 text-green-700 hover:bg-green-200 transition-colors">
+                {savedGlossaries.length} saved
+              </Badge>
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-6 space-y-4">
+          <div className="flex flex-wrap gap-3 items-center">
+            <Button
+              onClick={saveGlossary}
+              variant="outline"
+              size="sm"
+              className="border-green-200 text-green-600 hover:bg-green-50 hover:border-green-300 transition-all duration-200"
+            >
+              <Database className="mr-2 h-4 w-4" />
+              Save Current Glossary
+            </Button>
+            
+            {savedGlossaries.map((glossary, index) => (
+              <div key={index} className="flex items-center gap-2 bg-gray-50 rounded-lg p-2 border">
+                <span className="text-sm font-medium text-gray-700">{glossary.name}</span>
+                <Badge variant="secondary" className="text-xs px-2 py-0.5">
+                  {glossary.data.length}
+                </Badge>
+                <Button
+                  onClick={() => loadGlossary(glossary.data)}
+                  size="sm"
+                  variant="ghost"
+                  className="h-6 w-6 p-0 text-blue-600 hover:bg-blue-50"
+                >
+                  <BookText className="h-3 w-3" />
+                </Button>
+                <Button
+                  onClick={() => deleteGlossary(index)}
+                  size="sm"
+                  variant="ghost"
+                  className="h-6 w-6 p-0 text-red-600 hover:bg-red-50"
+                >
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              </div>
+            ))}
+          </div>
+          
+          {savedGlossaries.length === 0 && (
+            <p className="text-sm text-gray-500 italic">
+              No saved glossaries yet. Create and save your first glossary to reuse across sessions.
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       <Card className="shadow-lg border-0 bg-white/95 backdrop-blur-sm hover:shadow-xl transition-all duration-300">
         <CardHeader className="pb-6 bg-gradient-to-r from-green-50 to-blue-50 rounded-t-lg">
