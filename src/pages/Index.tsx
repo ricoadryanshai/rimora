@@ -90,7 +90,7 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
     
     replacements.forEach(({ original_word, replacement_word }) => {
       const regex = new RegExp(original_word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
-      processedText = processedText.replace(regex, replacement_word);
+      processedText = processedText.replace(regex, replacement_word + ' ');
     });
     
     return processedText;
