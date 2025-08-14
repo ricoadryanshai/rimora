@@ -165,25 +165,27 @@ const CSVManager: React.FC<CSVManagerProps> = ({ replacements, onImport, userRol
   };
 
   return (
-    <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm">
-      <CardHeader className="pb-4">
-        <CardTitle className="flex items-center gap-2 text-xl">
-          <FileText className="h-5 w-5 text-green-600" />
+    <Card className="glass-card shadow-elegant hover:shadow-glow transition-smooth">
+      <CardHeader className="pb-4 bg-gradient-to-r from-primary/5 to-accent/5 rounded-t-lg">
+        <CardTitle className="flex items-center gap-3 text-xl">
+          <div className="gradient-primary p-2 rounded-lg shadow-sm">
+            <FileText className="h-5 w-5 text-primary-foreground" />
+          </div>
           Import/Export Word Mappings
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {!user && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p className="text-blue-800 text-sm">
+          <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 transition-smooth">
+            <p className="text-primary text-sm font-medium">
               Sign in to access import/export features for your word replacements.
             </p>
           </div>
         )}
         
         {user && userRole !== 'super_user' && userRole !== 'user' && (
-          <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-            <p className="text-orange-800 text-sm">
+          <div className="bg-warning/10 border border-warning/20 rounded-lg p-4 transition-smooth">
+            <p className="text-warning-foreground text-sm font-medium">
               Premium account required to use import/export features.
             </p>
           </div>
@@ -195,7 +197,7 @@ const CSVManager: React.FC<CSVManagerProps> = ({ replacements, onImport, userRol
             <Button
               onClick={exportToCSV}
               variant="outline"
-              className="w-full border-green-200 text-green-600 hover:bg-green-50"
+              className="w-full border-accent/30 text-accent hover:bg-accent/10 hover:border-accent/50 transition-smooth shadow-accent/20 hover:shadow-accent"
               disabled={!canUseFeature() || replacements.length === 0}
             >
               <Download className="mr-2 h-4 w-4" />
@@ -208,7 +210,7 @@ const CSVManager: React.FC<CSVManagerProps> = ({ replacements, onImport, userRol
             <Button
               onClick={triggerFileInput}
               variant="outline"
-              className="w-full border-blue-200 text-blue-600 hover:bg-blue-50"
+              className="w-full border-primary/30 text-primary hover:bg-primary/10 hover:border-primary/50 transition-smooth shadow-primary/20 hover:shadow-glow"
               disabled={!canUseFeature()}
             >
               <Upload className="mr-2 h-4 w-4" />
@@ -224,9 +226,12 @@ const CSVManager: React.FC<CSVManagerProps> = ({ replacements, onImport, userRol
           </div>
         </div>
 
-        <div className="bg-gray-50 rounded-lg p-4">
-          <h4 className="font-medium text-gray-800 mb-2">CSV Format Example:</h4>
-          <code className="text-sm text-gray-600 block">
+        <div className="bg-muted/50 border border-muted rounded-lg p-4 transition-smooth">
+          <h4 className="font-medium text-foreground mb-2 flex items-center gap-2">
+            <div className="w-2 h-2 bg-accent rounded-full"></div>
+            CSV Format Example:
+          </h4>
+          <code className="text-sm text-muted-foreground block font-mono bg-background/50 p-2 rounded border">
             Original Word,Replacement Word<br />
             "hello","hi"<br />
             "world","universe"

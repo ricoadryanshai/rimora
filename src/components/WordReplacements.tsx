@@ -411,15 +411,15 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
       />
 
       {/* Save/Load Glossary Section */}
-      <Card className="shadow-lg border-0 bg-white/95 backdrop-blur-sm hover:shadow-xl transition-all duration-300">
-        <CardHeader className="pb-6 bg-gradient-to-r from-green-50 to-emerald-50 rounded-t-lg">
+      <Card className="glass-card shadow-elegant hover:shadow-glow transition-smooth">
+        <CardHeader className="pb-6 bg-gradient-to-r from-accent/5 to-primary/5 rounded-t-lg">
           <CardTitle className="flex items-center gap-3 text-xl">
-            <div className="bg-gradient-to-br from-green-100 to-green-200 p-2 rounded-lg shadow-sm">
-              <Database className="h-5 w-5 text-green-600" />
+            <div className="gradient-accent p-2 rounded-lg shadow-sm">
+              <Database className="h-5 w-5 text-accent-foreground" />
             </div>
             Glossary Library
             {savedGlossaries.length > 0 && (
-              <Badge variant="secondary" className="ml-2 bg-green-100 text-green-700 hover:bg-green-200 transition-colors">
+              <Badge variant="secondary" className="ml-2 bg-accent/10 text-accent border-accent/20 hover:bg-accent/20 transition-smooth">
                 {savedGlossaries.length} saved
               </Badge>
             )}
@@ -431,23 +431,23 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
               onClick={saveGlossary}
               variant="outline"
               size="sm"
-              className="border-green-200 text-green-600 hover:bg-green-50 hover:border-green-300 transition-all duration-200"
+              className="border-accent/30 text-accent hover:bg-accent/10 hover:border-accent/50 transition-smooth shadow-accent/20 hover:shadow-accent"
             >
               <Database className="mr-2 h-4 w-4" />
               Save Current Glossary
             </Button>
             
             {savedGlossaries.map((glossary, index) => (
-              <div key={index} className="flex items-center gap-2 bg-gray-50 rounded-lg p-2 border">
-                <span className="text-sm font-medium text-gray-700">{glossary.name}</span>
-                <Badge variant="secondary" className="text-xs px-2 py-0.5">
+              <div key={index} className="flex items-center gap-2 bg-muted/30 border border-muted rounded-lg p-2 transition-smooth hover:bg-muted/50">
+                <span className="text-sm font-medium text-foreground">{glossary.name}</span>
+                <Badge variant="secondary" className="text-xs px-2 py-0.5 bg-primary/10 text-primary border-primary/20">
                   {glossary.data.length}
                 </Badge>
                 <Button
                   onClick={() => loadGlossary(glossary.data)}
                   size="sm"
                   variant="ghost"
-                  className="h-6 w-6 p-0 text-blue-600 hover:bg-blue-50"
+                  className="h-6 w-6 p-0 text-primary hover:bg-primary/10 transition-smooth"
                 >
                   <BookText className="h-3 w-3" />
                 </Button>
@@ -455,7 +455,7 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
                   onClick={() => deleteGlossary(index)}
                   size="sm"
                   variant="ghost"
-                  className="h-6 w-6 p-0 text-red-600 hover:bg-red-50"
+                  className="h-6 w-6 p-0 text-destructive hover:bg-destructive/10 transition-smooth"
                 >
                   <Trash2 className="h-3 w-3" />
                 </Button>
@@ -464,36 +464,36 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
           </div>
           
           {savedGlossaries.length === 0 && (
-            <p className="text-sm text-gray-500 italic">
+            <p className="text-sm text-muted-foreground italic">
               No saved glossaries yet. Create and save your first glossary to reuse across sessions.
             </p>
           )}
         </CardContent>
       </Card>
 
-      <Card className="shadow-lg border-0 bg-white/95 backdrop-blur-sm hover:shadow-xl transition-all duration-300">
-        <CardHeader className="pb-6 bg-gradient-to-r from-green-50 to-blue-50 rounded-t-lg">
+      <Card className="glass-card shadow-elegant hover:shadow-glow transition-smooth">
+        <CardHeader className="pb-6 bg-gradient-to-r from-primary/5 to-accent/5 rounded-t-lg">
           <CardTitle className="flex items-center gap-3 text-xl">
-            <div className="bg-gradient-to-br from-green-100 to-green-200 p-2 rounded-lg shadow-sm">
-              <BookText className="h-5 w-5 text-green-600" />
+            <div className="gradient-primary p-2 rounded-lg shadow-sm">
+              <BookText className="h-5 w-5 text-primary-foreground" />
             </div>
             Text Glossary
             {replacements.length > 0 && (
-              <Badge variant="secondary" className="ml-2 bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors">
+              <Badge variant="secondary" className="ml-2 bg-primary/10 text-primary border-primary/20 hover:bg-primary/20 transition-smooth">
                 {replacements.length} entries (sorted by length)
               </Badge>
             )}
           </CardTitle>
         </CardHeader>
         <CardContent className="p-6 space-y-6">
-          <div className="bg-gradient-to-br from-gray-50 to-blue-50 rounded-lg p-6 border border-gray-200 shadow-sm">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-              <Plus className="h-5 w-5 text-blue-600" />
+          <div className="bg-muted/30 border border-muted rounded-lg p-6 shadow-sm transition-smooth">
+            <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+              <Plus className="h-5 w-5 text-primary" />
               Add New Glossary Entry
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="originalWord" className="text-sm font-semibold text-gray-700">
+                <Label htmlFor="originalWord" className="text-sm font-semibold text-foreground">
                   Original Term
                 </Label>
                 <Input
@@ -501,11 +501,11 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
                   placeholder="Term to replace"
                   value={newOriginal}
                   onChange={(e) => setNewOriginal(e.target.value)}
-                  className="border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition-all duration-200 hover:border-gray-400"
+                  className="border-border focus:border-primary focus:ring-primary transition-smooth hover:border-ring"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="replacementWord" className="text-sm font-semibold text-gray-700">
+                <Label htmlFor="replacementWord" className="text-sm font-semibold text-foreground">
                   Preferred Term
                 </Label>
                 <Input
@@ -513,7 +513,7 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
                   placeholder="Replace with"
                   value={newReplacement}
                   onChange={(e) => setNewReplacement(e.target.value)}
-                  className="border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition-all duration-200 hover:border-gray-400"
+                  className="border-border focus:border-primary focus:ring-primary transition-smooth hover:border-ring"
                 />
               </div>
               <div className="flex items-end">
@@ -521,7 +521,7 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
                   onClick={addReplacement}
                   disabled={isSaving || !newOriginal.trim() || !newReplacement.trim()}
                   size="lg"
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white transition-all duration-200 disabled:opacity-50 shadow-sm hover:shadow-md"
+                  className="w-full bg-primary hover:bg-primary/90 text-primary-foreground transition-smooth disabled:opacity-50 shadow-elegant hover:shadow-glow"
                 >
                   <Plus className="mr-2 h-4 w-4" />
                   Add Entry
