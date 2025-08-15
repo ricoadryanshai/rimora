@@ -301,14 +301,14 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
           </header>
 
           {/* Mobile floating sidebar trigger */}
-          <div className="fixed bottom-6 left-6 z-50 md:hidden">
+          <div className="fixed bottom-4 right-4 z-50 md:hidden">
             <SidebarTrigger className="bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 rounded-full p-3 border-2 border-primary-foreground/20" />
           </div>
 
-          <div className="container mx-auto px-4 py-6 lg:py-8 max-w-7xl">
+          <div className="container mx-auto px-4 py-4 sm:py-6 lg:py-8 max-w-7xl">
             {!user && (
-              <Card className="mb-8 shadow-lg border-l-4 border-l-primary bg-gradient-to-r from-primary/5 to-primary/10 hover:shadow-xl transition-shadow duration-300">
-                <CardContent className="p-6">
+              <Card className="mb-6 sm:mb-8 shadow-lg border-l-4 border-l-primary bg-gradient-to-r from-primary/5 to-primary/10 hover:shadow-xl transition-shadow duration-300">
+                <CardContent className="p-4 sm:p-6">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="flex items-start gap-4">
                       <div className="bg-primary/10 p-3 rounded-full">
@@ -381,9 +381,9 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                     Chapter Input & Settings
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="p-6 space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div className="space-y-3">
+                <CardContent className="p-4 sm:p-6 space-y-6">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    <div className="space-y-3 sm:col-span-2 lg:col-span-1">
                       <Label className="text-sm font-semibold text-foreground">
                         Separation Mode
                       </Label>
@@ -448,7 +448,8 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                         className="w-full"
                       >
                         <BookOpen className="mr-2 h-4 w-4" />
-                        Load Sample
+                        <span className="hidden sm:inline">Load Sample</span>
+                        <span className="sm:hidden">Sample</span>
                       </Button>
                     </div>
                     <div className="flex items-end">
@@ -459,7 +460,8 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                         className="w-full"
                       >
                         <RotateCcw className="mr-2 h-4 w-4" />
-                        Reset All
+                        <span className="hidden sm:inline">Reset All</span>
+                        <span className="sm:hidden">Reset</span>
                       </Button>
                     </div>
                   </div>
@@ -468,19 +470,19 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                     <Label htmlFor="originalText" className="text-sm font-semibold text-foreground">
                       Original Chapter Text
                     </Label>
-                    <Textarea
-                      id="originalText"
-                      placeholder="Paste your chapter text here, or use the sample text button above to get started..."
-                      value={originalText}
-                      onChange={(e) => setOriginalText(e.target.value)}
-                      className="min-h-[200px] resize-none"
-                    />
-                  </div>
-                  
-                  <Button 
-                    onClick={separateChapter}
-                    size="lg"
-                    className="w-full py-4 text-lg font-semibold"
+                     <Textarea
+                       id="originalText"
+                       placeholder="Paste your chapter text here, or use the sample text button above to get started..."
+                       value={originalText}
+                       onChange={(e) => setOriginalText(e.target.value)}
+                       className="min-h-[150px] sm:min-h-[200px] resize-none"
+                     />
+                   </div>
+                   
+                   <Button 
+                     onClick={separateChapter}
+                     size="lg"
+                     className="w-full py-3 sm:py-4 text-base sm:text-lg font-semibold"
                     disabled={!originalText && !dummyText}
                   >
                     <Scissors className="mr-3 h-5 w-5" />
@@ -510,7 +512,7 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-6">
-                    <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                    <div className="grid gap-4 grid-cols-1 sm:gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                       {separatedCards.map((card, index) => (
                          <Card key={index} className="group hover:shadow-lg transition-all duration-300 border-border hover:border-primary/50 bg-card aspect-square flex flex-col">
                            <CardHeader className="pb-3 flex-shrink-0">

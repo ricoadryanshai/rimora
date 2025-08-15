@@ -44,32 +44,32 @@ const AppSidebar = ({
     }
   };
   return <Sidebar className={`${collapsed ? 'w-14' : 'w-64'} border-r border-border bg-sidebar-background`}>
-      <SidebarHeader className="border-b border-sidebar-border p-4">
+      <SidebarHeader className="border-b border-sidebar-border p-3 sm:p-4">
         {!collapsed && <div className="flex items-center gap-2">
             <div className="bg-primary/10 p-2 rounded-lg">
-              <BookOpen className="h-5 w-5 text-primary" />
+              <BookOpen className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
             </div>
-            <span className="font-semibold text-sidebar-foreground">Chapter Separator</span>
+            <span className="font-semibold text-sidebar-foreground text-sm sm:text-base">Chapter Separator</span>
           </div>}
       </SidebarHeader>
 
       <SidebarContent className="p-2">
         <SidebarMenu>
           {sections.map(section => <SidebarMenuItem key={section.id}>
-              <SidebarMenuButton onClick={() => onSectionClick(section.id)} isActive={currentSection === section.id} className={`w-full justify-start p-3 rounded-lg transition-colors ${currentSection === section.id ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'hover:bg-sidebar-accent/50 text-sidebar-foreground'}`}>
+              <SidebarMenuButton onClick={() => onSectionClick(section.id)} isActive={currentSection === section.id} className={`w-full justify-start p-2 sm:p-3 rounded-lg transition-colors ${currentSection === section.id ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'hover:bg-sidebar-accent/50 text-sidebar-foreground'}`}>
                 <section.icon className="h-4 w-4 shrink-0" />
-                {!collapsed && <span className="ml-3">{section.title}</span>}
+                {!collapsed && <span className="ml-2 sm:ml-3 text-sm sm:text-base">{section.title}</span>}
               </SidebarMenuButton>
             </SidebarMenuItem>)}
         </SidebarMenu>
 
-        <SidebarSeparator className="my-4" />
+        <SidebarSeparator className="my-3 sm:my-4" />
 
         <SidebarMenu>
           <SidebarMenuItem>
-            <Button variant="ghost" size="sm" onClick={cycleTheme} className={`w-full justify-start p-3 hover:bg-sidebar-accent/50 ${collapsed ? 'px-3' : ''}`}>
+            <Button variant="ghost" size="sm" onClick={cycleTheme} className={`w-full justify-start p-2 sm:p-3 hover:bg-sidebar-accent/50 text-sm sm:text-base ${collapsed ? 'px-2 sm:px-3' : ''}`}>
               <ThemeIcon className="h-4 w-4 shrink-0" />
-              {!collapsed && <span className="ml-3 capitalize">
+              {!collapsed && <span className="ml-2 sm:ml-3 capitalize">
                   {theme === 'system' ? 'Auto' : theme} Mode
                 </span>}
             </Button>
