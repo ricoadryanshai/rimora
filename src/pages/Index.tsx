@@ -291,7 +291,7 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
           currentSection={currentSection}
         />
         
-        <main className="flex-1 overflow-auto">
+        <main className="flex-1 overflow-auto relative">
           {/* Header with sidebar trigger */}
           <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-b border-border">
             <div className="flex items-center px-4 py-3">
@@ -299,6 +299,11 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
               <h2 className="font-semibold text-foreground">Novel Chapter Separator</h2>
             </div>
           </header>
+
+          {/* Mobile floating sidebar trigger */}
+          <div className="fixed bottom-6 left-6 z-50 md:hidden">
+            <SidebarTrigger className="bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 rounded-full p-3 border-2 border-primary-foreground/20" />
+          </div>
 
           <div className="container mx-auto px-4 py-6 lg:py-8 max-w-7xl">
             {!user && (
