@@ -514,7 +514,7 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                   <CardContent className="p-6">
                     <div className="grid gap-4 grid-cols-1 sm:gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                       {separatedCards.map((card, index) => (
-                         <Card key={index} className="group hover:shadow-lg transition-all duration-300 border-border hover:border-primary/50 bg-card aspect-square flex flex-col">
+                         <Card key={index} className="group hover:shadow-lg transition-all duration-300 border-border hover:border-primary/50 bg-card h-80 flex flex-col">
                            <CardHeader className="pb-3 flex-shrink-0">
                              <div className="flex items-center justify-between">
                                <CardTitle className="text-lg font-semibold text-card-foreground flex items-center gap-2">
@@ -534,11 +534,11 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                                </Button>
                              </div>
                            </CardHeader>
-                           <CardContent className="space-y-4 flex-1 flex flex-col">
-                             <div className="text-card-foreground leading-relaxed text-sm whitespace-pre-wrap break-words bg-muted/50 p-4 rounded-lg border border-border/50 flex-1 overflow-auto">
+                           <CardContent className="space-y-4 flex-1 flex flex-col min-h-0">
+                             <div className="text-card-foreground leading-relaxed text-sm whitespace-pre-wrap break-words bg-muted/50 p-4 rounded-lg border border-border/50 flex-1 overflow-auto min-h-0">
                                {card}
                              </div>
-                            <div className="flex gap-4 text-xs text-muted-foreground">
+                            <div className="flex gap-4 text-xs text-muted-foreground flex-shrink-0">
                               <div className="flex items-center gap-1">
                                 <span className="font-medium">Paragraphs:</span>
                                 <Badge variant="secondary" className="text-xs">
