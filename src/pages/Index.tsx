@@ -512,30 +512,30 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                   <CardContent className="p-6">
                     <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                       {separatedCards.map((card, index) => (
-                        <Card key={index} className="group hover:shadow-lg transition-all duration-300 border-border hover:border-primary/50 bg-card">
-                          <CardHeader className="pb-3">
-                            <div className="flex items-center justify-between">
-                              <CardTitle className="text-lg font-semibold text-card-foreground flex items-center gap-2">
-                                <div className="bg-primary/10 p-1.5 rounded-md shadow-sm">
-                                  <BookOpen className="h-4 w-4 text-primary" />
-                                </div>
-                                Card {index + 1}
-                              </CardTitle>
-                              <Button
-                                onClick={() => copyToClipboard(card, index)}
-                                variant="outline"
-                                size="sm"
-                                className="group-hover:border-primary/50 group-hover:text-primary transition-all duration-200 shadow-sm hover:shadow-md"
-                              >
-                                <Copy className="mr-1 h-3 w-3" />
-                                Copy
-                              </Button>
-                            </div>
-                          </CardHeader>
-                          <CardContent className="space-y-4">
-                            <div className="text-card-foreground leading-relaxed text-sm whitespace-pre-wrap break-words bg-muted/50 p-4 rounded-lg border border-border/50">
-                              {card}
-                            </div>
+                         <Card key={index} className="group hover:shadow-lg transition-all duration-300 border-border hover:border-primary/50 bg-card aspect-square flex flex-col">
+                           <CardHeader className="pb-3 flex-shrink-0">
+                             <div className="flex items-center justify-between">
+                               <CardTitle className="text-lg font-semibold text-card-foreground flex items-center gap-2">
+                                 <div className="bg-primary/10 p-1.5 rounded-md shadow-sm">
+                                   <BookOpen className="h-4 w-4 text-primary" />
+                                 </div>
+                                 Card {index + 1}
+                               </CardTitle>
+                               <Button
+                                 onClick={() => copyToClipboard(card, index)}
+                                 variant="outline"
+                                 size="sm"
+                                 className="group-hover:border-primary/50 group-hover:text-primary transition-all duration-200 shadow-sm hover:shadow-md"
+                               >
+                                 <Copy className="mr-1 h-3 w-3" />
+                                 Copy
+                               </Button>
+                             </div>
+                           </CardHeader>
+                           <CardContent className="space-y-4 flex-1 flex flex-col">
+                             <div className="text-card-foreground leading-relaxed text-sm whitespace-pre-wrap break-words bg-muted/50 p-4 rounded-lg border border-border/50 flex-1 overflow-auto">
+                               {card}
+                             </div>
                             <div className="flex gap-4 text-xs text-muted-foreground">
                               <div className="flex items-center gap-1">
                                 <span className="font-medium">Paragraphs:</span>
