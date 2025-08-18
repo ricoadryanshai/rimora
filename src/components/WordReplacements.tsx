@@ -14,11 +14,21 @@ import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import CSVManager from "./CSVManager";
 import DragDropUpload from "./DragDropUpload";
+import { listSavedGlossaries, createSavedGlossary, deleteSavedGlossary as deleteSavedGlossaryDb } from "@/lib/glossaries";
 
 interface WordReplacement {
   id: string;
   original_word: string;
   replacement_word: string;
+}
+
+interface SavedGlossary {
+  id: string;
+  user_id: string;
+  name: string;
+  glossary_data: WordReplacement[];
+  created_at: string;
+  updated_at: string;
 }
 
 interface WordReplacementsProps {
@@ -35,7 +45,7 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
   const [itemsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
-  const [savedGlossaries, setSavedGlossaries] = useState<Array<{name: string, data: WordReplacement[]}>>([]);
+  const [savedGlossaries, setSavedGlossaries] = useState<SavedGlossary[]>([]);
   const { toast } = useToast();
   const { userRole, user } = useAuth();
 
@@ -79,21 +89,32 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
   }, [replacements, onReplacementsChange]);
 
   useEffect(() => {
-    loadSavedGlossaries();
-  }, []);
-
-  const loadSavedGlossaries = () => {
+    if (user) {
+      loadSavedGlossaries();
+    } else {
+      setSavedGlossaries([]);
+    }
+  }, [user?.id]);
+  const loadSavedGlossaries = async () => {
     try {
-      const saved = localStorage.getItem('savedGlossaries');
-      if (saved) {
-        setSavedGlossaries(JSON.parse(saved));
-      }
+      if (!user) return;
+      const list = await listSavedGlossaries();
+      setSavedGlossaries(list as unknown as SavedGlossary[]);
     } catch (error) {
       console.error('Error loading saved glossaries:', error);
+      toast({ title: "Error", description: "Failed to load saved glossaries.", variant: "destructive" });
     }
   };
+  const saveGlossary = async () => {
+    if (!user) {
+      toast({
+        title: "Sign in required",
+        description: "Please sign in to save glossaries to your account.",
+        variant: "destructive",
+      });
+      return;
+    }
 
-  const saveGlossary = () => {
     if (replacements.length === 0) {
       toast({
         title: "No Glossary to Save",
@@ -106,21 +127,21 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
     const name = prompt("Enter a name for this glossary:");
     if (!name || !name.trim()) return;
 
-    const newGlossary = {
-      name: name.trim(),
-      data: replacements
-    };
-
-    const updatedGlossaries = [...savedGlossaries, newGlossary];
-    setSavedGlossaries(updatedGlossaries);
-    localStorage.setItem('savedGlossaries', JSON.stringify(updatedGlossaries));
-
-    toast({
-      title: "Glossary Saved",
-      description: `"${name}" has been saved with ${replacements.length} entries.`,
-    });
+    try {
+      const inserted = await createSavedGlossary(user.id, name.trim(), replacements);
+      setSavedGlossaries((prev) => [inserted as unknown as SavedGlossary, ...prev]);
+      toast({
+        title: "Glossary Saved",
+        description: `"${name}" has been saved with ${replacements.length} entries.`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error?.message || "Failed to save glossary.",
+        variant: "destructive",
+      });
+    }
   };
-
   const loadGlossary = (glossaryData: WordReplacement[]) => {
     const sortedData = sortReplacements(glossaryData);
     setReplacements(sortedData);
@@ -131,18 +152,22 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
     });
   };
 
-  const deleteGlossary = (index: number) => {
-    const glossaryName = savedGlossaries[index].name;
-    const updatedGlossaries = savedGlossaries.filter((_, i) => i !== index);
-    setSavedGlossaries(updatedGlossaries);
-    localStorage.setItem('savedGlossaries', JSON.stringify(updatedGlossaries));
-    
-    toast({
-      title: "Glossary Deleted",
-      description: `"${glossaryName}" has been deleted.`,
-    });
+  const deleteGlossary = async (id: string, glossaryName: string) => {
+    try {
+      await deleteSavedGlossaryDb(id);
+      setSavedGlossaries((prev) => prev.filter((g) => g.id !== id));
+      toast({
+        title: "Glossary Deleted",
+        description: `"${glossaryName}" has been deleted.`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error?.message || "Failed to delete glossary.",
+        variant: "destructive",
+      });
+    }
   };
-
   const loadReplacements = async () => {
     if (!sessionId) return;
 
@@ -437,14 +462,14 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
               Save Current Glossary
             </Button>
             
-            {savedGlossaries.map((glossary, index) => (
-              <div key={index} className="flex items-center gap-2 bg-muted/30 border border-muted rounded-lg p-2 transition-smooth hover:bg-muted/50">
+            {savedGlossaries.map((glossary) => (
+              <div key={glossary.id} className="flex items-center gap-2 bg-muted/30 border border-muted rounded-lg p-2 transition-smooth hover:bg-muted/50">
                 <span className="text-sm font-medium text-foreground">{glossary.name}</span>
                 <Badge variant="secondary" className="text-xs px-2 py-0.5 bg-primary/10 text-primary border-primary/20">
-                  {glossary.data.length}
+                  {glossary.glossary_data?.length ?? 0}
                 </Badge>
                 <Button
-                  onClick={() => loadGlossary(glossary.data)}
+                  onClick={() => loadGlossary(glossary.glossary_data)}
                   size="sm"
                   variant="ghost"
                   className="h-6 w-6 p-0 text-primary hover:bg-primary/10 transition-smooth"
@@ -452,7 +477,7 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
                   <BookText className="h-3 w-3" />
                 </Button>
                 <Button
-                  onClick={() => deleteGlossary(index)}
+                  onClick={() => deleteGlossary(glossary.id, glossary.name)}
                   size="sm"
                   variant="ghost"
                   className="h-6 w-6 p-0 text-destructive hover:bg-destructive/10 transition-smooth"
