@@ -556,21 +556,21 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
           </div>
 
           {replacements.length > 0 && (
-            <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200 shadow-sm">
+            <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between bg-muted/30 p-4 rounded-lg border border-border shadow-sm transition-smooth">
               <div className="relative flex-1 max-w-md">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 <Input
                   placeholder="Search glossary entries..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500 bg-white hover:border-gray-400 transition-all duration-200"
+                  className="pl-10 border-border focus:border-primary focus:ring-primary bg-card hover:border-ring transition-smooth"
                 />
               </div>
               
               <div className="flex items-center gap-4">
                 {selectedItems.size > 0 && (
                   <div className="flex items-center gap-3">
-                    <Badge variant="outline" className="px-3 py-1 bg-white text-blue-700 border-blue-300 hover:bg-blue-50 transition-colors">
+                    <Badge variant="outline" className="px-3 py-1 bg-card text-foreground border-border hover:bg-muted/50 transition-smooth">
                       {selectedItems.size}/{filteredReplacements.length} selected
                     </Badge>
                     <Button
@@ -590,24 +590,24 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
           )}
 
           {filteredReplacements.length > 0 && (
-            <div className="space-y-6">
+              <div className="space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="space-y-1">
-                  <h3 className="text-lg font-semibold text-gray-800">
+                  <h3 className="text-lg font-semibold text-foreground">
                     Glossary Entries ({filteredReplacements.length})
                   </h3>
                   {totalPages > 1 && (
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-muted-foreground">
                       Showing page {currentPage} of {totalPages}
                     </p>
                   )}
                 </div>
               </div>
               
-              <div className="border rounded-lg overflow-hidden bg-white shadow-lg hover:shadow-xl transition-shadow duration-300">
+              <div className="border rounded-lg overflow-hidden bg-card shadow-elegant hover:shadow-glow transition-smooth">
                 <div className="overflow-x-auto">
                   <Table>
-                    <TableHeader className="bg-gradient-to-r from-gray-50 to-blue-50">
+                    <TableHeader className="bg-muted/30">
                       <TableRow>
                         <TableHead className="w-16 p-4">
                           <div className="flex items-center gap-2">
@@ -620,20 +620,20 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
                               )}
                             />
                             {selectedItems.size > 0 && (
-                              <Badge variant="secondary" className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700">
+                              <Badge variant="secondary" className="text-xs px-2 py-0.5 bg-primary/10 text-primary border-primary/20">
                                 {selectedItems.size}
                               </Badge>
                             )}
                           </div>
                         </TableHead>
-                        <TableHead className="min-w-[150px] font-semibold text-gray-700">Original Term</TableHead>
-                        <TableHead className="min-w-[150px] font-semibold text-gray-700">Preferred Term</TableHead>
-                        <TableHead className="w-24 text-center font-semibold text-gray-700">Actions</TableHead>
+                        <TableHead className="min-w-[150px] font-semibold text-foreground">Original Term</TableHead>
+                        <TableHead className="min-w-[150px] font-semibold text-foreground">Preferred Term</TableHead>
+                        <TableHead className="w-24 text-center font-semibold text-foreground">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {currentReplacements.map((replacement, index) => (
-                        <TableRow key={replacement.id} className="hover:bg-gradient-to-r hover:from-gray-50 hover:to-blue-50 transition-all duration-200">
+                        <TableRow key={replacement.id} className="hover:bg-muted/30 transition-smooth">
                           <TableCell className="p-4">
                             <Checkbox
                               checked={selectedItems.has(replacement.id)}
@@ -642,16 +642,16 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
                           </TableCell>
                           <TableCell className="font-medium break-words p-4">
                             <div className="flex items-center gap-2">
-                              <code className="bg-red-50 text-red-700 px-3 py-1 rounded-md text-sm font-mono border border-red-200">
+                              <code className="bg-destructive/10 text-destructive px-3 py-1 rounded-md text-sm font-mono border border-destructive/20">
                                 {replacement.original_word}
                               </code>
-                              <Badge variant="outline" className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600">
+                              <Badge variant="outline" className="text-xs px-2 py-0.5 bg-muted text-muted-foreground">
                                 {replacement.original_word.length} chars
                               </Badge>
                             </div>
                           </TableCell>
                           <TableCell className="break-words p-4">
-                            <code className="bg-green-50 text-green-700 px-3 py-1 rounded-md text-sm font-mono border border-green-200">
+                            <code className="bg-muted/50 text-foreground px-3 py-1 rounded-md text-sm font-mono border border-border">
                               {replacement.replacement_word}
                             </code>
                           </TableCell>
@@ -660,7 +660,7 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
                               onClick={() => removeReplacement(replacement.id)}
                               variant="ghost"
                               size="sm"
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50 transition-all duration-200 shadow-sm hover:shadow-md"
+                              className="text-destructive hover:text-destructive hover:bg-destructive/10 transition-smooth"
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -719,21 +719,21 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
           )}
 
           {filteredReplacements.length === 0 && replacements.length > 0 && (
-            <div className="text-center py-12 bg-gradient-to-br from-gray-50 to-blue-50 rounded-lg border-2 border-dashed border-gray-300 hover:border-blue-300 transition-colors duration-200">
-              <Search className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-700 mb-2">No matches found</h3>
-              <p className="text-gray-500">Try adjusting your search terms</p>
+            <div className="text-center py-12 bg-muted/30 rounded-lg border-2 border-dashed border-border hover:border-ring transition-smooth">
+              <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-foreground mb-2">No matches found</h3>
+              <p className="text-muted-foreground">Try adjusting your search terms</p>
             </div>
           )}
 
           {replacements.length === 0 && (
-            <div className="bg-gradient-to-br from-blue-50 to-green-50 rounded-lg p-6">
+            <div className="bg-muted/30 rounded-lg p-6 border border-border">
               <div className="text-center mb-6">
-                <div className="bg-gradient-to-br from-blue-100 to-blue-200 p-4 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center shadow-lg">
-                  <BookText className="h-8 w-8 text-blue-600" />
+                <div className="bg-primary/10 p-4 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center shadow-elegant">
+                  <BookText className="h-8 w-8 text-primary" />
                 </div>
-                <h3 className="text-lg font-medium text-gray-700 mb-2">No glossary entries yet</h3>
-                <p className="text-gray-500 mb-4 max-w-md mx-auto">
+                <h3 className="text-lg font-medium text-foreground mb-2">No glossary entries yet</h3>
+                <p className="text-muted-foreground mb-4 max-w-md mx-auto">
                   Add glossary entries above or import from a CSV file below
                 </p>
               </div>
