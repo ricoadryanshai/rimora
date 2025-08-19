@@ -3,7 +3,6 @@ import { BookOpen, Scissors, FileText, Settings, Moon, Sun, Monitor } from 'luci
 import { useTheme } from 'next-themes';
 import { Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarSeparator, useSidebar } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
-import { useIsMobile } from '@/hooks/use-mobile';
 interface AppSidebarProps {
   onSectionClick: (sectionId: string) => void;
   currentSection: string;
@@ -15,8 +14,7 @@ const AppSidebar = ({
   const {
     state
   } = useSidebar();
-  const isMobile = useIsMobile();
-  const collapsed = state === 'collapsed' || isMobile; // Force collapsed on mobile
+  const collapsed = state === 'collapsed';
   const {
     theme,
     setTheme
@@ -65,22 +63,18 @@ const AppSidebar = ({
             </SidebarMenuItem>)}
         </SidebarMenu>
 
-        {!isMobile && (
-          <>
-            <SidebarSeparator className="my-3 sm:my-4" />
+        <SidebarSeparator className="my-3 sm:my-4" />
 
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <Button variant="ghost" size="sm" onClick={cycleTheme} className={`w-full justify-start p-2 sm:p-3 hover:bg-sidebar-accent/50 text-sm sm:text-base ${collapsed ? 'px-2 sm:px-3' : ''}`}>
-                  <ThemeIcon className="h-4 w-4 shrink-0" />
-                  {!collapsed && <span className="ml-2 sm:ml-3 capitalize">
-                      {theme === 'system' ? 'Auto' : theme} Mode
-                    </span>}
-                </Button>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </>
-        )}
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <Button variant="ghost" size="sm" onClick={cycleTheme} className={`w-full justify-start p-2 sm:p-3 hover:bg-sidebar-accent/50 text-sm sm:text-base ${collapsed ? 'px-2 sm:px-3' : ''}`}>
+              <ThemeIcon className="h-4 w-4 shrink-0" />
+              {!collapsed && <span className="ml-2 sm:ml-3 capitalize">
+                  {theme === 'system' ? 'Auto' : theme} Mode
+                </span>}
+            </Button>
+          </SidebarMenuItem>
+        </SidebarMenu>
       </SidebarContent>
     </Sidebar>;
 };
