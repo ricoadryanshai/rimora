@@ -142,14 +142,55 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
       });
     }
   };
-  const loadGlossary = (glossaryData: WordReplacement[]) => {
+  const loadGlossary = async (glossaryData: WordReplacement[]) => {
     const sortedData = sortReplacements(glossaryData);
     setReplacements(sortedData);
     
-    toast({
-      title: "Glossary Loaded",
-      description: `Loaded ${glossaryData.length} glossary entries.`,
-    });
+    // If we have a session, save the loaded glossary entries to the database
+    if (sessionId) {
+      setIsSaving(true);
+      try {
+        // First clear existing replacements for this session
+        const { error: deleteError } = await supabase
+          .from('word_replacements')
+          .delete()
+          .eq('session_id', sessionId);
+        
+        if (deleteError) throw deleteError;
+        
+        // Then insert the new glossary entries
+        const { error: insertError } = await supabase
+          .from('word_replacements')
+          .insert(
+            sortedData.map(r => ({
+              session_id: sessionId,
+              original_word: r.original_word,
+              replacement_word: r.replacement_word,
+            }))
+          );
+        
+        if (insertError) throw insertError;
+        
+        toast({
+          title: "Glossary Loaded & Saved",
+          description: `Loaded ${glossaryData.length} glossary entries and saved to database.`,
+        });
+      } catch (error) {
+        console.error('Error saving loaded glossary to database:', error);
+        toast({
+          title: "Glossary Loaded",
+          description: `Loaded ${glossaryData.length} glossary entries (not saved to database).`,
+          variant: "destructive",
+        });
+      } finally {
+        setIsSaving(false);
+      }
+    } else {
+      toast({
+        title: "Glossary Loaded",
+        description: `Loaded ${glossaryData.length} glossary entries.`,
+      });
+    }
   };
 
   const deleteGlossary = async (id: string, glossaryName: string) => {
