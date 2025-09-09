@@ -200,6 +200,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      validate_word_replacement_input: {
+        Args: { original_word: string; replacement_word: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "user" | "super_user"
