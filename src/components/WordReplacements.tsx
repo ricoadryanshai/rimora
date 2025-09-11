@@ -431,9 +431,10 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
       }
 
       if (!sessionId) {
-        const newReplacements = validatedReplacements.map((r, index) => ({
-          ...r,
+        const newReplacements: WordReplacement[] = validatedReplacements.map((r, index) => ({
           id: Date.now().toString() + index.toString(),
+          original_word: r.original_word,
+          replacement_word: r.replacement_word,
         }));
         const updatedReplacements = sortReplacements([...replacements, ...newReplacements]);
         setReplacements(updatedReplacements);
