@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious, PaginationEllipsis } from "@/components/ui/pagination";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Search, BookText, AlertCircle, Database, Shield, AlertTriangle } from "lucide-react";
+import { Plus, Trash2, Search, BookText, AlertCircle, Database, Shield, AlertTriangle, Keyboard } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -20,6 +20,9 @@ import { handleError, handleAsync, withRetry, ErrorCategory } from "@/lib/error-
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { WordReplacementsSkeleton } from "./LoadingStates";
+import { usePagination } from "@/hooks/usePagination";
+import { PaginationControls } from "./PaginationControls";
 
 // Initialize rate limiter for API calls (10 requests per minute per user)
 const rateLimiter = new RateLimiter(10, 60000);
@@ -61,24 +64,63 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
   const { toast } = useToast();
   const { userRole, user } = useAuth();
 
-  // Sort replacements by character count (descending) and then alphabetically
-  const sortReplacements = (replacements: WordReplacement[]) => {
+  // Memoized sort function for performance
+  const sortReplacements = useCallback((replacements: WordReplacement[]) => {
     return [...replacements].sort((a, b) => {
       const lengthDiff = b.original_word.length - a.original_word.length;
       if (lengthDiff !== 0) return lengthDiff;
       return a.original_word.localeCompare(b.original_word);
     });
-  };
+  }, []);
 
-  const filteredReplacements = replacements.filter(replacement =>
-    replacement.original_word.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    replacement.replacement_word.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Memoized filtered replacements
+  const filteredReplacements = useMemo(() => {
+    return replacements.filter(replacement =>
+      replacement.original_word.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      replacement.replacement_word.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [replacements, searchTerm]);
 
-  const totalPages = Math.ceil(filteredReplacements.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentReplacements = filteredReplacements.slice(startIndex, endIndex);
+  // Pagination hook for better performance with large datasets
+  const pagination = usePagination(filteredReplacements, { pageSize: itemsPerPage });
+
+  // Keyboard shortcuts
+  const shortcutCallbacks = useMemo(() => ({
+    onSave: () => saveGlossary(),
+    onAdd: () => addReplacement(),
+    onDelete: () => removeSelectedReplacements(),
+    onClear: () => {
+      setReplacements([]);
+      setSelectedItems(new Set());
+    },
+    onExport: () => document.getElementById('csv-export-button')?.click(),
+    onImport: () => document.getElementById('csv-import-button')?.click(),
+  }), []);
+
+  // Keyboard shortcuts - simplified version
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.key === 's') {
+        e.preventDefault();
+        saveGlossary();
+      }
+      if (e.ctrlKey && e.key === 'n') {
+        e.preventDefault();
+        addReplacement();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Show loading skeleton while data is being fetched
+  if (isLoading) {
+    return <WordReplacementsSkeleton />;
+  }
+
+  // Replace existing pagination logic with optimized version
+  const totalPages = Math.ceil(pagination.totalItems / pagination.pageSize);
+  const currentReplacements = pagination.currentData;
 
   // Reset pagination and selection on search/data change
   useEffect(() => {
