@@ -90,23 +90,33 @@ export const sanitizeHtml = (input: string): string => {
     .replace(/'/g, '&#x27;');
 };
 
-// Rate limiting utilities
+// Rate limiting utilities with enhanced security
 export class RateLimiter {
   private requests: Map<string, number[]> = new Map();
+  private attempts: Map<string, number> = new Map();
   
   constructor(
     private maxRequests: number,
-    private windowMs: number
+    private windowMs: number,
+    private maxAttempts: number = 5
   ) {}
   
   isAllowed(key: string): boolean {
     const now = Date.now();
     const requests = this.requests.get(key) || [];
     
+    // Check if IP is temporarily blocked
+    const attemptCount = this.attempts.get(key) || 0;
+    if (attemptCount >= this.maxAttempts) {
+      console.warn(`IP ${key} temporarily blocked due to excessive requests`);
+      return false;
+    }
+    
     // Remove old requests outside the window
     const validRequests = requests.filter(time => now - time < this.windowMs);
     
     if (validRequests.length >= this.maxRequests) {
+      this.attempts.set(key, attemptCount + 1);
       return false;
     }
     
@@ -117,5 +127,6 @@ export class RateLimiter {
   
   reset(key: string): void {
     this.requests.delete(key);
+    this.attempts.delete(key);
   }
 }
