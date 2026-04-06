@@ -6,7 +6,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Copy, BookOpen, Scissors, RotateCcw, LogIn, Database, Sparkles } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Copy, BookOpen, Scissors, RotateCcw, LogIn, Database, Sparkles, Globe, Type } from "lucide-react";
+import UrlImport from "@/components/UrlImport";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -467,16 +469,33 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                   </div>
                   
                   <div className="space-y-3">
-                    <Label htmlFor="originalText" className="text-sm font-semibold text-foreground">
-                      Original Chapter Text
-                    </Label>
-                     <Textarea
-                       id="originalText"
-                       placeholder="Paste your chapter text here, or use the sample text button above to get started..."
-                       value={originalText}
-                       onChange={(e) => setOriginalText(e.target.value)}
-                       className="min-h-[150px] sm:min-h-[200px] resize-none"
-                     />
+                    <Tabs defaultValue="paste" className="w-full">
+                      <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="paste" className="flex items-center gap-2">
+                          <Type className="h-4 w-4" />
+                          Paste Text
+                        </TabsTrigger>
+                        <TabsTrigger value="url" className="flex items-center gap-2">
+                          <Globe className="h-4 w-4" />
+                          Import from URL
+                        </TabsTrigger>
+                      </TabsList>
+                      <TabsContent value="paste" className="mt-4 space-y-3">
+                        <Label htmlFor="originalText" className="text-sm font-semibold text-foreground">
+                          Original Chapter Text
+                        </Label>
+                        <Textarea
+                          id="originalText"
+                          placeholder="Paste your chapter text here, or use the sample text button above to get started..."
+                          value={originalText}
+                          onChange={(e) => setOriginalText(e.target.value)}
+                          className="min-h-[150px] sm:min-h-[200px] resize-none"
+                        />
+                      </TabsContent>
+                      <TabsContent value="url" className="mt-4">
+                        <UrlImport onContentReady={(content) => setOriginalText(content)} />
+                      </TabsContent>
+                    </Tabs>
                    </div>
                    
                    <Button 
