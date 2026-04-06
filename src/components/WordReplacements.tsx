@@ -113,11 +113,6 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Show loading skeleton while data is being fetched
-  if (isLoading) {
-    return <WordReplacementsSkeleton />;
-  }
-
   // Replace existing pagination logic with optimized version
   const totalPages = Math.ceil(pagination.totalItems / pagination.pageSize);
   const currentReplacements = pagination.currentData;
@@ -153,6 +148,11 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
       setSavedGlossaries([]);
     }
   }, [user?.id]);
+
+  // Show loading skeleton while data is being fetched
+  if (isLoading) {
+    return <WordReplacementsSkeleton />;
+  }
 
   // Enhanced load saved glossaries with error handling
   const loadSavedGlossaries = handleAsync(async () => {
