@@ -677,7 +677,7 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
                       <Trash2 className="h-3 w-3" />
                     </Button>
                   </div>
-                )))
+                ))
               )}
             </div>
             
