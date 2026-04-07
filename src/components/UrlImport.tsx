@@ -113,11 +113,11 @@ const UrlImport: React.FC<UrlImportProps> = ({ onContentReady }) => {
           placeholder="Extracted content will appear here..."
         />
         <div className="flex flex-col sm:flex-row gap-3">
-          <Button onClick={handleInsert} className="flex-1" size="lg">
+          <Button onClick={handleInsert} size="lg" className="w-full sm:flex-1 py-3 sm:py-4 text-base sm:text-lg font-semibold">
             <Check className="mr-2 h-4 w-4" />
             Insert into Chapter Text
           </Button>
-          <Button onClick={handleCancel} variant="outline" size="lg" className="w-full sm:w-auto">
+          <Button onClick={handleCancel} variant="outline" size="lg" className="w-full sm:w-auto py-3 sm:py-4 text-base sm:text-lg font-semibold">
             <X className="mr-2 h-4 w-4" />
             Cancel
           </Button>
