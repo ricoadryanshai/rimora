@@ -112,12 +112,12 @@ const UrlImport: React.FC<UrlImportProps> = ({ onContentReady }) => {
           className="min-h-[200px] sm:min-h-[300px] resize-none text-sm"
           placeholder="Extracted content will appear here..."
         />
-        <div className="flex gap-3">
+        <div className="flex flex-col sm:flex-row gap-3">
           <Button onClick={handleInsert} className="flex-1" size="lg">
             <Check className="mr-2 h-4 w-4" />
             Insert into Chapter Text
           </Button>
-          <Button onClick={handleCancel} variant="outline" size="lg">
+          <Button onClick={handleCancel} variant="outline" size="lg" className="w-full sm:w-auto">
             <X className="mr-2 h-4 w-4" />
             Cancel
           </Button>
@@ -134,7 +134,7 @@ const UrlImport: React.FC<UrlImportProps> = ({ onContentReady }) => {
       <p className="text-xs text-muted-foreground">
         Paste a webpage URL to automatically extract the main readable text. Perfect for iPhone users who can't easily select and copy text from web pages.
       </p>
-      <div className="flex gap-2">
+      <div className="flex flex-col sm:flex-row gap-2">
         <div className="relative flex-1">
           <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -146,7 +146,7 @@ const UrlImport: React.FC<UrlImportProps> = ({ onContentReady }) => {
             disabled={isLoading}
           />
         </div>
-        <Button onClick={handleFetch} disabled={isLoading || !url.trim()}>
+        <Button onClick={handleFetch} disabled={isLoading || !url.trim()} className="w-full sm:w-auto">
           {isLoading ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           ) : (
