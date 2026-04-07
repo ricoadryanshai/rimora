@@ -652,11 +652,11 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
                 </div>
               ) : (
                 savedGlossaries.map((glossary) => (
-                  <div key={glossary.id} className="flex items-center gap-2 bg-muted/30 border border-muted rounded-lg p-2 transition-smooth hover:bg-muted/50">
-                    <span className="text-sm font-medium text-foreground truncate max-w-32" title={glossary.name}>
+                  <div key={glossary.id} className="flex items-center gap-2 w-full bg-muted/30 border border-muted rounded-lg p-2 transition-smooth hover:bg-muted/50">
+                    <span className="text-sm font-medium text-foreground truncate flex-1 min-w-0" title={glossary.name}>
                       {glossary.name}
                     </span>
-                    <Badge variant="secondary" className="text-xs px-2 py-0.5 bg-primary/10 text-primary border-primary/20">
+                    <Badge variant="secondary" className="text-xs px-2 py-0.5 bg-primary/10 text-primary border-primary/20 shrink-0">
                       {glossary.glossary_data?.length ?? 0}
                     </Badge>
                     <Button
@@ -664,7 +664,7 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
                       size="sm"
                       variant="ghost"
                       disabled={isSaving}
-                      className="h-6 w-6 p-0 text-primary hover:bg-primary/10 transition-smooth"
+                      className="h-6 w-6 p-0 text-primary hover:bg-primary/10 transition-smooth shrink-0"
                     >
                       <BookText className="h-3 w-3" />
                     </Button>
@@ -672,12 +672,12 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
                       onClick={() => deleteGlossary(glossary.id, glossary.name)}
                       size="sm"
                       variant="ghost"
-                      className="h-6 w-6 p-0 text-destructive hover:bg-destructive/10 transition-smooth"
+                      className="h-6 w-6 p-0 text-destructive hover:bg-destructive/10 transition-smooth shrink-0"
                     >
                       <Trash2 className="h-3 w-3" />
                     </Button>
                   </div>
-                ))
+                )))
               )}
             </div>
             
