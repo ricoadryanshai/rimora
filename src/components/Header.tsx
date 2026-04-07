@@ -24,11 +24,11 @@ const Header = () => {
   return (
     <Card className="mb-8 shadow-lg border-0 bg-white/80 backdrop-blur-sm">
       <CardContent className="p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <User className="h-5 w-5 text-blue-600" />
-              <span className="font-medium text-gray-700">{user.email}</span>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-2 min-w-0">
+            <div className="flex items-center gap-2 min-w-0">
+              <User className="h-5 w-5 text-primary shrink-0" />
+              <span className="font-medium text-foreground truncate text-sm">{user.email}</span>
             </div>
             {userRole && (
               <Badge 
@@ -44,7 +44,7 @@ const Header = () => {
             onClick={handleSignOut}
             variant="outline"
             size="sm"
-            className="border-red-200 text-red-600 hover:bg-red-50"
+            className="border-destructive/30 text-destructive hover:bg-destructive/10 shrink-0"
           >
             <LogOut className="mr-2 h-4 w-4" />
             Sign Out
