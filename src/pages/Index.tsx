@@ -361,22 +361,22 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
             <Header />
 
             {/* Main Header */}
-            <div className="text-center mb-12 space-y-6">
+            <div className="text-center mb-6 sm:mb-12 space-y-4 sm:space-y-6">
               <div className="space-y-4">
                 <div className="flex items-center justify-center gap-3 mb-4">
                   <div className="bg-primary/10 p-3 rounded-2xl shadow-lg">
                     <BookOpen className="h-8 w-8 text-primary" />
                   </div>
-                  <h1 className="text-4xl lg:text-5xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+                  <h1 className="text-2xl sm:text-4xl lg:text-5xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
                     Novel Chapter Separator
                   </h1>
                 </div>
-                <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
+                <p className="hidden sm:block text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
                   Transform long chapters into manageable sections with smart word replacement and organized card layouts.
                 </p>
               </div>
               
-              <div className="flex flex-wrap justify-center gap-3">
+              <div className="hidden sm:flex flex-wrap justify-center gap-3">
                 <Badge variant="secondary" className="px-4 py-2 text-sm">
                   <Sparkles className="mr-2 h-4 w-4" />
                   Smart Text Processing
@@ -404,89 +404,173 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-4 sm:p-6 space-y-6">
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                    <div className="space-y-3 sm:col-span-2 lg:col-span-1">
-                      <Label className="text-sm font-semibold text-foreground">
-                        Separation Mode
-                      </Label>
-                      <div className="flex gap-2">
-                        <Button
-                          type="button"
-                          variant={separationMode === 'paragraph' ? 'default' : 'outline'}
-                          size="sm"
-                          onClick={() => setSeparationMode('paragraph')}
-                          className="flex-1 text-xs"
-                        >
-                          By Paragraphs
-                        </Button>
-                        <Button
-                          type="button"
-                          variant={separationMode === 'card' ? 'default' : 'outline'}
-                          size="sm"
-                          onClick={() => setSeparationMode('card')}
-                          className="flex-1 text-xs"
-                        >
-                          By Cards
-                        </Button>
-                      </div>
-                    </div>
+                  <Collapsible open={settingsOpen} onOpenChange={setSettingsOpen}>
+                    <CollapsibleTrigger asChild>
+                      <Button variant="ghost" className="w-full flex items-center justify-between sm:hidden mb-2">
+                        <span className="flex items-center gap-2 text-sm font-semibold">
+                          <Settings className="h-4 w-4" />
+                          Settings
+                        </span>
+                        <ChevronDown className={`h-4 w-4 transition-transform ${settingsOpen ? 'rotate-180' : ''}`} />
+                      </Button>
+                    </CollapsibleTrigger>
                     
-                    {separationMode === 'paragraph' ? (
-                      <div className="space-y-3">
-                        <Label htmlFor="paragraphCount" className="text-sm font-semibold text-foreground">
-                          Paragraphs per Card
+                    {/* Desktop: always visible */}
+                    <div className="hidden sm:grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                      <div className="space-y-3 sm:col-span-2 lg:col-span-1">
+                        <Label className="text-sm font-semibold text-foreground">
+                          Separation Mode
                         </Label>
-                        <Input
-                          id="paragraphCount"
-                          type="number"
-                          min="1"
-                          max="20"
-                          value={paragraphCount}
-                          onChange={(e) => setParagraphCount(Number(e.target.value))}
-                          className="text-center font-medium"
-                        />
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            variant={separationMode === 'paragraph' ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => setSeparationMode('paragraph')}
+                            className="flex-1 text-xs"
+                          >
+                            By Paragraphs
+                          </Button>
+                          <Button
+                            type="button"
+                            variant={separationMode === 'card' ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => setSeparationMode('card')}
+                            className="flex-1 text-xs"
+                          >
+                            By Cards
+                          </Button>
+                        </div>
                       </div>
-                    ) : (
-                      <div className="space-y-3">
-                        <Label htmlFor="cardCount" className="text-sm font-semibold text-foreground">
-                          Number of Cards
-                        </Label>
-                        <Input
-                          id="cardCount"
-                          type="number"
-                          min="1"
-                          max="50"
-                          value={cardCount}
-                          onChange={(e) => setCardCount(Number(e.target.value))}
-                          className="text-center font-medium"
-                        />
+                      
+                      {separationMode === 'paragraph' ? (
+                        <div className="space-y-3">
+                          <Label htmlFor="paragraphCount" className="text-sm font-semibold text-foreground">
+                            Paragraphs per Card
+                          </Label>
+                          <Input
+                            id="paragraphCount"
+                            type="number"
+                            min="1"
+                            max="20"
+                            value={paragraphCount}
+                            onChange={(e) => setParagraphCount(Number(e.target.value))}
+                            className="text-center font-medium"
+                          />
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          <Label htmlFor="cardCount" className="text-sm font-semibold text-foreground">
+                            Number of Cards
+                          </Label>
+                          <Input
+                            id="cardCount"
+                            type="number"
+                            min="1"
+                            max="50"
+                            value={cardCount}
+                            onChange={(e) => setCardCount(Number(e.target.value))}
+                            className="text-center font-medium"
+                          />
+                        </div>
+                      )}
+                      <div className="flex items-end">
+                        <Button 
+                          onClick={loadDummyData}
+                          variant="outline"
+                          size="lg"
+                          className="w-full"
+                        >
+                          <BookOpen className="mr-2 h-4 w-4" />
+                          <span className="hidden sm:inline">Load Sample</span>
+                          <span className="sm:hidden">Sample</span>
+                        </Button>
                       </div>
-                    )}
-                    <div className="flex items-end">
-                      <Button 
-                        onClick={loadDummyData}
-                        variant="outline"
-                        size="lg"
-                        className="w-full"
-                      >
-                        <BookOpen className="mr-2 h-4 w-4" />
-                        <span className="hidden sm:inline">Load Sample</span>
-                        <span className="sm:hidden">Sample</span>
-                      </Button>
+                      <div className="flex items-end">
+                        <Button 
+                          onClick={resetAll}
+                          variant="outline"
+                          size="lg"
+                          className="w-full"
+                        >
+                          <RotateCcw className="mr-2 h-4 w-4" />
+                          <span className="hidden sm:inline">Reset All</span>
+                          <span className="sm:hidden">Reset</span>
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex items-end">
-                      <Button 
-                        onClick={resetAll}
-                        variant="outline"
-                        size="lg"
-                        className="w-full"
-                      >
-                        <RotateCcw className="mr-2 h-4 w-4" />
-                        <span className="hidden sm:inline">Reset All</span>
-                        <span className="sm:hidden">Reset</span>
-                      </Button>
-                    </div>
-                  </div>
+
+                    {/* Mobile: collapsible */}
+                    <CollapsibleContent className="sm:hidden">
+                      <div className="grid grid-cols-2 gap-3 pt-2">
+                        <div className="space-y-2 col-span-2">
+                          <Label className="text-sm font-semibold text-foreground">
+                            Separation Mode
+                          </Label>
+                          <div className="flex gap-2">
+                            <Button
+                              type="button"
+                              variant={separationMode === 'paragraph' ? 'default' : 'outline'}
+                              size="sm"
+                              onClick={() => setSeparationMode('paragraph')}
+                              className="flex-1 text-xs"
+                            >
+                              By Paragraphs
+                            </Button>
+                            <Button
+                              type="button"
+                              variant={separationMode === 'card' ? 'default' : 'outline'}
+                              size="sm"
+                              onClick={() => setSeparationMode('card')}
+                              className="flex-1 text-xs"
+                            >
+                              By Cards
+                            </Button>
+                          </div>
+                        </div>
+                        
+                        {separationMode === 'paragraph' ? (
+                          <div className="space-y-2">
+                            <Label htmlFor="paragraphCountMobile" className="text-sm font-semibold text-foreground">
+                              Paragraphs/Card
+                            </Label>
+                            <Input
+                              id="paragraphCountMobile"
+                              type="number"
+                              min="1"
+                              max="20"
+                              value={paragraphCount}
+                              onChange={(e) => setParagraphCount(Number(e.target.value))}
+                              className="text-center font-medium"
+                            />
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            <Label htmlFor="cardCountMobile" className="text-sm font-semibold text-foreground">
+                              Num Cards
+                            </Label>
+                            <Input
+                              id="cardCountMobile"
+                              type="number"
+                              min="1"
+                              max="50"
+                              value={cardCount}
+                              onChange={(e) => setCardCount(Number(e.target.value))}
+                              className="text-center font-medium"
+                            />
+                          </div>
+                        )}
+                        <Button onClick={loadDummyData} variant="outline" size="sm" className="w-full">
+                          <BookOpen className="mr-2 h-4 w-4" />
+                          Sample
+                        </Button>
+                        <Button onClick={resetAll} variant="outline" size="sm" className="w-full col-span-2">
+                          <RotateCcw className="mr-2 h-4 w-4" />
+                          Reset All
+                        </Button>
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
                   
                   <div className="space-y-3">
                     <Tabs defaultValue="paste" className="w-full">
