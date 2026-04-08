@@ -7,9 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Copy, BookOpen, Scissors, RotateCcw, LogIn, Database, Sparkles, Globe, Type } from "lucide-react";
+import { Copy, BookOpen, Scissors, RotateCcw, LogIn, Database, Sparkles, Globe, Type, ChevronDown, ChevronLeft, ChevronRight, Settings } from "lucide-react";
 import UrlImport from "@/components/UrlImport";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,6 +27,8 @@ const Index = () => {
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [wordReplacements, setWordReplacements] = useState<any[]>([]);
   const [currentSection, setCurrentSection] = useState<string>('input-settings');
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [mobileCardIndex, setMobileCardIndex] = useState(0);
   const { toast } = useToast();
   const { user, loading } = useAuth();
 
@@ -242,6 +245,23 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
     }
   };
 
+  const copyAllCards = async () => {
+    try {
+      const allText = separatedCards.map((card, i) => `--- Card ${i + 1} ---\n${card}`).join('\n\n');
+      await navigator.clipboard.writeText(allText);
+      toast({
+        title: "All Cards Copied!",
+        description: `${separatedCards.length} cards copied to clipboard.`,
+      });
+    } catch (err) {
+      toast({
+        title: "Copy Failed",
+        description: "Failed to copy text to clipboard.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const loadDummyData = () => {
     setOriginalText(dummyText);
     toast({
@@ -303,8 +323,21 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
           </header>
 
           {/* Mobile floating sidebar trigger */}
-          <div className="fixed bottom-4 right-4 z-50 md:hidden">
+          <div className="fixed bottom-20 right-4 z-50 sm:hidden">
             <SidebarTrigger className="bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 rounded-full p-3 border-2 border-primary-foreground/20" />
+          </div>
+
+          {/* Sticky mobile CTA */}
+          <div className="fixed bottom-0 left-0 right-0 z-40 sm:hidden bg-background/95 backdrop-blur-sm border-t border-border p-3">
+            <Button 
+              onClick={separateChapter}
+              size="lg"
+              className="w-full py-3 text-base font-semibold"
+              disabled={!originalText && !dummyText}
+            >
+              <Scissors className="mr-2 h-5 w-5" />
+              Separate Chapter
+            </Button>
           </div>
 
           <div className="container mx-auto px-4 py-4 sm:py-6 lg:py-8 max-w-7xl">
@@ -341,22 +374,22 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
             <Header />
 
             {/* Main Header */}
-            <div className="text-center mb-12 space-y-6">
+            <div className="text-center mb-6 sm:mb-12 space-y-4 sm:space-y-6">
               <div className="space-y-4">
                 <div className="flex items-center justify-center gap-3 mb-4">
                   <div className="bg-primary/10 p-3 rounded-2xl shadow-lg">
                     <BookOpen className="h-8 w-8 text-primary" />
                   </div>
-                  <h1 className="text-4xl lg:text-5xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+                  <h1 className="text-2xl sm:text-4xl lg:text-5xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
                     Novel Chapter Separator
                   </h1>
                 </div>
-                <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
+                <p className="hidden sm:block text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
                   Transform long chapters into manageable sections with smart word replacement and organized card layouts.
                 </p>
               </div>
               
-              <div className="flex flex-wrap justify-center gap-3">
+              <div className="hidden sm:flex flex-wrap justify-center gap-3">
                 <Badge variant="secondary" className="px-4 py-2 text-sm">
                   <Sparkles className="mr-2 h-4 w-4" />
                   Smart Text Processing
@@ -384,89 +417,173 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-4 sm:p-6 space-y-6">
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                    <div className="space-y-3 sm:col-span-2 lg:col-span-1">
-                      <Label className="text-sm font-semibold text-foreground">
-                        Separation Mode
-                      </Label>
-                      <div className="flex gap-2">
-                        <Button
-                          type="button"
-                          variant={separationMode === 'paragraph' ? 'default' : 'outline'}
-                          size="sm"
-                          onClick={() => setSeparationMode('paragraph')}
-                          className="flex-1 text-xs"
-                        >
-                          By Paragraphs
-                        </Button>
-                        <Button
-                          type="button"
-                          variant={separationMode === 'card' ? 'default' : 'outline'}
-                          size="sm"
-                          onClick={() => setSeparationMode('card')}
-                          className="flex-1 text-xs"
-                        >
-                          By Cards
-                        </Button>
-                      </div>
-                    </div>
+                  <Collapsible open={settingsOpen} onOpenChange={setSettingsOpen}>
+                    <CollapsibleTrigger asChild>
+                      <Button variant="ghost" className="w-full flex items-center justify-between sm:hidden mb-2">
+                        <span className="flex items-center gap-2 text-sm font-semibold">
+                          <Settings className="h-4 w-4" />
+                          Settings
+                        </span>
+                        <ChevronDown className={`h-4 w-4 transition-transform ${settingsOpen ? 'rotate-180' : ''}`} />
+                      </Button>
+                    </CollapsibleTrigger>
                     
-                    {separationMode === 'paragraph' ? (
-                      <div className="space-y-3">
-                        <Label htmlFor="paragraphCount" className="text-sm font-semibold text-foreground">
-                          Paragraphs per Card
+                    {/* Desktop: always visible */}
+                    <div className="hidden sm:grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                      <div className="space-y-3 sm:col-span-2 lg:col-span-1">
+                        <Label className="text-sm font-semibold text-foreground">
+                          Separation Mode
                         </Label>
-                        <Input
-                          id="paragraphCount"
-                          type="number"
-                          min="1"
-                          max="20"
-                          value={paragraphCount}
-                          onChange={(e) => setParagraphCount(Number(e.target.value))}
-                          className="text-center font-medium"
-                        />
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            variant={separationMode === 'paragraph' ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => setSeparationMode('paragraph')}
+                            className="flex-1 text-xs"
+                          >
+                            By Paragraphs
+                          </Button>
+                          <Button
+                            type="button"
+                            variant={separationMode === 'card' ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => setSeparationMode('card')}
+                            className="flex-1 text-xs"
+                          >
+                            By Cards
+                          </Button>
+                        </div>
                       </div>
-                    ) : (
-                      <div className="space-y-3">
-                        <Label htmlFor="cardCount" className="text-sm font-semibold text-foreground">
-                          Number of Cards
-                        </Label>
-                        <Input
-                          id="cardCount"
-                          type="number"
-                          min="1"
-                          max="50"
-                          value={cardCount}
-                          onChange={(e) => setCardCount(Number(e.target.value))}
-                          className="text-center font-medium"
-                        />
+                      
+                      {separationMode === 'paragraph' ? (
+                        <div className="space-y-3">
+                          <Label htmlFor="paragraphCount" className="text-sm font-semibold text-foreground">
+                            Paragraphs per Card
+                          </Label>
+                          <Input
+                            id="paragraphCount"
+                            type="number"
+                            min="1"
+                            max="20"
+                            value={paragraphCount}
+                            onChange={(e) => setParagraphCount(Number(e.target.value))}
+                            className="text-center font-medium"
+                          />
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          <Label htmlFor="cardCount" className="text-sm font-semibold text-foreground">
+                            Number of Cards
+                          </Label>
+                          <Input
+                            id="cardCount"
+                            type="number"
+                            min="1"
+                            max="50"
+                            value={cardCount}
+                            onChange={(e) => setCardCount(Number(e.target.value))}
+                            className="text-center font-medium"
+                          />
+                        </div>
+                      )}
+                      <div className="flex items-end">
+                        <Button 
+                          onClick={loadDummyData}
+                          variant="outline"
+                          size="lg"
+                          className="w-full"
+                        >
+                          <BookOpen className="mr-2 h-4 w-4" />
+                          <span className="hidden sm:inline">Load Sample</span>
+                          <span className="sm:hidden">Sample</span>
+                        </Button>
                       </div>
-                    )}
-                    <div className="flex items-end">
-                      <Button 
-                        onClick={loadDummyData}
-                        variant="outline"
-                        size="lg"
-                        className="w-full"
-                      >
-                        <BookOpen className="mr-2 h-4 w-4" />
-                        <span className="hidden sm:inline">Load Sample</span>
-                        <span className="sm:hidden">Sample</span>
-                      </Button>
+                      <div className="flex items-end">
+                        <Button 
+                          onClick={resetAll}
+                          variant="outline"
+                          size="lg"
+                          className="w-full"
+                        >
+                          <RotateCcw className="mr-2 h-4 w-4" />
+                          <span className="hidden sm:inline">Reset All</span>
+                          <span className="sm:hidden">Reset</span>
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex items-end">
-                      <Button 
-                        onClick={resetAll}
-                        variant="outline"
-                        size="lg"
-                        className="w-full"
-                      >
-                        <RotateCcw className="mr-2 h-4 w-4" />
-                        <span className="hidden sm:inline">Reset All</span>
-                        <span className="sm:hidden">Reset</span>
-                      </Button>
-                    </div>
-                  </div>
+
+                    {/* Mobile: collapsible */}
+                    <CollapsibleContent className="sm:hidden">
+                      <div className="grid grid-cols-2 gap-3 pt-2">
+                        <div className="space-y-2 col-span-2">
+                          <Label className="text-sm font-semibold text-foreground">
+                            Separation Mode
+                          </Label>
+                          <div className="flex gap-2">
+                            <Button
+                              type="button"
+                              variant={separationMode === 'paragraph' ? 'default' : 'outline'}
+                              size="sm"
+                              onClick={() => setSeparationMode('paragraph')}
+                              className="flex-1 text-xs"
+                            >
+                              By Paragraphs
+                            </Button>
+                            <Button
+                              type="button"
+                              variant={separationMode === 'card' ? 'default' : 'outline'}
+                              size="sm"
+                              onClick={() => setSeparationMode('card')}
+                              className="flex-1 text-xs"
+                            >
+                              By Cards
+                            </Button>
+                          </div>
+                        </div>
+                        
+                        {separationMode === 'paragraph' ? (
+                          <div className="space-y-2">
+                            <Label htmlFor="paragraphCountMobile" className="text-sm font-semibold text-foreground">
+                              Paragraphs/Card
+                            </Label>
+                            <Input
+                              id="paragraphCountMobile"
+                              type="number"
+                              min="1"
+                              max="20"
+                              value={paragraphCount}
+                              onChange={(e) => setParagraphCount(Number(e.target.value))}
+                              className="text-center font-medium"
+                            />
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            <Label htmlFor="cardCountMobile" className="text-sm font-semibold text-foreground">
+                              Num Cards
+                            </Label>
+                            <Input
+                              id="cardCountMobile"
+                              type="number"
+                              min="1"
+                              max="50"
+                              value={cardCount}
+                              onChange={(e) => setCardCount(Number(e.target.value))}
+                              className="text-center font-medium"
+                            />
+                          </div>
+                        )}
+                        <Button onClick={loadDummyData} variant="outline" size="sm" className="w-full">
+                          <BookOpen className="mr-2 h-4 w-4" />
+                          Sample
+                        </Button>
+                        <Button onClick={resetAll} variant="outline" size="sm" className="w-full col-span-2">
+                          <RotateCcw className="mr-2 h-4 w-4" />
+                          Reset All
+                        </Button>
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
                   
                   <div className="space-y-3">
                     <Tabs defaultValue="paste" className="w-full">
@@ -498,15 +615,27 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                     </Tabs>
                    </div>
                    
+                   {/* Desktop CTA */}
                    <Button 
                      onClick={separateChapter}
                      size="lg"
-                     className="w-full py-3 sm:py-4 text-base sm:text-lg font-semibold"
-                    disabled={!originalText && !dummyText}
-                  >
-                    <Scissors className="mr-3 h-5 w-5" />
-                    Apply Glossary & Separate Chapter
-                  </Button>
+                     className="hidden sm:flex w-full py-3 sm:py-4 text-base sm:text-lg font-semibold"
+                     disabled={!originalText && !dummyText}
+                   >
+                     <Scissors className="mr-3 h-5 w-5" />
+                     Apply Glossary & Separate Chapter
+                   </Button>
+                   
+                   {/* Mobile: short label for inline button */}
+                   <Button 
+                     onClick={separateChapter}
+                     size="lg"
+                     className="sm:hidden w-full py-3 text-base font-semibold"
+                     disabled={!originalText && !dummyText}
+                   >
+                     <Scissors className="mr-2 h-5 w-5" />
+                     Separate Chapter
+                   </Button>
                 </CardContent>
               </Card>
             </div>
@@ -519,19 +648,99 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
             </div>
 
             {/* Results Section */}
-            <div ref={resultsRef}>
+            <div ref={resultsRef} className="mb-20 sm:mb-0">
               {separatedCards.length > 0 ? (
                 <Card className="shadow-lg border-0 bg-card">
                   <CardHeader className="pb-6 bg-gradient-to-r from-primary/5 to-primary/10 rounded-t-lg">
-                    <CardTitle className="flex items-center gap-3 text-xl">
-                      <div className="bg-primary/10 p-2 rounded-lg shadow-sm">
-                        <BookOpen className="h-5 w-5 text-primary" />
-                      </div>
-                      Separated Chapter Cards ({separatedCards.length})
-                    </CardTitle>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <CardTitle className="flex items-center gap-3 text-xl">
+                        <div className="bg-primary/10 p-2 rounded-lg shadow-sm">
+                          <BookOpen className="h-5 w-5 text-primary" />
+                        </div>
+                        Separated Chapter Cards ({separatedCards.length})
+                      </CardTitle>
+                      <Button
+                        onClick={copyAllCards}
+                        variant="outline"
+                        size="sm"
+                        className="shrink-0"
+                      >
+                        <Copy className="mr-2 h-4 w-4" />
+                        Copy All Cards
+                      </Button>
+                    </div>
                   </CardHeader>
-                  <CardContent className="p-6">
-                    <div className="grid gap-4 grid-cols-1 sm:gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  <CardContent className="p-4 sm:p-6">
+                    {/* Mobile: single card navigator */}
+                    <div className="sm:hidden">
+                      <Card className="border-border bg-card h-80 flex flex-col">
+                        <CardHeader className="pb-3 flex-shrink-0">
+                          <div className="flex items-center justify-between">
+                            <CardTitle className="text-lg font-semibold text-card-foreground flex items-center gap-2">
+                              <div className="bg-primary/10 p-1.5 rounded-md shadow-sm">
+                                <BookOpen className="h-4 w-4 text-primary" />
+                              </div>
+                              Card {mobileCardIndex + 1}
+                            </CardTitle>
+                            <Button
+                              onClick={() => copyToClipboard(separatedCards[mobileCardIndex], mobileCardIndex)}
+                              variant="outline"
+                              size="sm"
+                            >
+                              <Copy className="mr-1 h-3 w-3" />
+                              Copy
+                            </Button>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="space-y-3 flex-1 flex flex-col min-h-0">
+                          <div className="text-card-foreground leading-relaxed text-sm whitespace-pre-wrap break-words bg-muted/50 p-4 rounded-lg border border-border/50 flex-1 overflow-auto min-h-0">
+                            {separatedCards[mobileCardIndex]}
+                          </div>
+                          <div className="flex gap-4 text-xs text-muted-foreground flex-shrink-0">
+                            <div className="flex items-center gap-1">
+                              <span className="font-medium">Paragraphs:</span>
+                              <Badge variant="secondary" className="text-xs">
+                                {separatedCards[mobileCardIndex].split('\n\n').filter(p => p.trim()).length}
+                              </Badge>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <span className="font-medium">Characters:</span>
+                              <Badge variant="secondary" className="text-xs">
+                                {separatedCards[mobileCardIndex].length}
+                              </Badge>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                      <div className="flex items-center justify-between mt-4">
+                        <Button
+                          onClick={() => setMobileCardIndex(Math.max(0, mobileCardIndex - 1))}
+                          variant="outline"
+                          size="sm"
+                          disabled={mobileCardIndex === 0}
+                          className="min-h-[44px] min-w-[44px]"
+                        >
+                          <ChevronLeft className="h-5 w-5" />
+                          Prev
+                        </Button>
+                        <span className="text-sm text-muted-foreground font-medium">
+                          {mobileCardIndex + 1} / {separatedCards.length}
+                        </span>
+                        <Button
+                          onClick={() => setMobileCardIndex(Math.min(separatedCards.length - 1, mobileCardIndex + 1))}
+                          variant="outline"
+                          size="sm"
+                          disabled={mobileCardIndex === separatedCards.length - 1}
+                          className="min-h-[44px] min-w-[44px]"
+                        >
+                          Next
+                          <ChevronRight className="h-5 w-5" />
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Desktop: grid */}
+                    <div className="hidden sm:grid gap-4 grid-cols-1 sm:gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                       {separatedCards.map((card, index) => (
                          <Card key={index} className="group hover:shadow-lg transition-all duration-300 border-border hover:border-primary/50 bg-card h-80 flex flex-col">
                            <CardHeader className="pb-3 flex-shrink-0">
