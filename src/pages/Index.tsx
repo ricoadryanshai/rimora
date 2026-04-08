@@ -602,15 +602,27 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                     </Tabs>
                    </div>
                    
+                   {/* Desktop CTA */}
                    <Button 
                      onClick={separateChapter}
                      size="lg"
-                     className="w-full py-3 sm:py-4 text-base sm:text-lg font-semibold"
-                    disabled={!originalText && !dummyText}
-                  >
-                    <Scissors className="mr-3 h-5 w-5" />
-                    Apply Glossary & Separate Chapter
-                  </Button>
+                     className="hidden sm:flex w-full py-3 sm:py-4 text-base sm:text-lg font-semibold"
+                     disabled={!originalText && !dummyText}
+                   >
+                     <Scissors className="mr-3 h-5 w-5" />
+                     Apply Glossary & Separate Chapter
+                   </Button>
+                   
+                   {/* Mobile: short label for inline button */}
+                   <Button 
+                     onClick={separateChapter}
+                     size="lg"
+                     className="sm:hidden w-full py-3 text-base font-semibold"
+                     disabled={!originalText && !dummyText}
+                   >
+                     <Scissors className="mr-2 h-5 w-5" />
+                     Separate Chapter
+                   </Button>
                 </CardContent>
               </Card>
             </div>
@@ -623,19 +635,99 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
             </div>
 
             {/* Results Section */}
-            <div ref={resultsRef}>
+            <div ref={resultsRef} className="mb-20 sm:mb-0">
               {separatedCards.length > 0 ? (
                 <Card className="shadow-lg border-0 bg-card">
                   <CardHeader className="pb-6 bg-gradient-to-r from-primary/5 to-primary/10 rounded-t-lg">
-                    <CardTitle className="flex items-center gap-3 text-xl">
-                      <div className="bg-primary/10 p-2 rounded-lg shadow-sm">
-                        <BookOpen className="h-5 w-5 text-primary" />
-                      </div>
-                      Separated Chapter Cards ({separatedCards.length})
-                    </CardTitle>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <CardTitle className="flex items-center gap-3 text-xl">
+                        <div className="bg-primary/10 p-2 rounded-lg shadow-sm">
+                          <BookOpen className="h-5 w-5 text-primary" />
+                        </div>
+                        Separated Chapter Cards ({separatedCards.length})
+                      </CardTitle>
+                      <Button
+                        onClick={copyAllCards}
+                        variant="outline"
+                        size="sm"
+                        className="shrink-0"
+                      >
+                        <Copy className="mr-2 h-4 w-4" />
+                        Copy All Cards
+                      </Button>
+                    </div>
                   </CardHeader>
-                  <CardContent className="p-6">
-                    <div className="grid gap-4 grid-cols-1 sm:gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  <CardContent className="p-4 sm:p-6">
+                    {/* Mobile: single card navigator */}
+                    <div className="sm:hidden">
+                      <Card className="border-border bg-card h-80 flex flex-col">
+                        <CardHeader className="pb-3 flex-shrink-0">
+                          <div className="flex items-center justify-between">
+                            <CardTitle className="text-lg font-semibold text-card-foreground flex items-center gap-2">
+                              <div className="bg-primary/10 p-1.5 rounded-md shadow-sm">
+                                <BookOpen className="h-4 w-4 text-primary" />
+                              </div>
+                              Card {mobileCardIndex + 1}
+                            </CardTitle>
+                            <Button
+                              onClick={() => copyToClipboard(separatedCards[mobileCardIndex], mobileCardIndex)}
+                              variant="outline"
+                              size="sm"
+                            >
+                              <Copy className="mr-1 h-3 w-3" />
+                              Copy
+                            </Button>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="space-y-3 flex-1 flex flex-col min-h-0">
+                          <div className="text-card-foreground leading-relaxed text-sm whitespace-pre-wrap break-words bg-muted/50 p-4 rounded-lg border border-border/50 flex-1 overflow-auto min-h-0">
+                            {separatedCards[mobileCardIndex]}
+                          </div>
+                          <div className="flex gap-4 text-xs text-muted-foreground flex-shrink-0">
+                            <div className="flex items-center gap-1">
+                              <span className="font-medium">Paragraphs:</span>
+                              <Badge variant="secondary" className="text-xs">
+                                {separatedCards[mobileCardIndex].split('\n\n').filter(p => p.trim()).length}
+                              </Badge>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <span className="font-medium">Characters:</span>
+                              <Badge variant="secondary" className="text-xs">
+                                {separatedCards[mobileCardIndex].length}
+                              </Badge>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                      <div className="flex items-center justify-between mt-4">
+                        <Button
+                          onClick={() => setMobileCardIndex(Math.max(0, mobileCardIndex - 1))}
+                          variant="outline"
+                          size="sm"
+                          disabled={mobileCardIndex === 0}
+                          className="min-h-[44px] min-w-[44px]"
+                        >
+                          <ChevronLeft className="h-5 w-5" />
+                          Prev
+                        </Button>
+                        <span className="text-sm text-muted-foreground font-medium">
+                          {mobileCardIndex + 1} / {separatedCards.length}
+                        </span>
+                        <Button
+                          onClick={() => setMobileCardIndex(Math.min(separatedCards.length - 1, mobileCardIndex + 1))}
+                          variant="outline"
+                          size="sm"
+                          disabled={mobileCardIndex === separatedCards.length - 1}
+                          className="min-h-[44px] min-w-[44px]"
+                        >
+                          Next
+                          <ChevronRight className="h-5 w-5" />
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Desktop: grid */}
+                    <div className="hidden sm:grid gap-4 grid-cols-1 sm:gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                       {separatedCards.map((card, index) => (
                          <Card key={index} className="group hover:shadow-lg transition-all duration-300 border-border hover:border-primary/50 bg-card h-80 flex flex-col">
                            <CardHeader className="pb-3 flex-shrink-0">
