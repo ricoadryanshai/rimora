@@ -323,8 +323,21 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
           </header>
 
           {/* Mobile floating sidebar trigger */}
-          <div className="fixed bottom-4 right-4 z-50 md:hidden">
+          <div className="fixed bottom-20 right-4 z-50 sm:hidden">
             <SidebarTrigger className="bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 rounded-full p-3 border-2 border-primary-foreground/20" />
+          </div>
+
+          {/* Sticky mobile CTA */}
+          <div className="fixed bottom-0 left-0 right-0 z-40 sm:hidden bg-background/95 backdrop-blur-sm border-t border-border p-3">
+            <Button 
+              onClick={separateChapter}
+              size="lg"
+              className="w-full py-3 text-base font-semibold"
+              disabled={!originalText && !dummyText}
+            >
+              <Scissors className="mr-2 h-5 w-5" />
+              Separate Chapter
+            </Button>
           </div>
 
           <div className="container mx-auto px-4 py-4 sm:py-6 lg:py-8 max-w-7xl">

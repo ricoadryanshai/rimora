@@ -664,17 +664,17 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
                       size="sm"
                       variant="ghost"
                       disabled={isSaving}
-                      className="h-6 w-6 p-0 text-primary hover:bg-primary/10 transition-smooth shrink-0"
+                      className="min-h-[44px] min-w-[44px] sm:h-6 sm:w-6 sm:min-h-0 sm:min-w-0 p-0 text-primary hover:bg-primary/10 transition-smooth shrink-0"
                     >
-                      <BookText className="h-3 w-3" />
+                      <BookText className="h-4 w-4 sm:h-3 sm:w-3" />
                     </Button>
                     <Button
                       onClick={() => deleteGlossary(glossary.id, glossary.name)}
                       size="sm"
                       variant="ghost"
-                      className="h-6 w-6 p-0 text-destructive hover:bg-destructive/10 transition-smooth shrink-0"
+                      className="min-h-[44px] min-w-[44px] sm:h-6 sm:w-6 sm:min-h-0 sm:min-w-0 p-0 text-destructive hover:bg-destructive/10 transition-smooth shrink-0"
                     >
-                      <Trash2 className="h-3 w-3" />
+                      <Trash2 className="h-4 w-4 sm:h-3 sm:w-3" />
                     </Button>
                   </div>
                 ))
