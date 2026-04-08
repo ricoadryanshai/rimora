@@ -907,9 +907,9 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
                                 onClick={() => removeReplacement(replacement.id)}
                                 variant="ghost"
                                 size="sm"
-                                className="text-destructive hover:text-destructive hover:bg-destructive/10 transition-smooth"
+                                className="min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 text-destructive hover:text-destructive hover:bg-destructive/10 transition-smooth"
                               >
-                                <Trash2 className="h-4 w-4" />
+                                <Trash2 className="h-5 w-5 sm:h-4 sm:w-4" />
                               </Button>
                             </TableCell>
                           </TableRow>
