@@ -245,6 +245,23 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
     }
   };
 
+  const copyAllCards = async () => {
+    try {
+      const allText = separatedCards.map((card, i) => `--- Card ${i + 1} ---\n${card}`).join('\n\n');
+      await navigator.clipboard.writeText(allText);
+      toast({
+        title: "All Cards Copied!",
+        description: `${separatedCards.length} cards copied to clipboard.`,
+      });
+    } catch (err) {
+      toast({
+        title: "Copy Failed",
+        description: "Failed to copy text to clipboard.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const loadDummyData = () => {
     setOriginalText(dummyText);
     toast({
