@@ -779,12 +779,12 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
                     <p className="text-xs text-destructive">{validationErrors.replacement_word}</p>
                   )}
                 </div>
-                <div className="flex items-end">
+                <div className="flex items-end md:items-end">
                   <Button
                     onClick={addReplacement}
                     disabled={isSaving || !newOriginal.trim() || !newReplacement.trim()}
                     size="lg"
-                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground transition-smooth disabled:opacity-50 shadow-elegant hover:shadow-glow"
+                    className="w-full min-h-[44px] bg-primary hover:bg-primary/90 text-primary-foreground transition-smooth disabled:opacity-50 shadow-elegant hover:shadow-glow"
                   >
                     <Plus className="mr-2 h-4 w-4" />
                     {isSaving ? 'Adding...' : 'Add Entry'}
@@ -795,7 +795,7 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
 
             {replacements.length > 0 && (
               <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between bg-muted/30 p-4 rounded-lg border border-border shadow-sm transition-smooth">
-                <div className="relative flex-1 max-w-md">
+                <div className="relative flex-1 max-w-full sm:max-w-md">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                   <Input
                     placeholder="Search glossary entries..."
@@ -851,7 +851,61 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
                   </div>
                 </div>
                 
-                <div className="border rounded-lg overflow-hidden bg-card shadow-elegant hover:shadow-glow transition-smooth">
+                {/* Mobile: card layout */}
+                <div className="sm:hidden space-y-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Checkbox
+                      checked={isAllFilteredSelected}
+                      onCheckedChange={handleSelectAll}
+                      className={cn(
+                        "data-[state=indeterminate]:bg-primary data-[state=indeterminate]:text-primary-foreground",
+                        isSomeFilteredSelected && !isAllFilteredSelected && "data-[state=indeterminate]"
+                      )}
+                    />
+                    <span className="text-sm text-muted-foreground">Select all</span>
+                    {selectedItems.size > 0 && (
+                      <Badge variant="secondary" className="text-xs px-2 py-0.5 bg-primary/10 text-primary border-primary/20">
+                        {selectedItems.size}
+                      </Badge>
+                    )}
+                  </div>
+                  {currentReplacements.map((replacement) => (
+                    <div key={replacement.id} className="border rounded-lg bg-card p-4 space-y-3 shadow-sm">
+                      <div className="flex items-start justify-between gap-2">
+                        <Checkbox
+                          checked={selectedItems.has(replacement.id)}
+                          onCheckedChange={(checked) => handleSelectItem(replacement.id, checked as boolean)}
+                          className="mt-1"
+                        />
+                        <div className="flex-1 min-w-0 space-y-2">
+                          <div>
+                            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Original</span>
+                            <code className="block mt-1 bg-destructive/10 text-destructive px-3 py-1.5 rounded-md text-sm font-mono border border-destructive/20 break-words">
+                              {replacement.original_word}
+                            </code>
+                          </div>
+                          <div>
+                            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Preferred</span>
+                            <code className="block mt-1 bg-muted/50 text-foreground px-3 py-1.5 rounded-md text-sm font-mono border border-border break-words">
+                              {replacement.replacement_word}
+                            </code>
+                          </div>
+                        </div>
+                        <Button
+                          onClick={() => removeReplacement(replacement.id)}
+                          variant="ghost"
+                          size="sm"
+                          className="min-h-[44px] min-w-[44px] text-destructive hover:text-destructive hover:bg-destructive/10 shrink-0"
+                        >
+                          <Trash2 className="h-5 w-5" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Desktop: table layout */}
+                <div className="hidden sm:block border rounded-lg overflow-hidden bg-card shadow-elegant hover:shadow-glow transition-smooth">
                   <div className="overflow-x-auto">
                     <Table>
                       <TableHeader className="bg-muted/30">
@@ -907,9 +961,9 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
                                 onClick={() => removeReplacement(replacement.id)}
                                 variant="ghost"
                                 size="sm"
-                                className="min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 text-destructive hover:text-destructive hover:bg-destructive/10 transition-smooth"
+                                className="text-destructive hover:text-destructive hover:bg-destructive/10 transition-smooth"
                               >
-                                <Trash2 className="h-5 w-5 sm:h-4 sm:w-4" />
+                                <Trash2 className="h-4 w-4" />
                               </Button>
                             </TableCell>
                           </TableRow>
