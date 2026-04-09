@@ -199,6 +199,12 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
     }
     
     setSeparatedCards(cards);
+    setMobileCardIndex(0);
+    
+    // Auto-scroll to results after a brief delay
+    setTimeout(() => {
+      resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
     
     if (user) {
       await saveToDatabase(cards);
@@ -315,10 +321,10 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
         
         <main className="flex-1 overflow-auto relative">
           {/* Header with sidebar trigger */}
-          <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-b border-border">
-            <div className="flex items-center px-4 py-3">
-              <SidebarTrigger className="mr-4" />
-              <h2 className="font-semibold text-foreground">Novel Chapter Separator</h2>
+           <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-b border-border">
+            <div className="flex items-center px-4 py-2 sm:py-3">
+              <SidebarTrigger className="mr-3 sm:mr-4" />
+              <h2 className="font-semibold text-foreground text-sm sm:text-base">Novel Chapter Separator</h2>
             </div>
           </header>
 
@@ -340,7 +346,7 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
             </Button>
           </div>
 
-          <div className="container mx-auto px-4 py-4 sm:py-6 lg:py-8 max-w-7xl">
+          <div className="container mx-auto px-4 py-4 sm:py-6 lg:py-8 max-w-7xl pb-20 sm:pb-0">
             {!user && (
               <Card className="mb-6 sm:mb-8 shadow-lg border-l-4 border-l-primary bg-gradient-to-r from-primary/5 to-primary/10 hover:shadow-xl transition-shadow duration-300">
                 <CardContent className="p-4 sm:p-6">
