@@ -1,51 +1,51 @@
 
 
-## Mobile UX Improvement Recommendations
+## Additional Mobile UX Improvements
 
-Based on reviewing the current codebase, here are actionable improvements targeting iPhone/mobile users:
+After reviewing the current codebase (post previous round of fixes), here are further improvements to enhance the mobile experience:
 
-### 1. Reduce visual clutter on mobile — collapse the hero section
-The large hero with title, subtitle, and 3 badges takes up most of the initial viewport on mobile. On small screens, hide the subtitle and badges so users see the input area immediately.
+### 1. Glossary table: switch to card layout on mobile
+The glossary entries table (`WordReplacements.tsx`, lines 854-919) uses a horizontal `<Table>` with columns for checkbox, original term, preferred term, and actions. On mobile this requires horizontal scrolling (`overflow-x-auto`). Replace the table with a stacked card layout on small screens (each entry as a vertical card showing original/preferred terms and action buttons), hidden on `sm:` and above where the table remains.
 
-**Files:** `src/pages/Index.tsx` (lines 344-373) — add `hidden sm:block` to subtitle paragraph and badges wrapper.
+**Files:** `src/components/WordReplacements.tsx` (lines 854-919)
 
-### 2. Sticky "Separate Chapter" button on mobile
-The primary CTA is buried below the text area and settings. Add a sticky bottom bar on mobile so users can always tap "Apply Glossary & Separate Chapter" without scrolling back up.
+### 2. Add bottom padding to prevent sticky CTA overlap
+The sticky mobile CTA at the bottom of the screen (Index.tsx, line 331) overlaps content at the bottom of the page. The results section has `mb-20 sm:mb-0` but other sections (glossary, text input) can still be obscured when scrolling to the bottom. Add `pb-20 sm:pb-0` to the main container to ensure all content clears the sticky bar.
 
-**Files:** `src/pages/Index.tsx` — wrap the button in a sticky footer container visible only on mobile (`fixed bottom-0 left-0 right-0 md:hidden`).
+**Files:** `src/pages/Index.tsx` (line 343, the container div)
 
-### 3. Collapsible settings panel
-The separation mode and paragraph/card count inputs occupy space above the text area. Wrap them in a collapsible/accordion so mobile users can focus on text input first and tweak settings when needed.
+### 3. Improve "Add New Glossary Entry" form for mobile
+The 3-column grid for adding glossary entries (lines 727-793) collapses to a single column on mobile, but the "Add Entry" button is inside a `flex items-end` wrapper that may not align well. Make the button full-width with consistent padding on mobile, matching other CTAs.
 
-**Files:** `src/pages/Index.tsx` — use the existing `Collapsible` or `Accordion` component around the settings grid (lines 387-468).
+**Files:** `src/components/WordReplacements.tsx` (lines 782-793)
 
-### 4. Bottom sheet for result cards on mobile
-Instead of a long scrollable grid, use a swipeable bottom sheet (Drawer) or a simplified single-card-at-a-time view with prev/next navigation on mobile. This prevents endless scrolling through many cards.
+### 4. Auto-scroll to results after separation
+After tapping "Separate Chapter" on mobile, the user must manually scroll down to see the results. Add an automatic scroll-to-results behavior after `separateChapter()` completes so the output is immediately visible.
 
-**Files:** `src/pages/Index.tsx` (results section, lines 522-594) — add a mobile card navigator with prev/next buttons, shown only on `sm:hidden`.
+**Files:** `src/pages/Index.tsx` — add `resultsRef.current?.scrollIntoView({ behavior: 'smooth' })` after `setSeparatedCards(cards)`.
 
-### 5. Larger touch targets for glossary table actions
-The glossary replacement table uses small icon buttons for delete/select. Increase button padding and hit areas on mobile for easier tapping.
+### 5. Compact header on mobile
+The app header bar (line 318-323) and the `Header` component both take vertical space. On mobile, reduce the header padding and font size slightly, and consider combining the sidebar trigger + title into a more compact bar.
 
-**Files:** `src/components/WordReplacements.tsx` — increase icon button sizes with `min-h-[44px] min-w-[44px]` on mobile.
+**Files:** `src/pages/Index.tsx` (lines 318-323), `src/components/Header.tsx`
 
-### 6. "Copy All" button for result cards
-iPhone users copying cards one by one is tedious. Add a "Copy All Cards" button at the top of the results section that copies all card content separated by dividers.
+### 6. Search bar full-width on mobile in glossary
+The search input in the glossary section (line 798) has `max-w-md` which limits its width. On mobile, it should be full-width for easier tap targeting.
 
-**Files:** `src/pages/Index.tsx` — add a button in the results CardHeader.
+**Files:** `src/components/WordReplacements.tsx` (line 798) — change to `max-w-full sm:max-w-md`
 
 ---
 
-### Summary of changes
+### Summary
 
 | Priority | Change | Effort |
 |----------|--------|--------|
-| High | Collapse hero on mobile | Small |
-| High | Sticky CTA button | Small |
-| Medium | Collapsible settings | Small |
-| Medium | Copy All button | Small |
-| Low | Mobile card navigator | Medium |
-| Low | Larger touch targets | Small |
+| High | Card layout for glossary table on mobile | Medium |
+| High | Auto-scroll to results after separation | Small |
+| Medium | Bottom padding for sticky CTA clearance | Small |
+| Medium | Full-width search bar on mobile | Small |
+| Low | Compact header on mobile | Small |
+| Low | Better Add Entry button alignment | Small |
 
-All changes use existing UI components (Collapsible, Drawer, Button) and Tailwind responsive classes — no new dependencies needed.
+All changes use existing Tailwind responsive classes and minor JS additions. No new dependencies needed.
 
