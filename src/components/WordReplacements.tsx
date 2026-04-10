@@ -653,33 +653,65 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
                   ))}
                 </div>
               ) : (
-                savedGlossaries.map((glossary) => (
-                  <div key={glossary.id} className="flex items-center gap-2 w-full bg-muted/30 border border-muted rounded-lg p-2 transition-smooth hover:bg-muted/50">
-                    <span className="text-sm font-medium text-foreground truncate flex-1 min-w-0" title={glossary.name}>
-                      {glossary.name}
-                    </span>
-                    <Badge variant="secondary" className="text-xs px-2 py-0.5 bg-primary/10 text-primary border-primary/20 shrink-0">
-                      {glossary.glossary_data?.length ?? 0}
-                    </Badge>
-                    <Button
-                      onClick={() => loadGlossary(glossary.glossary_data)}
-                      size="sm"
-                      variant="ghost"
-                      disabled={isSaving}
-                      className="min-h-[44px] min-w-[44px] sm:h-6 sm:w-6 sm:min-h-0 sm:min-w-0 p-0 text-primary hover:bg-primary/10 transition-smooth shrink-0"
-                    >
-                      <BookText className="h-4 w-4 sm:h-3 sm:w-3" />
-                    </Button>
-                    <Button
-                      onClick={() => deleteGlossary(glossary.id, glossary.name)}
-                      size="sm"
-                      variant="ghost"
-                      className="min-h-[44px] min-w-[44px] sm:h-6 sm:w-6 sm:min-h-0 sm:min-w-0 p-0 text-destructive hover:bg-destructive/10 transition-smooth shrink-0"
-                    >
-                      <Trash2 className="h-4 w-4 sm:h-3 sm:w-3" />
-                    </Button>
-                  </div>
-                ))
+                (() => {
+                  const mobileLimit = 3;
+                  const visibleGlossaries = showAllGlossaries ? savedGlossaries : savedGlossaries.slice(0, mobileLimit);
+                  const hasMore = savedGlossaries.length > mobileLimit;
+
+                  return (
+                    <>
+                      {/* Mobile: limited list */}
+                      <div className="sm:hidden w-full space-y-2">
+                        {visibleGlossaries.map((glossary) => (
+                          <div key={glossary.id} className="flex items-center gap-2 w-full bg-muted/30 border border-muted rounded-lg p-2 transition-smooth hover:bg-muted/50">
+                            <span className="text-sm font-medium text-foreground truncate flex-1 min-w-0" title={glossary.name}>
+                              {glossary.name}
+                            </span>
+                            <Badge variant="secondary" className="text-xs px-2 py-0.5 bg-primary/10 text-primary border-primary/20 shrink-0">
+                              {glossary.glossary_data?.length ?? 0}
+                            </Badge>
+                            <Button onClick={() => loadGlossary(glossary.glossary_data)} size="sm" variant="ghost" disabled={isSaving} className="min-h-[44px] min-w-[44px] p-0 text-primary hover:bg-primary/10 transition-smooth shrink-0">
+                              <BookText className="h-4 w-4" />
+                            </Button>
+                            <Button onClick={() => deleteGlossary(glossary.id, glossary.name)} size="sm" variant="ghost" className="min-h-[44px] min-w-[44px] p-0 text-destructive hover:bg-destructive/10 transition-smooth shrink-0">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                        {hasMore && !showAllGlossaries && (
+                          <Button variant="ghost" size="sm" className="w-full text-primary" onClick={() => setShowAllGlossaries(true)}>
+                            View All ({savedGlossaries.length})
+                          </Button>
+                        )}
+                        {hasMore && showAllGlossaries && (
+                          <Button variant="ghost" size="sm" className="w-full text-muted-foreground" onClick={() => setShowAllGlossaries(false)}>
+                            Show Less
+                          </Button>
+                        )}
+                      </div>
+
+                      {/* Desktop: full list */}
+                      <div className="hidden sm:contents">
+                        {savedGlossaries.map((glossary) => (
+                          <div key={glossary.id} className="flex items-center gap-2 w-full bg-muted/30 border border-muted rounded-lg p-2 transition-smooth hover:bg-muted/50">
+                            <span className="text-sm font-medium text-foreground truncate flex-1 min-w-0" title={glossary.name}>
+                              {glossary.name}
+                            </span>
+                            <Badge variant="secondary" className="text-xs px-2 py-0.5 bg-primary/10 text-primary border-primary/20 shrink-0">
+                              {glossary.glossary_data?.length ?? 0}
+                            </Badge>
+                            <Button onClick={() => loadGlossary(glossary.glossary_data)} size="sm" variant="ghost" disabled={isSaving} className="h-6 w-6 min-h-0 min-w-0 p-0 text-primary hover:bg-primary/10 transition-smooth shrink-0">
+                              <BookText className="h-3 w-3" />
+                            </Button>
+                            <Button onClick={() => deleteGlossary(glossary.id, glossary.name)} size="sm" variant="ghost" className="h-6 w-6 min-h-0 min-w-0 p-0 text-destructive hover:bg-destructive/10 transition-smooth shrink-0">
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  );
+                })()
               )}
             </div>
             
