@@ -76,19 +76,19 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/10 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-3 mb-4">
-            <BookOpen className="h-8 w-8 text-blue-600" />
-            <h1 className="text-3xl font-bold text-gray-800">Novel Separator</h1>
+            <BookOpen className="h-8 w-8 text-primary" />
+            <h1 className="text-3xl font-bold text-foreground">Novel Separator</h1>
           </div>
-          <p className="text-gray-600">
+          <p className="text-muted-foreground">
             Sign in to save your work and access advanced features
           </p>
         </div>
 
-        <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm">
+        <Card className="shadow-lg border-0 bg-card/80 backdrop-blur-sm">
           <CardHeader>
             <CardTitle className="text-center text-xl">Authentication</CardTitle>
           </CardHeader>
@@ -125,7 +125,7 @@ const Auth = () => {
                   </div>
                   <Button 
                     type="submit" 
-                    className="w-full bg-blue-600 hover:bg-blue-700"
+                    className="w-full"
                     disabled={loading}
                   >
                     <LogIn className="mr-2 h-4 w-4" />
@@ -171,7 +171,7 @@ const Auth = () => {
                   </div>
                   <Button 
                     type="submit" 
-                    className="w-full bg-green-600 hover:bg-green-700"
+                    className="w-full"
                     disabled={loading}
                   >
                     <UserPlus className="mr-2 h-4 w-4" />
