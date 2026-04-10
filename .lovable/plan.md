@@ -1,38 +1,43 @@
 
 
-## Additional Mobile UX Improvements
+## Further Mobile UX Improvements
 
-After reviewing the current codebase (post previous round of fixes), here are further improvements to enhance the mobile experience:
+After reviewing the full codebase including all recent changes, here are the remaining improvements:
 
-### 1. Glossary table: switch to card layout on mobile
-The glossary entries table (`WordReplacements.tsx`, lines 854-919) uses a horizontal `<Table>` with columns for checkbox, original term, preferred term, and actions. On mobile this requires horizontal scrolling (`overflow-x-auto`). Replace the table with a stacked card layout on small screens (each entry as a vertical card showing original/preferred terms and action buttons), hidden on `sm:` and above where the table remains.
+### 1. Duplicate "Separate Chapter" buttons on mobile
+There are currently **two** visible CTA buttons on mobile: the sticky fixed bar at the bottom (line 337-347) AND an inline button inside the card (lines 636-644). This is redundant and wastes space. Remove the inline mobile button since the sticky bar already handles it.
 
-**Files:** `src/components/WordReplacements.tsx` (lines 854-919)
+**File:** `src/pages/Index.tsx` — remove lines 636-644 (the `sm:hidden` inline button)
 
-### 2. Add bottom padding to prevent sticky CTA overlap
-The sticky mobile CTA at the bottom of the screen (Index.tsx, line 331) overlaps content at the bottom of the page. The results section has `mb-20 sm:mb-0` but other sections (glossary, text input) can still be obscured when scrolling to the bottom. Add `pb-20 sm:pb-0` to the main container to ensure all content clears the sticky bar.
+### 2. Floating sidebar trigger overlaps sticky CTA
+The floating sidebar trigger (line 332-334, `bottom-20`) sits just above the sticky CTA bar, creating visual clutter on small screens. Since the sidebar trigger is already in the header bar (line 326), remove or hide the floating one.
 
-**Files:** `src/pages/Index.tsx` (line 343, the container div)
+**File:** `src/pages/Index.tsx` — remove lines 331-334
 
-### 3. Improve "Add New Glossary Entry" form for mobile
-The 3-column grid for adding glossary entries (lines 727-793) collapses to a single column on mobile, but the "Add Entry" button is inside a `flex items-end` wrapper that may not align well. Make the button full-width with consistent padding on mobile, matching other CTAs.
+### 3. Auth page not themed consistently
+The Auth page uses hardcoded colors (`text-gray-800`, `bg-blue-600`, `bg-green-600`) instead of design tokens (`text-foreground`, `bg-primary`). This breaks in dark mode and looks inconsistent.
 
-**Files:** `src/components/WordReplacements.tsx` (lines 782-793)
+**File:** `src/pages/Auth.tsx` — replace hardcoded colors with theme tokens
 
-### 4. Auto-scroll to results after separation
-After tapping "Separate Chapter" on mobile, the user must manually scroll down to see the results. Add an automatic scroll-to-results behavior after `separateChapter()` completes so the output is immediately visible.
+### 4. Empty results placeholder wastes mobile space
+The "No Cards Generated Yet" empty state (lines 796-808) has `p-12` padding and a large 96px icon container. On mobile this pushes content off-screen. Reduce padding and icon size on small screens.
 
-**Files:** `src/pages/Index.tsx` — add `resultsRef.current?.scrollIntoView({ behavior: 'smooth' })` after `setSeparatedCards(cards)`.
+**File:** `src/pages/Index.tsx` — change to `p-6 sm:p-12` and smaller icon on mobile
 
-### 5. Compact header on mobile
-The app header bar (line 318-323) and the `Header` component both take vertical space. On mobile, reduce the header padding and font size slightly, and consider combining the sidebar trigger + title into a more compact bar.
+### 5. Textarea minimum height too tall for small phones
+The textarea has `min-h-[150px] sm:min-h-[200px]`. On very small screens (iPhone SE, 320px wide), 150px plus the settings panel leaves little room. Reduce to `min-h-[120px] sm:min-h-[200px]`.
 
-**Files:** `src/pages/Index.tsx` (lines 318-323), `src/components/Header.tsx`
+**File:** `src/pages/Index.tsx` — line 615
 
-### 6. Search bar full-width on mobile in glossary
-The search input in the glossary section (line 798) has `max-w-md` which limits its width. On mobile, it should be full-width for easier tap targeting.
+### 6. Mobile card navigator: add card count jump
+The prev/next buttons only step one card at a time. For long chapters with many cards, add a small dropdown or input to jump directly to a card number.
 
-**Files:** `src/components/WordReplacements.tsx` (line 798) — change to `max-w-full sm:max-w-md`
+**File:** `src/pages/Index.tsx` — replace the static "X / Y" text with a tappable input
+
+### 7. Sign-in prompt card too verbose on mobile
+The "Save Your Work Permanently" card (lines 351-377) takes significant space on mobile with its icon, title, description, and button. Condense it on small screens.
+
+**File:** `src/pages/Index.tsx` — hide the description paragraph on mobile with `hidden sm:block`
 
 ---
 
@@ -40,12 +45,13 @@ The search input in the glossary section (line 798) has `max-w-md` which limits 
 
 | Priority | Change | Effort |
 |----------|--------|--------|
-| High | Card layout for glossary table on mobile | Medium |
-| High | Auto-scroll to results after separation | Small |
-| Medium | Bottom padding for sticky CTA clearance | Small |
-| Medium | Full-width search bar on mobile | Small |
-| Low | Compact header on mobile | Small |
-| Low | Better Add Entry button alignment | Small |
+| High | Remove duplicate mobile CTA button | Tiny |
+| High | Remove floating sidebar trigger | Tiny |
+| Medium | Fix Auth page theme tokens | Small |
+| Medium | Compact empty state on mobile | Small |
+| Low | Smaller textarea min-height | Tiny |
+| Low | Card jump input in navigator | Small |
+| Low | Condense sign-in prompt on mobile | Tiny |
 
-All changes use existing Tailwind responsive classes and minor JS additions. No new dependencies needed.
+All changes use existing components and Tailwind classes. No new dependencies.
 
