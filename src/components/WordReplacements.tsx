@@ -60,6 +60,8 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
   const [savedGlossaries, setSavedGlossaries] = useState<SavedGlossary[]>([]);
   const [loadingSavedGlossaries, setLoadingSavedGlossaries] = useState(false);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [showAllGlossaries, setShowAllGlossaries] = useState(false);
+  const [showAllMobileEntries, setShowAllMobileEntries] = useState(false);
   
   const { toast } = useToast();
   const { userRole, user } = useAuth();
