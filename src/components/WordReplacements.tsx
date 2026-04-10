@@ -60,6 +60,8 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
   const [savedGlossaries, setSavedGlossaries] = useState<SavedGlossary[]>([]);
   const [loadingSavedGlossaries, setLoadingSavedGlossaries] = useState(false);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [showAllGlossaries, setShowAllGlossaries] = useState(false);
+  const [showAllMobileEntries, setShowAllMobileEntries] = useState(false);
   
   const { toast } = useToast();
   const { userRole, user } = useAuth();
@@ -651,33 +653,65 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
                   ))}
                 </div>
               ) : (
-                savedGlossaries.map((glossary) => (
-                  <div key={glossary.id} className="flex items-center gap-2 w-full bg-muted/30 border border-muted rounded-lg p-2 transition-smooth hover:bg-muted/50">
-                    <span className="text-sm font-medium text-foreground truncate flex-1 min-w-0" title={glossary.name}>
-                      {glossary.name}
-                    </span>
-                    <Badge variant="secondary" className="text-xs px-2 py-0.5 bg-primary/10 text-primary border-primary/20 shrink-0">
-                      {glossary.glossary_data?.length ?? 0}
-                    </Badge>
-                    <Button
-                      onClick={() => loadGlossary(glossary.glossary_data)}
-                      size="sm"
-                      variant="ghost"
-                      disabled={isSaving}
-                      className="min-h-[44px] min-w-[44px] sm:h-6 sm:w-6 sm:min-h-0 sm:min-w-0 p-0 text-primary hover:bg-primary/10 transition-smooth shrink-0"
-                    >
-                      <BookText className="h-4 w-4 sm:h-3 sm:w-3" />
-                    </Button>
-                    <Button
-                      onClick={() => deleteGlossary(glossary.id, glossary.name)}
-                      size="sm"
-                      variant="ghost"
-                      className="min-h-[44px] min-w-[44px] sm:h-6 sm:w-6 sm:min-h-0 sm:min-w-0 p-0 text-destructive hover:bg-destructive/10 transition-smooth shrink-0"
-                    >
-                      <Trash2 className="h-4 w-4 sm:h-3 sm:w-3" />
-                    </Button>
-                  </div>
-                ))
+                (() => {
+                  const mobileLimit = 3;
+                  const visibleGlossaries = showAllGlossaries ? savedGlossaries : savedGlossaries.slice(0, mobileLimit);
+                  const hasMore = savedGlossaries.length > mobileLimit;
+
+                  return (
+                    <>
+                      {/* Mobile: limited list */}
+                      <div className="sm:hidden w-full space-y-2">
+                        {visibleGlossaries.map((glossary) => (
+                          <div key={glossary.id} className="flex items-center gap-2 w-full bg-muted/30 border border-muted rounded-lg p-2 transition-smooth hover:bg-muted/50">
+                            <span className="text-sm font-medium text-foreground truncate flex-1 min-w-0" title={glossary.name}>
+                              {glossary.name}
+                            </span>
+                            <Badge variant="secondary" className="text-xs px-2 py-0.5 bg-primary/10 text-primary border-primary/20 shrink-0">
+                              {glossary.glossary_data?.length ?? 0}
+                            </Badge>
+                            <Button onClick={() => loadGlossary(glossary.glossary_data)} size="sm" variant="ghost" disabled={isSaving} className="min-h-[44px] min-w-[44px] p-0 text-primary hover:bg-primary/10 transition-smooth shrink-0">
+                              <BookText className="h-4 w-4" />
+                            </Button>
+                            <Button onClick={() => deleteGlossary(glossary.id, glossary.name)} size="sm" variant="ghost" className="min-h-[44px] min-w-[44px] p-0 text-destructive hover:bg-destructive/10 transition-smooth shrink-0">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                        {hasMore && !showAllGlossaries && (
+                          <Button variant="ghost" size="sm" className="w-full text-primary" onClick={() => setShowAllGlossaries(true)}>
+                            View All ({savedGlossaries.length})
+                          </Button>
+                        )}
+                        {hasMore && showAllGlossaries && (
+                          <Button variant="ghost" size="sm" className="w-full text-muted-foreground" onClick={() => setShowAllGlossaries(false)}>
+                            Show Less
+                          </Button>
+                        )}
+                      </div>
+
+                      {/* Desktop: full list */}
+                      <div className="hidden sm:contents">
+                        {savedGlossaries.map((glossary) => (
+                          <div key={glossary.id} className="flex items-center gap-2 w-full bg-muted/30 border border-muted rounded-lg p-2 transition-smooth hover:bg-muted/50">
+                            <span className="text-sm font-medium text-foreground truncate flex-1 min-w-0" title={glossary.name}>
+                              {glossary.name}
+                            </span>
+                            <Badge variant="secondary" className="text-xs px-2 py-0.5 bg-primary/10 text-primary border-primary/20 shrink-0">
+                              {glossary.glossary_data?.length ?? 0}
+                            </Badge>
+                            <Button onClick={() => loadGlossary(glossary.glossary_data)} size="sm" variant="ghost" disabled={isSaving} className="h-6 w-6 min-h-0 min-w-0 p-0 text-primary hover:bg-primary/10 transition-smooth shrink-0">
+                              <BookText className="h-3 w-3" />
+                            </Button>
+                            <Button onClick={() => deleteGlossary(glossary.id, glossary.name)} size="sm" variant="ghost" className="h-6 w-6 min-h-0 min-w-0 p-0 text-destructive hover:bg-destructive/10 transition-smooth shrink-0">
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  );
+                })()
               )}
             </div>
             
@@ -869,39 +903,59 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
                       </Badge>
                     )}
                   </div>
-                  {currentReplacements.map((replacement) => (
-                    <div key={replacement.id} className="border rounded-lg bg-card p-4 space-y-3 shadow-sm">
-                      <div className="flex items-start justify-between gap-2">
-                        <Checkbox
-                          checked={selectedItems.has(replacement.id)}
-                          onCheckedChange={(checked) => handleSelectItem(replacement.id, checked as boolean)}
-                          className="mt-1"
-                        />
-                        <div className="flex-1 min-w-0 space-y-2">
-                          <div>
-                            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Original</span>
-                            <code className="block mt-1 bg-destructive/10 text-destructive px-3 py-1.5 rounded-md text-sm font-mono border border-destructive/20 break-words">
-                              {replacement.original_word}
-                            </code>
+                  {(() => {
+                    const mobileEntryLimit = 5;
+                    const visibleEntries = showAllMobileEntries ? currentReplacements : currentReplacements.slice(0, mobileEntryLimit);
+                    const hasMoreEntries = currentReplacements.length > mobileEntryLimit;
+
+                    return (
+                      <>
+                        {visibleEntries.map((replacement) => (
+                          <div key={replacement.id} className="border rounded-lg bg-card p-4 space-y-3 shadow-sm">
+                            <div className="flex items-start justify-between gap-2">
+                              <Checkbox
+                                checked={selectedItems.has(replacement.id)}
+                                onCheckedChange={(checked) => handleSelectItem(replacement.id, checked as boolean)}
+                                className="mt-1"
+                              />
+                              <div className="flex-1 min-w-0 space-y-2">
+                                <div>
+                                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Original</span>
+                                  <code className="block mt-1 bg-destructive/10 text-destructive px-3 py-1.5 rounded-md text-sm font-mono border border-destructive/20 break-words">
+                                    {replacement.original_word}
+                                  </code>
+                                </div>
+                                <div>
+                                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Preferred</span>
+                                  <code className="block mt-1 bg-muted/50 text-foreground px-3 py-1.5 rounded-md text-sm font-mono border border-border break-words">
+                                    {replacement.replacement_word}
+                                  </code>
+                                </div>
+                              </div>
+                              <Button
+                                onClick={() => removeReplacement(replacement.id)}
+                                variant="ghost"
+                                size="sm"
+                                className="min-h-[44px] min-w-[44px] text-destructive hover:text-destructive hover:bg-destructive/10 shrink-0"
+                              >
+                                <Trash2 className="h-5 w-5" />
+                              </Button>
+                            </div>
                           </div>
-                          <div>
-                            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Preferred</span>
-                            <code className="block mt-1 bg-muted/50 text-foreground px-3 py-1.5 rounded-md text-sm font-mono border border-border break-words">
-                              {replacement.replacement_word}
-                            </code>
-                          </div>
-                        </div>
-                        <Button
-                          onClick={() => removeReplacement(replacement.id)}
-                          variant="ghost"
-                          size="sm"
-                          className="min-h-[44px] min-w-[44px] text-destructive hover:text-destructive hover:bg-destructive/10 shrink-0"
-                        >
-                          <Trash2 className="h-5 w-5" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
+                        ))}
+                        {hasMoreEntries && !showAllMobileEntries && (
+                          <Button variant="ghost" size="sm" className="w-full text-primary" onClick={() => setShowAllMobileEntries(true)}>
+                            View All ({currentReplacements.length} entries)
+                          </Button>
+                        )}
+                        {hasMoreEntries && showAllMobileEntries && (
+                          <Button variant="ghost" size="sm" className="w-full text-muted-foreground" onClick={() => setShowAllMobileEntries(false)}>
+                            Show Less
+                          </Button>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
 
                 {/* Desktop: table layout */}
