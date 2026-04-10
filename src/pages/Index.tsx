@@ -328,10 +328,6 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
             </div>
           </header>
 
-          {/* Mobile floating sidebar trigger */}
-          <div className="fixed bottom-20 right-4 z-50 sm:hidden">
-            <SidebarTrigger className="bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 rounded-full p-3 border-2 border-primary-foreground/20" />
-          </div>
 
           {/* Sticky mobile CTA */}
           <div className="fixed bottom-0 left-0 right-0 z-40 sm:hidden bg-background/95 backdrop-blur-sm border-t border-border p-3">
@@ -357,7 +353,7 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                       </div>
                       <div className="space-y-2">
                         <h3 className="text-primary font-semibold text-lg">Save Your Work Permanently</h3>
-                        <p className="text-primary/80 text-sm leading-relaxed">
+                        <p className="hidden sm:block text-primary/80 text-sm leading-relaxed">
                           Create an account to save your separated chapters, word replacements, and continue working across sessions.
                         </p>
                       </div>
@@ -612,7 +608,7 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                           placeholder="Paste your chapter text here, or use the sample text button above to get started..."
                           value={originalText}
                           onChange={(e) => setOriginalText(e.target.value)}
-                          className="min-h-[150px] sm:min-h-[200px] resize-none"
+                          className="min-h-[120px] sm:min-h-[200px] resize-none"
                         />
                       </TabsContent>
                       <TabsContent value="url" className="mt-4">
@@ -632,16 +628,6 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                      Apply Glossary & Separate Chapter
                    </Button>
                    
-                   {/* Mobile: short label for inline button */}
-                   <Button 
-                     onClick={separateChapter}
-                     size="lg"
-                     className="sm:hidden w-full py-3 text-base font-semibold"
-                     disabled={!originalText && !dummyText}
-                   >
-                     <Scissors className="mr-2 h-5 w-5" />
-                     Separate Chapter
-                   </Button>
                 </CardContent>
               </Card>
             </div>
@@ -729,9 +715,22 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                           <ChevronLeft className="h-5 w-5" />
                           Prev
                         </Button>
-                        <span className="text-sm text-muted-foreground font-medium">
-                          {mobileCardIndex + 1} / {separatedCards.length}
-                        </span>
+                        <div className="flex items-center gap-1 text-sm text-muted-foreground font-medium">
+                          <Input
+                            type="number"
+                            min={1}
+                            max={separatedCards.length}
+                            value={mobileCardIndex + 1}
+                            onChange={(e) => {
+                              const val = parseInt(e.target.value, 10);
+                              if (val >= 1 && val <= separatedCards.length) {
+                                setMobileCardIndex(val - 1);
+                              }
+                            }}
+                            className="w-12 h-8 text-center p-0 text-sm"
+                          />
+                          <span>/ {separatedCards.length}</span>
+                        </div>
                         <Button
                           onClick={() => setMobileCardIndex(Math.min(separatedCards.length - 1, mobileCardIndex + 1))}
                           variant="outline"
@@ -794,9 +793,9 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                 </Card>
               ) : (
                 <Card className="shadow-lg border-0 bg-card border-dashed border-border">
-                  <CardContent className="p-12 text-center space-y-6">
-                    <div className="bg-muted p-6 rounded-full w-24 h-24 mx-auto flex items-center justify-center shadow-lg">
-                      <BookOpen className="h-12 w-12 text-muted-foreground" />
+                  <CardContent className="p-6 sm:p-12 text-center space-y-6">
+                    <div className="bg-muted p-4 sm:p-6 rounded-full w-16 h-16 sm:w-24 sm:h-24 mx-auto flex items-center justify-center shadow-lg">
+                      <BookOpen className="h-8 w-8 sm:h-12 sm:w-12 text-muted-foreground" />
                     </div>
                     <div className="space-y-3">
                       <h3 className="text-xl font-semibold text-card-foreground">No Cards Generated Yet</h3>
