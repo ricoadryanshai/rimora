@@ -1,38 +1,33 @@
 
 
-## Mobile UX Polish — Final Round
+## Mobile UX Polish — Remaining Items
 
-After reviewing the full current codebase, here are the remaining mobile improvements:
+After reviewing the full codebase, here are the final mobile improvements worth making:
 
-### 1. Glossary section cards have excessive padding on mobile
-The "Glossary Library" and "Text Glossary" cards use `p-6` padding on `CardContent` (lines 743, and the library card). On a 390px-wide screen, this wastes ~48px of horizontal space. Reduce to `p-3 sm:p-6`.
+### 1. Header card ignores dark mode
+The `Header` component (line 25) uses `bg-white/80` which looks broken in dark mode. Replace with `bg-card/80` to respect the theme.
 
-**File:** `src/components/WordReplacements.tsx` — update CardContent padding on both glossary cards
+**File:** `src/components/Header.tsx` — line 25
 
-### 2. "Add New Glossary Entry" form box has heavy padding on mobile
-The form wrapper div (line 744) uses `p-6` inside an already-padded card. On mobile this creates a double-padding effect. Reduce to `p-3 sm:p-6`.
+### 2. Add `viewport-fit=cover` for full iPhone safe-area support
+The `index.html` viewport meta tag lacks `viewport-fit=cover`, which is required for `env(safe-area-inset-bottom)` to actually work on notched iPhones. Without it, the safe-area padding added to the sticky CTA has no effect.
 
-**File:** `src/components/WordReplacements.tsx` — line 744
+**File:** `index.html` — line 5, append `, viewport-fit=cover`
 
-### 3. Mobile card navigator height is fixed at `h-80` regardless of content
-The single-card view (line 668) forces a 320px height. Short cards waste space; long cards are cramped. Change to `min-h-[200px] max-h-[60vh]` so it adapts to content while capping at 60% viewport height.
+### 3. Sign-in prompt icon container too large on mobile
+The sign-in card (line 351) uses `p-3` on the icon circle, making it disproportionately large on small screens. Reduce to `p-2 sm:p-3`.
 
-**File:** `src/pages/Index.tsx` — line 668
+**File:** `src/pages/Index.tsx` — line 351
 
-### 4. Sticky CTA bar lacks safe-area padding for notched iPhones
-The fixed bottom bar (line 333) uses `p-3` but doesn't account for the home indicator on iPhones with notches. Add `pb-[env(safe-area-inset-bottom,12px)]` to prevent the button from sitting behind the home bar.
+### 4. Main heading too large on very small screens
+The `h1` (line 385) starts at `text-2xl` which combined with the icon creates a two-line wrap on iPhone SE (320px). Use `text-xl` as the base and `sm:text-2xl`.
 
-**File:** `src/pages/Index.tsx` — line 333
+**File:** `src/pages/Index.tsx` — line 385
 
-### 5. CSV import/export section not optimized for mobile
-The `CSVManager` component buttons likely render side-by-side and may overflow on small screens. Wrap them in a responsive grid that stacks on mobile.
+### 5. Drag-and-drop zone not useful on mobile
+The `DragDropUpload` component shows drag-and-drop instructions that don't apply to touch devices. Hide the drag text and show a simpler "Tap to upload CSV" label on mobile.
 
-**File:** `src/components/CSVManager.tsx` — add `flex-col sm:flex-row` to button containers
-
-### 6. Empty glossary state has oversized icon on mobile
-The "No glossary entries yet" empty state (line 1083) uses a 64px icon container. Reduce on mobile with `w-12 h-12 sm:w-16 sm:h-16`.
-
-**File:** `src/components/WordReplacements.tsx` — line 1083
+**File:** `src/components/DragDropUpload.tsx` — update copy with responsive text
 
 ---
 
@@ -40,12 +35,11 @@ The "No glossary entries yet" empty state (line 1083) uses a 64px icon container
 
 | Priority | Change | Effort |
 |----------|--------|--------|
-| High | Safe-area padding for notched iPhones | Tiny |
-| High | Reduce glossary card padding on mobile | Tiny |
-| Medium | Adaptive card navigator height | Small |
-| Medium | Reduce form box padding | Tiny |
-| Low | CSV buttons responsive stacking | Small |
-| Low | Compact empty glossary icon | Tiny |
+| High | Fix Header dark mode `bg-white/80` | Tiny |
+| High | Add `viewport-fit=cover` to viewport meta | Tiny |
+| Medium | Smaller sign-in icon on mobile | Tiny |
+| Medium | Reduce h1 font size for iPhone SE | Tiny |
+| Low | Mobile-friendly drag-drop copy | Small |
 
-All changes are Tailwind-only. No new dependencies.
+All changes are CSS/HTML only. No new dependencies.
 
