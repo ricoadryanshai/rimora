@@ -633,7 +633,7 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
               )}
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-6 space-y-4">
+          <CardContent className="p-3 sm:p-6 space-y-4">
             <div className="flex flex-wrap gap-3 items-center">
               <Button
                 onClick={saveGlossary}
@@ -740,8 +740,8 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
               )}
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-6 space-y-6">
-            <div className="bg-muted/30 border border-muted rounded-lg p-6 shadow-sm transition-smooth">
+          <CardContent className="p-3 sm:p-6 space-y-6">
+            <div className="bg-muted/30 border border-muted rounded-lg p-3 sm:p-6 shadow-sm transition-smooth">
               <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
                 <Plus className="h-5 w-5 text-primary" />
                 Add New Glossary Entry
@@ -1080,7 +1080,7 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
             ) : (
               <div className="bg-muted/30 rounded-lg p-6 border border-border">
                 <div className="text-center mb-6">
-                  <div className="bg-primary/10 p-4 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center shadow-elegant">
+                  <div className="bg-primary/10 p-3 sm:p-4 rounded-full w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-4 flex items-center justify-center shadow-elegant">
                     <BookText className="h-8 w-8 text-primary" />
                   </div>
                   <h3 className="text-lg font-medium text-foreground mb-2">No glossary entries yet</h3>
