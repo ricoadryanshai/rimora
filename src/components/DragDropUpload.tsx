@@ -170,10 +170,13 @@ const DragDropUpload: React.FC<DragDropUploadProps> = ({ onImport, canUseFeature
           </div>
           
           <div className="space-y-2">
-            <h3 className="text-lg font-semibold text-gray-700">
-              {isDragOver ? "Drop your CSV file here" : "Drag & drop CSV file"}
+            <h3 className="text-lg font-semibold text-muted-foreground">
+              <span className="hidden sm:inline">
+                {isDragOver ? "Drop your CSV file here" : "Drag & drop CSV file"}
+              </span>
+              <span className="sm:hidden">Tap to upload CSV</span>
             </h3>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-muted-foreground/70 hidden sm:block">
               or click to browse files
             </p>
           </div>
