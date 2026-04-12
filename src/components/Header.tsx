@@ -22,7 +22,7 @@ const Header = () => {
   if (!user) return null;
 
   return (
-    <Card className="mb-4 sm:mb-8 shadow-lg border-0 <Card className="mb-4 sm:mb-8 shadow-lg border-0 bg-card/80 backdrop-blur-sm">">
+    <Card className="mb-4 sm:mb-8 shadow-lg border-0 bg-card/80 backdrop-blur-sm">
       <CardContent className="p-3 sm:p-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex flex-wrap items-center gap-2 min-w-0">

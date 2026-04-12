@@ -382,7 +382,7 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                   <div className="bg-primary/10 p-3 rounded-2xl shadow-lg">
                     <BookOpen className="h-8 w-8 text-primary" />
                   </div>
-                  <h1 className="<h1 className="text-xl sm:text-4xl lg:text-5xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent"> lg:text-5xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+                  <h1 className="text-xl sm:text-4xl lg:text-5xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
                     Novel Chapter Separator
                   </h1>
                 </div>
