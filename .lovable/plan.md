@@ -1,43 +1,38 @@
 
 
-## Further Mobile UX Improvements
+## Mobile UX Polish — Final Round
 
-After reviewing the full codebase including all recent changes, here are the remaining improvements:
+After reviewing the full current codebase, here are the remaining mobile improvements:
 
-### 1. Duplicate "Separate Chapter" buttons on mobile
-There are currently **two** visible CTA buttons on mobile: the sticky fixed bar at the bottom (line 337-347) AND an inline button inside the card (lines 636-644). This is redundant and wastes space. Remove the inline mobile button since the sticky bar already handles it.
+### 1. Glossary section cards have excessive padding on mobile
+The "Glossary Library" and "Text Glossary" cards use `p-6` padding on `CardContent` (lines 743, and the library card). On a 390px-wide screen, this wastes ~48px of horizontal space. Reduce to `p-3 sm:p-6`.
 
-**File:** `src/pages/Index.tsx` — remove lines 636-644 (the `sm:hidden` inline button)
+**File:** `src/components/WordReplacements.tsx` — update CardContent padding on both glossary cards
 
-### 2. Floating sidebar trigger overlaps sticky CTA
-The floating sidebar trigger (line 332-334, `bottom-20`) sits just above the sticky CTA bar, creating visual clutter on small screens. Since the sidebar trigger is already in the header bar (line 326), remove or hide the floating one.
+### 2. "Add New Glossary Entry" form box has heavy padding on mobile
+The form wrapper div (line 744) uses `p-6` inside an already-padded card. On mobile this creates a double-padding effect. Reduce to `p-3 sm:p-6`.
 
-**File:** `src/pages/Index.tsx` — remove lines 331-334
+**File:** `src/components/WordReplacements.tsx` — line 744
 
-### 3. Auth page not themed consistently
-The Auth page uses hardcoded colors (`text-gray-800`, `bg-blue-600`, `bg-green-600`) instead of design tokens (`text-foreground`, `bg-primary`). This breaks in dark mode and looks inconsistent.
+### 3. Mobile card navigator height is fixed at `h-80` regardless of content
+The single-card view (line 668) forces a 320px height. Short cards waste space; long cards are cramped. Change to `min-h-[200px] max-h-[60vh]` so it adapts to content while capping at 60% viewport height.
 
-**File:** `src/pages/Auth.tsx` — replace hardcoded colors with theme tokens
+**File:** `src/pages/Index.tsx` — line 668
 
-### 4. Empty results placeholder wastes mobile space
-The "No Cards Generated Yet" empty state (lines 796-808) has `p-12` padding and a large 96px icon container. On mobile this pushes content off-screen. Reduce padding and icon size on small screens.
+### 4. Sticky CTA bar lacks safe-area padding for notched iPhones
+The fixed bottom bar (line 333) uses `p-3` but doesn't account for the home indicator on iPhones with notches. Add `pb-[env(safe-area-inset-bottom,12px)]` to prevent the button from sitting behind the home bar.
 
-**File:** `src/pages/Index.tsx` — change to `p-6 sm:p-12` and smaller icon on mobile
+**File:** `src/pages/Index.tsx` — line 333
 
-### 5. Textarea minimum height too tall for small phones
-The textarea has `min-h-[150px] sm:min-h-[200px]`. On very small screens (iPhone SE, 320px wide), 150px plus the settings panel leaves little room. Reduce to `min-h-[120px] sm:min-h-[200px]`.
+### 5. CSV import/export section not optimized for mobile
+The `CSVManager` component buttons likely render side-by-side and may overflow on small screens. Wrap them in a responsive grid that stacks on mobile.
 
-**File:** `src/pages/Index.tsx` — line 615
+**File:** `src/components/CSVManager.tsx` — add `flex-col sm:flex-row` to button containers
 
-### 6. Mobile card navigator: add card count jump
-The prev/next buttons only step one card at a time. For long chapters with many cards, add a small dropdown or input to jump directly to a card number.
+### 6. Empty glossary state has oversized icon on mobile
+The "No glossary entries yet" empty state (line 1083) uses a 64px icon container. Reduce on mobile with `w-12 h-12 sm:w-16 sm:h-16`.
 
-**File:** `src/pages/Index.tsx` — replace the static "X / Y" text with a tappable input
-
-### 7. Sign-in prompt card too verbose on mobile
-The "Save Your Work Permanently" card (lines 351-377) takes significant space on mobile with its icon, title, description, and button. Condense it on small screens.
-
-**File:** `src/pages/Index.tsx` — hide the description paragraph on mobile with `hidden sm:block`
+**File:** `src/components/WordReplacements.tsx` — line 1083
 
 ---
 
@@ -45,13 +40,12 @@ The "Save Your Work Permanently" card (lines 351-377) takes significant space on
 
 | Priority | Change | Effort |
 |----------|--------|--------|
-| High | Remove duplicate mobile CTA button | Tiny |
-| High | Remove floating sidebar trigger | Tiny |
-| Medium | Fix Auth page theme tokens | Small |
-| Medium | Compact empty state on mobile | Small |
-| Low | Smaller textarea min-height | Tiny |
-| Low | Card jump input in navigator | Small |
-| Low | Condense sign-in prompt on mobile | Tiny |
+| High | Safe-area padding for notched iPhones | Tiny |
+| High | Reduce glossary card padding on mobile | Tiny |
+| Medium | Adaptive card navigator height | Small |
+| Medium | Reduce form box padding | Tiny |
+| Low | CSV buttons responsive stacking | Small |
+| Low | Compact empty glossary icon | Tiny |
 
-All changes use existing components and Tailwind classes. No new dependencies.
+All changes are Tailwind-only. No new dependencies.
 
