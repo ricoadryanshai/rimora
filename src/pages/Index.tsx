@@ -330,7 +330,7 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
 
 
           {/* Sticky mobile CTA */}
-          <div className="fixed bottom-0 left-0 right-0 z-40 sm:hidden bg-background/95 backdrop-blur-sm border-t border-border p-3">
+          <div className="fixed bottom-0 left-0 right-0 z-40 sm:hidden bg-background/95 backdrop-blur-sm border-t border-border p-3 pb-[env(safe-area-inset-bottom,12px)]">
             <Button 
               onClick={separateChapter}
               size="lg"
@@ -665,7 +665,7 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                   <CardContent className="p-4 sm:p-6">
                     {/* Mobile: single card navigator */}
                     <div className="sm:hidden">
-                      <Card className="border-border bg-card h-80 flex flex-col">
+                      <Card className="border-border bg-card min-h-[200px] max-h-[60vh] flex flex-col">
                         <CardHeader className="pb-3 flex-shrink-0">
                           <div className="flex items-center justify-between">
                             <CardTitle className="text-lg font-semibold text-card-foreground flex items-center gap-2">
