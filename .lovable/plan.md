@@ -1,33 +1,33 @@
 
 
-## Mobile UX Polish — Remaining Items
+## Mobile UX — Final Suggestions
 
-After reviewing the full codebase, here are the final mobile improvements worth making:
+After reviewing the full codebase thoroughly, the app has already received extensive mobile optimization. Here are the last meaningful improvements:
 
-### 1. Header card ignores dark mode
-The `Header` component (line 25) uses `bg-white/80` which looks broken in dark mode. Replace with `bg-card/80` to respect the theme.
+### 1. Swipe gestures for card navigation
+The mobile card navigator (lines 667-744 in Index.tsx) uses Prev/Next buttons. Adding touch swipe support would feel more natural on mobile. Use a lightweight touch handler (no new deps — just `onTouchStart`/`onTouchEnd` with a delta check) to swipe left/right between cards.
 
-**File:** `src/components/Header.tsx` — line 25
+**File:** `src/pages/Index.tsx` — add touch event handlers to the mobile card container
 
-### 2. Add `viewport-fit=cover` for full iPhone safe-area support
-The `index.html` viewport meta tag lacks `viewport-fit=cover`, which is required for `env(safe-area-inset-bottom)` to actually work on notched iPhones. Without it, the safe-area padding added to the sticky CTA has no effect.
+### 2. Haptic-style visual feedback on copy actions
+When users tap "Copy" on mobile, the only feedback is a toast at the top. Add a brief inline checkmark animation on the button itself (swap icon to a check for 1.5s) so the user gets immediate confirmation without looking away.
 
-**File:** `index.html` — line 5, append `, viewport-fit=cover`
+**File:** `src/pages/Index.tsx` — track `copiedIndex` state, show Check icon temporarily
 
-### 3. Sign-in prompt icon container too large on mobile
-The sign-in card (line 351) uses `p-3` on the icon circle, making it disproportionately large on small screens. Reduce to `p-2 sm:p-3`.
+### 3. Pull-to-refresh style empty state hint
+The empty results state (lines 795-808) shows static text. On mobile, replace the descriptive paragraph with a shorter, action-oriented message: "Tap Separate Chapter below to get started" pointing toward the sticky CTA.
 
-**File:** `src/pages/Index.tsx` — line 351
+**File:** `src/pages/Index.tsx` — responsive text swap for the empty state description
 
-### 4. Main heading too large on very small screens
-The `h1` (line 385) starts at `text-2xl` which combined with the icon creates a two-line wrap on iPhone SE (320px). Use `text-xl` as the base and `sm:text-2xl`.
+### 4. Auto-collapse sidebar on navigation
+When a user taps a sidebar item on mobile, the sidebar stays open requiring manual close. Auto-close it after selection to immediately show the content.
 
-**File:** `src/pages/Index.tsx` — line 385
+**File:** `src/components/AppSidebar.tsx` — call sidebar close after `onSectionClick`
 
-### 5. Drag-and-drop zone not useful on mobile
-The `DragDropUpload` component shows drag-and-drop instructions that don't apply to touch devices. Hide the drag text and show a simpler "Tap to upload CSV" label on mobile.
+### 5. Scroll-to-top button on long pages
+After generating many cards or scrolling through glossary entries, users need a quick way to return to the top. Add a floating "scroll to top" button that appears after scrolling down 300px, positioned above the sticky CTA bar.
 
-**File:** `src/components/DragDropUpload.tsx` — update copy with responsive text
+**File:** `src/pages/Index.tsx` — add scroll listener + floating button (visible on mobile only)
 
 ---
 
@@ -35,11 +35,11 @@ The `DragDropUpload` component shows drag-and-drop instructions that don't apply
 
 | Priority | Change | Effort |
 |----------|--------|--------|
-| High | Fix Header dark mode `bg-white/80` | Tiny |
-| High | Add `viewport-fit=cover` to viewport meta | Tiny |
-| Medium | Smaller sign-in icon on mobile | Tiny |
-| Medium | Reduce h1 font size for iPhone SE | Tiny |
-| Low | Mobile-friendly drag-drop copy | Small |
+| High | Swipe gestures for card navigator | Small |
+| High | Auto-collapse sidebar on mobile nav | Tiny |
+| Medium | Inline copy confirmation animation | Small |
+| Medium | Scroll-to-top floating button | Small |
+| Low | Shorter empty state text on mobile | Tiny |
 
-All changes are CSS/HTML only. No new dependencies.
+No new dependencies needed. All changes use native browser APIs and existing components.
 
