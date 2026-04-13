@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Copy, BookOpen, Scissors, RotateCcw, LogIn, Database, Sparkles, Globe, Type, ChevronDown, ChevronLeft, ChevronRight, Settings } from "lucide-react";
+import { Copy, Check, BookOpen, Scissors, RotateCcw, LogIn, Database, Sparkles, Globe, Type, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Settings } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import UrlImport from "@/components/UrlImport";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
