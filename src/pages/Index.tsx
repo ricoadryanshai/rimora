@@ -42,6 +42,32 @@ const Index = () => {
   const glossaryRef = useRef<HTMLDivElement>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
 
+  // Scroll-to-top listener
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 300);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Swipe handlers for mobile card navigator
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    setTouchStartX(e.touches[0].clientX);
+  }, []);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (touchStartX === null) return;
+    const delta = e.changedTouches[0].clientX - touchStartX;
+    const threshold = 50;
+    if (delta < -threshold && mobileCardIndex < separatedCards.length - 1) {
+      setMobileCardIndex(prev => prev + 1);
+    } else if (delta > threshold && mobileCardIndex > 0) {
+      setMobileCardIndex(prev => prev - 1);
+    }
+    setTouchStartX(null);
+  }, [touchStartX, mobileCardIndex, separatedCards.length]);
+
   // Dummy data for demonstration
   const dummyText = `Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
 
