@@ -1,6 +1,7 @@
 import React from 'react';
 import { BookOpen, Scissors, FileText, Settings, Moon, Sun, Monitor } from 'lucide-react';
 import { useTheme } from 'next-themes';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarSeparator, useSidebar } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 interface AppSidebarProps {
@@ -12,9 +13,11 @@ const AppSidebar = ({
   currentSection
 }: AppSidebarProps) => {
   const {
-    state
+    state,
+    toggleSidebar
   } = useSidebar();
   const collapsed = state === 'collapsed';
+  const isMobile = useIsMobile();
   const {
     theme,
     setTheme
@@ -56,7 +59,10 @@ const AppSidebar = ({
       <SidebarContent className="p-2">
         <SidebarMenu>
           {sections.map(section => <SidebarMenuItem key={section.id}>
-              <SidebarMenuButton onClick={() => onSectionClick(section.id)} isActive={currentSection === section.id} className={`w-full justify-start p-2 sm:p-3 rounded-lg transition-colors ${currentSection === section.id ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'hover:bg-sidebar-accent/50 text-sidebar-foreground'}`}>
+              <SidebarMenuButton onClick={() => {
+                onSectionClick(section.id);
+                if (isMobile) toggleSidebar();
+              }} isActive={currentSection === section.id} className={`w-full justify-start p-2 sm:p-3 rounded-lg transition-colors ${currentSection === section.id ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'hover:bg-sidebar-accent/50 text-sidebar-foreground'}`}>
                 <section.icon className="h-4 w-4 shrink-0" />
                 {!collapsed && <span className="ml-2 sm:ml-3 text-sm sm:text-base">{section.title}</span>}
               </SidebarMenuButton>
