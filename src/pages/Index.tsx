@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Copy, BookOpen, Scissors, RotateCcw, LogIn, Database, Sparkles, Globe, Type, ChevronDown, ChevronLeft, ChevronRight, Settings } from "lucide-react";
+import { Copy, Check, BookOpen, Scissors, RotateCcw, LogIn, Database, Sparkles, Globe, Type, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Settings } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import UrlImport from "@/components/UrlImport";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -29,13 +30,43 @@ const Index = () => {
   const [currentSection, setCurrentSection] = useState<string>('input-settings');
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [mobileCardIndex, setMobileCardIndex] = useState(0);
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
   const { toast } = useToast();
   const { user, loading } = useAuth();
+  const isMobile = useIsMobile();
 
   // Refs for smooth scrolling
   const inputSettingsRef = useRef<HTMLDivElement>(null);
   const glossaryRef = useRef<HTMLDivElement>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
+
+  // Scroll-to-top listener
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 300);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Swipe handlers for mobile card navigator
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    setTouchStartX(e.touches[0].clientX);
+  }, []);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (touchStartX === null) return;
+    const delta = e.changedTouches[0].clientX - touchStartX;
+    const threshold = 50;
+    if (delta < -threshold && mobileCardIndex < separatedCards.length - 1) {
+      setMobileCardIndex(prev => prev + 1);
+    } else if (delta > threshold && mobileCardIndex > 0) {
+      setMobileCardIndex(prev => prev - 1);
+    }
+    setTouchStartX(null);
+  }, [touchStartX, mobileCardIndex, separatedCards.length]);
 
   // Dummy data for demonstration
   const dummyText = `Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
@@ -238,6 +269,8 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
   const copyToClipboard = async (text: string, cardIndex: number) => {
     try {
       await navigator.clipboard.writeText(text);
+      setCopiedIndex(cardIndex);
+      setTimeout(() => setCopiedIndex(null), 1500);
       toast({
         title: "Copied to Clipboard!",
         description: `Card ${cardIndex + 1} content copied successfully.`,
@@ -664,7 +697,7 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                   </CardHeader>
                   <CardContent className="p-4 sm:p-6">
                     {/* Mobile: single card navigator */}
-                    <div className="sm:hidden">
+                    <div className="sm:hidden" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
                       <Card className="border-border bg-card min-h-[200px] max-h-[60vh] flex flex-col">
                         <CardHeader className="pb-3 flex-shrink-0">
                           <div className="flex items-center justify-between">
@@ -679,8 +712,12 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                               variant="outline"
                               size="sm"
                             >
-                              <Copy className="mr-1 h-3 w-3" />
-                              Copy
+                              {copiedIndex === mobileCardIndex ? (
+                                <Check className="mr-1 h-3 w-3 text-green-500" />
+                              ) : (
+                                <Copy className="mr-1 h-3 w-3" />
+                              )}
+                              {copiedIndex === mobileCardIndex ? 'Copied' : 'Copy'}
                             </Button>
                           </div>
                         </CardHeader>
@@ -800,7 +837,8 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                     <div className="space-y-3">
                       <h3 className="text-xl font-semibold text-card-foreground">No Cards Generated Yet</h3>
                       <p className="text-muted-foreground max-w-md mx-auto leading-relaxed">
-                        Enter your chapter text above and click "Separate Chapter" to start breaking it down into manageable cards.
+                        <span className="hidden sm:inline">Enter your chapter text above and click "Separate Chapter" to start breaking it down into manageable cards.</span>
+                        <span className="sm:hidden">Tap <strong>Separate Chapter</strong> below to get started.</span>
                       </p>
                     </div>
                   </CardContent>
@@ -808,6 +846,17 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
               )}
             </div>
           </div>
+
+          {/* Scroll-to-top button (mobile only) */}
+          {showScrollTop && (
+            <button
+              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+              className="fixed bottom-20 right-4 z-30 sm:hidden bg-primary text-primary-foreground p-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 min-h-[44px] min-w-[44px] flex items-center justify-center"
+              aria-label="Scroll to top"
+            >
+              <ChevronUp className="h-5 w-5" />
+            </button>
+          )}
         </main>
       </div>
     </SidebarProvider>
