@@ -30,8 +30,12 @@ const Index = () => {
   const [currentSection, setCurrentSection] = useState<string>('input-settings');
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [mobileCardIndex, setMobileCardIndex] = useState(0);
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
   const { toast } = useToast();
   const { user, loading } = useAuth();
+  const isMobile = useIsMobile();
 
   // Refs for smooth scrolling
   const inputSettingsRef = useRef<HTMLDivElement>(null);
