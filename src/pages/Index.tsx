@@ -7,17 +7,31 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Copy, Check, BookOpen, Scissors, RotateCcw, LogIn, Database, Sparkles, Globe, Type, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Settings } from "lucide-react";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { Copy, BookOpen, Scissors, RotateCcw, LogIn, Database, Sparkles, Globe, Type, ChevronDown, ChevronUp, Settings, Save } from "lucide-react";
 import UrlImport from "@/components/UrlImport";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import WordReplacements from "@/components/WordReplacements";
 import AppSidebar from "@/components/AppSidebar";
+import EditableChapterCards from "@/components/EditableChapterCards";
+import SessionHistory from "@/components/SessionHistory";
+import {
+  ChapterSession,
+  getLatestChapterSession,
+  getSessionTitle,
+  normalizeCards,
+  saveChapterSession,
+  SeparationMode,
+} from "@/lib/sessions";
+
+interface WordReplacement {
+  id: string;
+  original_word: string;
+  replacement_word: string;
+}
 
 const Index = () => {
   const [originalText, setOriginalText] = useState('');
@@ -26,21 +40,25 @@ const Index = () => {
   const [separationMode, setSeparationMode] = useState<'paragraph' | 'card'>('paragraph');
   const [separatedCards, setSeparatedCards] = useState<string[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
-  const [wordReplacements, setWordReplacements] = useState<any[]>([]);
+  const [sessionTitle, setSessionTitle] = useState('');
+  const [wordReplacements, setWordReplacements] = useState<WordReplacement[]>([]);
   const [currentSection, setCurrentSection] = useState<string>('input-settings');
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [mobileCardIndex, setMobileCardIndex] = useState(0);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
-  const [touchStartX, setTouchStartX] = useState<number | null>(null);
+  const [isSavingSession, setIsSavingSession] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
+  const [sessionRefreshKey, setSessionRefreshKey] = useState(0);
   const { toast } = useToast();
   const { user, loading } = useAuth();
-  const isMobile = useIsMobile();
 
   // Refs for smooth scrolling
   const inputSettingsRef = useRef<HTMLDivElement>(null);
   const glossaryRef = useRef<HTMLDivElement>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
+  const skipDirtyTrackingRef = useRef(true);
 
   // Scroll-to-top listener
   useEffect(() => {
@@ -50,23 +68,6 @@ const Index = () => {
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-
-  // Swipe handlers for mobile card navigator
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    setTouchStartX(e.touches[0].clientX);
-  }, []);
-
-  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
-    if (touchStartX === null) return;
-    const delta = e.changedTouches[0].clientX - touchStartX;
-    const threshold = 50;
-    if (delta < -threshold && mobileCardIndex < separatedCards.length - 1) {
-      setMobileCardIndex(prev => prev + 1);
-    } else if (delta > threshold && mobileCardIndex > 0) {
-      setMobileCardIndex(prev => prev - 1);
-    }
-    setTouchStartX(null);
-  }, [touchStartX, mobileCardIndex, separatedCards.length]);
 
   // Dummy data for demonstration
   const dummyText = `Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
@@ -96,40 +97,50 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
   useEffect(() => {
     if (user) {
       loadLastSession();
+    } else {
+      setCurrentSessionId(null);
+      setSessionTitle('');
+      setLastSavedAt(null);
+      setHasUnsavedChanges(false);
     }
   }, [user]);
+
+  useEffect(() => {
+    if (skipDirtyTrackingRef.current) {
+      skipDirtyTrackingRef.current = false;
+      return;
+    }
+    setHasUnsavedChanges(true);
+  }, [originalText, paragraphCount, cardCount, separationMode, separatedCards, sessionTitle]);
+
+  const applySession = (session: ChapterSession) => {
+    skipDirtyTrackingRef.current = true;
+    setOriginalText(session.original_text);
+    setParagraphCount(session.paragraph_count);
+    setCardCount(session.card_count || session.paragraph_count || 10);
+    setSeparationMode((session.separation_mode as SeparationMode) || 'paragraph');
+    setSeparatedCards(normalizeCards(session.separated_cards));
+    setCurrentSessionId(session.id);
+    setSessionTitle(getSessionTitle(session));
+    setLastSavedAt(session.updated_at);
+    setMobileCardIndex(0);
+    setHasUnsavedChanges(false);
+  };
 
   const loadLastSession = async () => {
     if (!user) return;
 
     try {
-      const { data, error } = await supabase
-        .from('chapter_sessions')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('updated_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (error) {
-        return;
-      }
-
-      if (data) {
-        setOriginalText(data.original_text);
-        setParagraphCount(data.paragraph_count);
-        setCardCount(data.card_count || data.paragraph_count || 10);
-        setSeparationMode((data.separation_mode as 'paragraph' | 'card') || 'paragraph');
-        const cards = Array.isArray(data.separated_cards) ? data.separated_cards as string[] : [];
-        setSeparatedCards(cards);
-        setCurrentSessionId(data.id);
+      const session = await getLatestChapterSession(user.id);
+      if (session) {
+        applySession(session);
       }
     } catch (error) {
       console.error('Error loading session:', error);
     }
   };
 
-  const applyWordReplacements = (text: string, replacements: any[]) => {
+  const applyWordReplacements = (text: string, replacements: WordReplacement[]) => {
     let processedText = text;
     
     replacements.forEach(({ original_word, replacement_word }) => {
@@ -140,7 +151,7 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
     return processedText;
   };
 
-  const saveToDatabase = async (cardsToSave?: string[]) => {
+  const saveToDatabase = async (cardsToSave?: string[], options?: { silent?: boolean; forceNew?: boolean }) => {
     if (!user) {
       toast({
         title: "Sign In Required",
@@ -150,48 +161,32 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
       return;
     }
 
+    setIsSavingSession(true);
     try {
       const cardsData = cardsToSave || separatedCards;
-      
-      const sessionData = {
+      const savedSession = await saveChapterSession(options?.forceNew ? null : currentSessionId, {
+        title: sessionTitle,
         user_id: user.id,
         original_text: originalText,
         paragraph_count: paragraphCount,
         card_count: cardCount,
         separation_mode: separationMode,
         separated_cards: cardsData,
-        updated_at: new Date().toISOString(),
-      };
-
-      let result;
-      if (currentSessionId) {
-        result = await supabase
-          .from('chapter_sessions')
-          .update(sessionData)
-          .eq('id', currentSessionId)
-          .eq('user_id', user.id)
-          .select()
-          .single();
-      } else {
-        result = await supabase
-          .from('chapter_sessions')
-          .insert(sessionData)
-          .select()
-          .single();
-      }
-
-      if (result.error) {
-        throw result.error;
-      }
-
-      if (result.data && !currentSessionId) {
-        setCurrentSessionId(result.data.id);
-      }
-
-      toast({
-        title: "Saved Successfully!",
-        description: "Your chapter session has been saved to the database.",
       });
+
+      skipDirtyTrackingRef.current = true;
+      setCurrentSessionId(savedSession.id);
+      setSessionTitle(getSessionTitle(savedSession));
+      setLastSavedAt(savedSession.updated_at);
+      setHasUnsavedChanges(false);
+      setSessionRefreshKey((key) => key + 1);
+
+      if (!options?.silent) {
+        toast({
+          title: "Saved Successfully!",
+          description: options?.forceNew ? "A new session copy has been saved." : "Your chapter session has been saved.",
+        });
+      }
     } catch (error) {
       console.error('Error saving to database:', error);
       toast({
@@ -199,6 +194,8 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
         description: "Failed to save your session. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsSavingSession(false);
     }
   };
 
@@ -209,7 +206,7 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
     
     const paragraphs = processedText.split('\n').filter(p => p.trim() !== '');
     
-    let cards: string[] = [];
+    const cards: string[] = [];
     
     if (separationMode === 'paragraph') {
       for (let i = 0; i < paragraphs.length; i += paragraphCount) {
@@ -253,12 +250,17 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
   };
 
   const resetAll = async () => {
+    skipDirtyTrackingRef.current = true;
     setOriginalText('');
     setParagraphCount(5);
     setCardCount(10);
     setSeparationMode('paragraph');
     setSeparatedCards([]);
     setCurrentSessionId(null);
+    setSessionTitle('');
+    setLastSavedAt(null);
+    setHasUnsavedChanges(false);
+    setMobileCardIndex(0);
     
     toast({
       title: "Reset Complete",
@@ -309,8 +311,25 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
     });
   };
 
-  const handleWordReplacementsChange = (replacements: any[]) => {
+  const handleWordReplacementsChange = (replacements: WordReplacement[]) => {
     setWordReplacements(replacements);
+  };
+
+  const handleCardsChange = useCallback((cards: string[]) => {
+    setSeparatedCards(cards);
+    setHasUnsavedChanges(true);
+  }, []);
+
+  const handleOpenSession = (session: ChapterSession) => {
+    applySession(session);
+    toast({
+      title: "Session Loaded",
+      description: `"${getSessionTitle(session)}" is open for editing.`,
+    });
+  };
+
+  const handleDeletedCurrentSession = () => {
+    resetAll();
   };
 
   const handleSectionClick = (sectionId: string) => {
@@ -355,9 +374,29 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
         <main className="flex-1 overflow-auto relative">
           {/* Header with sidebar trigger */}
            <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-b border-border">
-            <div className="flex items-center px-4 py-2 sm:py-3">
-              <SidebarTrigger className="mr-3 sm:mr-4" />
-              <h2 className="font-semibold text-foreground text-sm sm:text-base">Novel Chapter Separator</h2>
+            <div className="flex flex-wrap items-center gap-2 px-4 py-2 sm:flex-nowrap sm:py-3">
+              <SidebarTrigger className="mr-1 sm:mr-2" />
+              <h2 className="min-w-0 flex-1 truncate font-semibold text-foreground text-sm sm:text-base">
+                Novel Chapter Separator
+              </h2>
+              <div className="flex w-full items-center gap-2 sm:w-auto">
+                <SessionHistory
+                  userId={user?.id || null}
+                  currentSessionId={currentSessionId}
+                  refreshKey={sessionRefreshKey}
+                  onOpenSession={handleOpenSession}
+                  onDeletedCurrent={handleDeletedCurrentSession}
+                />
+                <Button
+                  onClick={() => saveToDatabase()}
+                  disabled={!user || isSavingSession}
+                  size="sm"
+                  className="min-h-[44px] flex-1 sm:flex-none"
+                >
+                  <Save className="mr-2 h-4 w-4" />
+                  {isSavingSession ? "Saving..." : "Save"}
+                </Button>
+              </div>
             </div>
           </header>
 
@@ -407,6 +446,43 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
             )}
 
             <Header />
+
+            <Card className="mb-6 border-border bg-card shadow-sm">
+              <CardContent className="p-4">
+                <div className="grid gap-3 lg:grid-cols-[1fr_auto] lg:items-end">
+                  <div className="space-y-2">
+                    <Label htmlFor="sessionTitle" className="text-sm font-semibold text-foreground">
+                      Session Title
+                    </Label>
+                    <Input
+                      id="sessionTitle"
+                      value={sessionTitle}
+                      onChange={(event) => setSessionTitle(event.target.value.slice(0, 100))}
+                      placeholder="Name this chapter session"
+                      maxLength={100}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center lg:justify-end">
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                      <Badge variant={hasUnsavedChanges ? "secondary" : "outline"}>
+                        {hasUnsavedChanges ? "Unsaved changes" : "Saved"}
+                      </Badge>
+                      {lastSavedAt && <span>Last saved {new Date(lastSavedAt).toLocaleString()}</span>}
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="min-h-[44px] w-full sm:w-auto"
+                      disabled={!user || isSavingSession}
+                      onClick={() => saveToDatabase(undefined, { forceNew: true })}
+                    >
+                      Save as New
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Main Header */}
             <div className="text-center mb-6 sm:mb-12 space-y-4 sm:space-y-6">
@@ -675,159 +751,15 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
             {/* Results Section */}
             <div ref={resultsRef} className="mb-20 sm:mb-0">
               {separatedCards.length > 0 ? (
-                <Card className="shadow-lg border-0 bg-card">
-                  <CardHeader className="pb-6 bg-gradient-to-r from-primary/5 to-primary/10 rounded-t-lg">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                      <CardTitle className="flex items-center gap-3 text-xl">
-                        <div className="bg-primary/10 p-2 rounded-lg shadow-sm">
-                          <BookOpen className="h-5 w-5 text-primary" />
-                        </div>
-                        Separated Chapter Cards ({separatedCards.length})
-                      </CardTitle>
-                      <Button
-                        onClick={copyAllCards}
-                        variant="outline"
-                        size="sm"
-                        className="shrink-0"
-                      >
-                        <Copy className="mr-2 h-4 w-4" />
-                        Copy All Cards
-                      </Button>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="p-4 sm:p-6">
-                    {/* Mobile: single card navigator */}
-                    <div className="sm:hidden" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
-                      <Card className="border-border bg-card min-h-[200px] max-h-[60vh] flex flex-col">
-                        <CardHeader className="pb-3 flex-shrink-0">
-                          <div className="flex items-center justify-between">
-                            <CardTitle className="text-lg font-semibold text-card-foreground flex items-center gap-2">
-                              <div className="bg-primary/10 p-1.5 rounded-md shadow-sm">
-                                <BookOpen className="h-4 w-4 text-primary" />
-                              </div>
-                              Card {mobileCardIndex + 1}
-                            </CardTitle>
-                            <Button
-                              onClick={() => copyToClipboard(separatedCards[mobileCardIndex], mobileCardIndex)}
-                              variant="outline"
-                              size="sm"
-                            >
-                              {copiedIndex === mobileCardIndex ? (
-                                <Check className="mr-1 h-3 w-3 text-green-500" />
-                              ) : (
-                                <Copy className="mr-1 h-3 w-3" />
-                              )}
-                              {copiedIndex === mobileCardIndex ? 'Copied' : 'Copy'}
-                            </Button>
-                          </div>
-                        </CardHeader>
-                        <CardContent className="space-y-3 flex-1 flex flex-col min-h-0">
-                          <div className="text-card-foreground leading-relaxed text-sm whitespace-pre-wrap break-words bg-muted/50 p-4 rounded-lg border border-border/50 flex-1 overflow-auto min-h-0">
-                            {separatedCards[mobileCardIndex]}
-                          </div>
-                          <div className="flex gap-4 text-xs text-muted-foreground flex-shrink-0">
-                            <div className="flex items-center gap-1">
-                              <span className="font-medium">Paragraphs:</span>
-                              <Badge variant="secondary" className="text-xs">
-                                {separatedCards[mobileCardIndex].split('\n\n').filter(p => p.trim()).length}
-                              </Badge>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <span className="font-medium">Characters:</span>
-                              <Badge variant="secondary" className="text-xs">
-                                {separatedCards[mobileCardIndex].length}
-                              </Badge>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                      <div className="flex items-center justify-between mt-4">
-                        <Button
-                          onClick={() => setMobileCardIndex(Math.max(0, mobileCardIndex - 1))}
-                          variant="outline"
-                          size="sm"
-                          disabled={mobileCardIndex === 0}
-                          className="min-h-[44px] min-w-[44px]"
-                        >
-                          <ChevronLeft className="h-5 w-5" />
-                          Prev
-                        </Button>
-                        <div className="flex items-center gap-1 text-sm text-muted-foreground font-medium">
-                          <Input
-                            type="number"
-                            min={1}
-                            max={separatedCards.length}
-                            value={mobileCardIndex + 1}
-                            onChange={(e) => {
-                              const val = parseInt(e.target.value, 10);
-                              if (val >= 1 && val <= separatedCards.length) {
-                                setMobileCardIndex(val - 1);
-                              }
-                            }}
-                            className="w-12 h-8 text-center p-0 text-sm"
-                          />
-                          <span>/ {separatedCards.length}</span>
-                        </div>
-                        <Button
-                          onClick={() => setMobileCardIndex(Math.min(separatedCards.length - 1, mobileCardIndex + 1))}
-                          variant="outline"
-                          size="sm"
-                          disabled={mobileCardIndex === separatedCards.length - 1}
-                          className="min-h-[44px] min-w-[44px]"
-                        >
-                          Next
-                          <ChevronRight className="h-5 w-5" />
-                        </Button>
-                      </div>
-                    </div>
-
-                    {/* Desktop: grid */}
-                    <div className="hidden sm:grid gap-4 grid-cols-1 sm:gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                      {separatedCards.map((card, index) => (
-                         <Card key={index} className="group hover:shadow-lg transition-all duration-300 border-border hover:border-primary/50 bg-card h-80 flex flex-col">
-                           <CardHeader className="pb-3 flex-shrink-0">
-                             <div className="flex items-center justify-between">
-                               <CardTitle className="text-lg font-semibold text-card-foreground flex items-center gap-2">
-                                 <div className="bg-primary/10 p-1.5 rounded-md shadow-sm">
-                                   <BookOpen className="h-4 w-4 text-primary" />
-                                 </div>
-                                 Card {index + 1}
-                               </CardTitle>
-                               <Button
-                                 onClick={() => copyToClipboard(card, index)}
-                                 variant="outline"
-                                 size="sm"
-                                 className="group-hover:border-primary/50 group-hover:text-primary transition-all duration-200 shadow-sm hover:shadow-md"
-                               >
-                                 <Copy className="mr-1 h-3 w-3" />
-                                 Copy
-                               </Button>
-                             </div>
-                           </CardHeader>
-                           <CardContent className="space-y-4 flex-1 flex flex-col min-h-0">
-                             <div className="text-card-foreground leading-relaxed text-sm whitespace-pre-wrap break-words bg-muted/50 p-4 rounded-lg border border-border/50 flex-1 overflow-auto min-h-0">
-                               {card}
-                             </div>
-                            <div className="flex gap-4 text-xs text-muted-foreground flex-shrink-0">
-                              <div className="flex items-center gap-1">
-                                <span className="font-medium">Paragraphs:</span>
-                                <Badge variant="secondary" className="text-xs">
-                                  {card.split('\n\n').filter(p => p.trim()).length}
-                                </Badge>
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <span className="font-medium">Characters:</span>
-                                <Badge variant="secondary" className="text-xs">
-                                  {card.length}
-                                </Badge>
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
+                <EditableChapterCards
+                  cards={separatedCards}
+                  mobileCardIndex={mobileCardIndex}
+                  copiedIndex={copiedIndex}
+                  onCardsChange={handleCardsChange}
+                  onMobileCardIndexChange={setMobileCardIndex}
+                  onCopyCard={copyToClipboard}
+                  onCopyAll={copyAllCards}
+                />
               ) : (
                 <Card className="shadow-lg border-0 bg-card border-dashed border-border">
                   <CardContent className="p-6 sm:p-12 text-center space-y-6">
