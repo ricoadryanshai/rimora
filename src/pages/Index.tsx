@@ -400,7 +400,7 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
     const targetRef = refs[sectionId as keyof typeof refs];
     if (targetRef?.current) {
       targetRef.current.scrollIntoView({ 
-        behavior: 'smooth', 
+        behavior: scrollBehavior, 
         block: 'start' 
       });
     }
