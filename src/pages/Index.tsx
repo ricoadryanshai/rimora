@@ -92,6 +92,13 @@ const Index = () => {
     sessionStorage.setItem('mobileCardIndex', String(mobileCardIndex));
   }, [mobileCardIndex]);
 
+  // Clamp persisted card index if it exceeds current card count
+  useEffect(() => {
+    if (separatedCards.length > 0 && mobileCardIndex > separatedCards.length - 1) {
+      setMobileCardIndex(separatedCards.length - 1);
+    }
+  }, [separatedCards.length, mobileCardIndex]);
+
   // Swipe handlers for mobile card navigator
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     setTouchStartX(e.touches[0].clientX);
