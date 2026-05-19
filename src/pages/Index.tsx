@@ -103,11 +103,45 @@ const Index = () => {
     const threshold = 50;
     if (delta < -threshold && mobileCardIndex < separatedCards.length - 1) {
       setMobileCardIndex(prev => prev + 1);
+      vibrate(10);
     } else if (delta > threshold && mobileCardIndex > 0) {
       setMobileCardIndex(prev => prev - 1);
+      vibrate(10);
     }
     setTouchStartX(null);
   }, [touchStartX, mobileCardIndex, separatedCards.length]);
+
+  // Long-press to copy current mobile card
+  const handleLongPressStart = useCallback(() => {
+    if (longPressTimer.current) window.clearTimeout(longPressTimer.current);
+    longPressTimer.current = window.setTimeout(() => {
+      const text = separatedCards[mobileCardIndex];
+      if (text) {
+        vibrate(20);
+        copyToClipboard(text, mobileCardIndex);
+      }
+    }, 550);
+  }, [mobileCardIndex, separatedCards]);
+  const handleLongPressEnd = useCallback(() => {
+    if (longPressTimer.current) {
+      window.clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  }, []);
+
+  // Share current card via Web Share API
+  const shareCard = async (text: string, index: number) => {
+    if (!canShare) return;
+    try {
+      await navigator.share({
+        title: `Card ${index + 1}`,
+        text,
+      });
+      vibrate(10);
+    } catch {
+      /* user cancelled or share failed */
+    }
+  };
 
   // Dummy data for demonstration
   const dummyText = `Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
