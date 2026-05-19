@@ -33,14 +33,31 @@ const Index = () => {
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
+  const [isOffline, setIsOffline] = useState(typeof navigator !== 'undefined' && !navigator.onLine);
+  const longPressTimer = useRef<number | null>(null);
   const { toast } = useToast();
   const { user, loading } = useAuth();
   const isMobile = useIsMobile();
+
+  // Reduced motion preference
+  const prefersReducedMotion = typeof window !== 'undefined'
+    && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const scrollBehavior: ScrollBehavior = prefersReducedMotion ? 'auto' : 'smooth';
+
+  // Web Share API availability
+  const canShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function';
 
   // Refs for smooth scrolling
   const inputSettingsRef = useRef<HTMLDivElement>(null);
   const glossaryRef = useRef<HTMLDivElement>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
+
+  // Light haptic helper
+  const vibrate = (ms = 10) => {
+    if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+      try { navigator.vibrate(ms); } catch {}
+    }
+  };
 
   // Scroll-to-top listener
   useEffect(() => {
@@ -50,6 +67,30 @@ const Index = () => {
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Online/offline listener
+  useEffect(() => {
+    const on = () => setIsOffline(false);
+    const off = () => setIsOffline(true);
+    window.addEventListener('online', on);
+    window.addEventListener('offline', off);
+    return () => {
+      window.removeEventListener('online', on);
+      window.removeEventListener('offline', off);
+    };
+  }, []);
+
+  // Persist last-viewed mobile card index
+  useEffect(() => {
+    const saved = sessionStorage.getItem('mobileCardIndex');
+    if (saved !== null) {
+      const idx = parseInt(saved, 10);
+      if (!isNaN(idx)) setMobileCardIndex(idx);
+    }
+  }, []);
+  useEffect(() => {
+    sessionStorage.setItem('mobileCardIndex', String(mobileCardIndex));
+  }, [mobileCardIndex]);
 
   // Swipe handlers for mobile card navigator
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
