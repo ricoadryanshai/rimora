@@ -782,44 +782,62 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                   <CardContent className="p-4 sm:p-6">
                     {/* Mobile: single card navigator */}
                     <div className="sm:hidden" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
-                      <Card className="border-border bg-card min-h-[200px] max-h-[60vh] flex flex-col">
-                        <CardHeader className="pb-3 flex-shrink-0">
-                          <div className="flex items-center justify-between">
-                            <CardTitle className="text-lg font-semibold text-card-foreground flex items-center gap-2">
-                              <div className="bg-primary/10 p-1.5 rounded-md shadow-sm">
+                      <Card className="border-border bg-card min-h-[200px] max-h-[60vh] flex flex-col overflow-hidden">
+                        <CardHeader className="pb-3 flex-shrink-0 sticky top-0 z-10 bg-card border-b border-border/50">
+                          <div className="flex items-center justify-between gap-2">
+                            <CardTitle className="text-lg font-semibold text-card-foreground flex items-center gap-2 min-w-0">
+                              <div className="bg-primary/10 p-1.5 rounded-md shadow-sm shrink-0">
                                 <BookOpen className="h-4 w-4 text-primary" />
                               </div>
-                              Card {mobileCardIndex + 1}
+                              <span className="truncate">Card {mobileCardIndex + 1}</span>
                             </CardTitle>
-                            <Button
-                              onClick={() => copyToClipboard(separatedCards[mobileCardIndex], mobileCardIndex)}
-                              variant="outline"
-                              size="sm"
-                            >
-                              {copiedIndex === mobileCardIndex ? (
-                                <Check className="mr-1 h-3 w-3 text-green-500" />
-                              ) : (
-                                <Copy className="mr-1 h-3 w-3" />
+                            <div className="flex items-center gap-1 shrink-0">
+                              {canShare && (
+                                <Button
+                                  onClick={() => shareCard(separatedCards[mobileCardIndex] ?? '', mobileCardIndex)}
+                                  variant="outline"
+                                  size="sm"
+                                  aria-label="Share card"
+                                >
+                                  <Share2 className="h-3 w-3" />
+                                </Button>
                               )}
-                              {copiedIndex === mobileCardIndex ? 'Copied' : 'Copy'}
-                            </Button>
+                              <Button
+                                onClick={() => copyToClipboard(separatedCards[mobileCardIndex] ?? '', mobileCardIndex)}
+                                variant="outline"
+                                size="sm"
+                              >
+                                {copiedIndex === mobileCardIndex ? (
+                                  <Check className="mr-1 h-3 w-3 text-green-500" />
+                                ) : (
+                                  <Copy className="mr-1 h-3 w-3" />
+                                )}
+                                {copiedIndex === mobileCardIndex ? 'Copied' : 'Copy'}
+                              </Button>
+                            </div>
                           </div>
                         </CardHeader>
-                        <CardContent className="space-y-3 flex-1 flex flex-col min-h-0">
-                          <div className="text-card-foreground leading-relaxed text-sm whitespace-pre-wrap break-words bg-muted/50 p-4 rounded-lg border border-border/50 flex-1 overflow-auto min-h-0">
-                            {separatedCards[mobileCardIndex]}
+                        <CardContent className="space-y-3 flex-1 flex flex-col min-h-0 pt-3">
+                          <div
+                            className="text-card-foreground leading-relaxed text-sm whitespace-pre-wrap break-words bg-muted/50 p-4 rounded-lg border border-border/50 flex-1 overflow-auto min-h-0 select-text"
+                            onTouchStart={handleLongPressStart}
+                            onTouchEnd={handleLongPressEnd}
+                            onTouchMove={handleLongPressEnd}
+                            onTouchCancel={handleLongPressEnd}
+                          >
+                            {separatedCards[mobileCardIndex] ?? ''}
                           </div>
                           <div className="flex gap-4 text-xs text-muted-foreground flex-shrink-0">
                             <div className="flex items-center gap-1">
                               <span className="font-medium">Paragraphs:</span>
                               <Badge variant="secondary" className="text-xs">
-                                {separatedCards[mobileCardIndex].split('\n\n').filter(p => p.trim()).length}
+                                {(separatedCards[mobileCardIndex] ?? '').split('\n\n').filter(p => p.trim()).length}
                               </Badge>
                             </div>
                             <div className="flex items-center gap-1">
                               <span className="font-medium">Characters:</span>
                               <Badge variant="secondary" className="text-xs">
-                                {separatedCards[mobileCardIndex].length}
+                                {(separatedCards[mobileCardIndex] ?? '').length}
                               </Badge>
                             </div>
                           </div>
