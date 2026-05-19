@@ -345,6 +345,7 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
     try {
       await navigator.clipboard.writeText(text);
       setCopiedIndex(cardIndex);
+      vibrate(10);
       setTimeout(() => setCopiedIndex(null), 1500);
       toast({
         title: "Copied to Clipboard!",
