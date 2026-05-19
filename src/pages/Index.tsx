@@ -309,7 +309,7 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
     
     // Auto-scroll to results after a brief delay
     setTimeout(() => {
-      resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      resultsRef.current?.scrollIntoView({ behavior: scrollBehavior, block: 'start' });
     }, 100);
     
     if (user) {
