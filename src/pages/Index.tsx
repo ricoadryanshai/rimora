@@ -437,6 +437,14 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
             </div>
           </header>
 
+          {/* Offline banner */}
+          {isOffline && (
+            <div className="sticky top-[44px] sm:top-[52px] z-10 bg-warning text-warning-foreground px-4 py-2 text-xs sm:text-sm flex items-center gap-2 justify-center border-b border-border">
+              <WifiOff className="h-4 w-4" />
+              You're offline — generated cards still work, but uploads and saving are paused.
+            </div>
+          )}
+
 
           {/* Sticky mobile CTA */}
           <div className="fixed bottom-0 left-0 right-0 z-40 sm:hidden bg-background/95 backdrop-blur-sm border-t border-border p-3 pb-[env(safe-area-inset-bottom,12px)]">
