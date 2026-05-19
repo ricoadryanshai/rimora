@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Copy, Check, BookOpen, Scissors, RotateCcw, LogIn, Database, Sparkles, Globe, Type, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Settings } from "lucide-react";
+import { Copy, Check, BookOpen, Scissors, RotateCcw, LogIn, Database, Sparkles, Globe, Type, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Settings, Share2, WifiOff } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import UrlImport from "@/components/UrlImport";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
@@ -33,14 +33,31 @@ const Index = () => {
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
+  const [isOffline, setIsOffline] = useState(typeof navigator !== 'undefined' && !navigator.onLine);
+  const longPressTimer = useRef<number | null>(null);
   const { toast } = useToast();
   const { user, loading } = useAuth();
   const isMobile = useIsMobile();
+
+  // Reduced motion preference
+  const prefersReducedMotion = typeof window !== 'undefined'
+    && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const scrollBehavior: ScrollBehavior = prefersReducedMotion ? 'auto' : 'smooth';
+
+  // Web Share API availability
+  const canShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function';
 
   // Refs for smooth scrolling
   const inputSettingsRef = useRef<HTMLDivElement>(null);
   const glossaryRef = useRef<HTMLDivElement>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
+
+  // Light haptic helper
+  const vibrate = (ms = 10) => {
+    if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+      try { navigator.vibrate(ms); } catch {}
+    }
+  };
 
   // Scroll-to-top listener
   useEffect(() => {
@@ -50,6 +67,37 @@ const Index = () => {
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Online/offline listener
+  useEffect(() => {
+    const on = () => setIsOffline(false);
+    const off = () => setIsOffline(true);
+    window.addEventListener('online', on);
+    window.addEventListener('offline', off);
+    return () => {
+      window.removeEventListener('online', on);
+      window.removeEventListener('offline', off);
+    };
+  }, []);
+
+  // Persist last-viewed mobile card index
+  useEffect(() => {
+    const saved = sessionStorage.getItem('mobileCardIndex');
+    if (saved !== null) {
+      const idx = parseInt(saved, 10);
+      if (!isNaN(idx)) setMobileCardIndex(idx);
+    }
+  }, []);
+  useEffect(() => {
+    sessionStorage.setItem('mobileCardIndex', String(mobileCardIndex));
+  }, [mobileCardIndex]);
+
+  // Clamp persisted card index if it exceeds current card count
+  useEffect(() => {
+    if (separatedCards.length > 0 && mobileCardIndex > separatedCards.length - 1) {
+      setMobileCardIndex(separatedCards.length - 1);
+    }
+  }, [separatedCards.length, mobileCardIndex]);
 
   // Swipe handlers for mobile card navigator
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
@@ -62,11 +110,45 @@ const Index = () => {
     const threshold = 50;
     if (delta < -threshold && mobileCardIndex < separatedCards.length - 1) {
       setMobileCardIndex(prev => prev + 1);
+      vibrate(10);
     } else if (delta > threshold && mobileCardIndex > 0) {
       setMobileCardIndex(prev => prev - 1);
+      vibrate(10);
     }
     setTouchStartX(null);
   }, [touchStartX, mobileCardIndex, separatedCards.length]);
+
+  // Long-press to copy current mobile card
+  const handleLongPressStart = useCallback(() => {
+    if (longPressTimer.current) window.clearTimeout(longPressTimer.current);
+    longPressTimer.current = window.setTimeout(() => {
+      const text = separatedCards[mobileCardIndex];
+      if (text) {
+        vibrate(20);
+        copyToClipboard(text, mobileCardIndex);
+      }
+    }, 550);
+  }, [mobileCardIndex, separatedCards]);
+  const handleLongPressEnd = useCallback(() => {
+    if (longPressTimer.current) {
+      window.clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  }, []);
+
+  // Share current card via Web Share API
+  const shareCard = async (text: string, index: number) => {
+    if (!canShare) return;
+    try {
+      await navigator.share({
+        title: `Card ${index + 1}`,
+        text,
+      });
+      vibrate(10);
+    } catch {
+      /* user cancelled or share failed */
+    }
+  };
 
   // Dummy data for demonstration
   const dummyText = `Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
@@ -234,7 +316,7 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
     
     // Auto-scroll to results after a brief delay
     setTimeout(() => {
-      resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      resultsRef.current?.scrollIntoView({ behavior: scrollBehavior, block: 'start' });
     }, 100);
     
     if (user) {
@@ -270,6 +352,7 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
     try {
       await navigator.clipboard.writeText(text);
       setCopiedIndex(cardIndex);
+      vibrate(10);
       setTimeout(() => setCopiedIndex(null), 1500);
       toast({
         title: "Copied to Clipboard!",
@@ -324,7 +407,7 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
     const targetRef = refs[sectionId as keyof typeof refs];
     if (targetRef?.current) {
       targetRef.current.scrollIntoView({ 
-        behavior: 'smooth', 
+        behavior: scrollBehavior, 
         block: 'start' 
       });
     }
@@ -360,6 +443,14 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
               <h2 className="font-semibold text-foreground text-sm sm:text-base">Novel Chapter Separator</h2>
             </div>
           </header>
+
+          {/* Offline banner */}
+          {isOffline && (
+            <div className="sticky top-[44px] sm:top-[52px] z-10 bg-warning text-warning-foreground px-4 py-2 text-xs sm:text-sm flex items-center gap-2 justify-center border-b border-border">
+              <WifiOff className="h-4 w-4" />
+              You're offline — generated cards still work, but uploads and saving are paused.
+            </div>
+          )}
 
 
           {/* Sticky mobile CTA */}
@@ -698,44 +789,62 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                   <CardContent className="p-4 sm:p-6">
                     {/* Mobile: single card navigator */}
                     <div className="sm:hidden" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
-                      <Card className="border-border bg-card min-h-[200px] max-h-[60vh] flex flex-col">
-                        <CardHeader className="pb-3 flex-shrink-0">
-                          <div className="flex items-center justify-between">
-                            <CardTitle className="text-lg font-semibold text-card-foreground flex items-center gap-2">
-                              <div className="bg-primary/10 p-1.5 rounded-md shadow-sm">
+                      <Card className="border-border bg-card min-h-[200px] max-h-[60vh] flex flex-col overflow-hidden">
+                        <CardHeader className="pb-3 flex-shrink-0 sticky top-0 z-10 bg-card border-b border-border/50">
+                          <div className="flex items-center justify-between gap-2">
+                            <CardTitle className="text-lg font-semibold text-card-foreground flex items-center gap-2 min-w-0">
+                              <div className="bg-primary/10 p-1.5 rounded-md shadow-sm shrink-0">
                                 <BookOpen className="h-4 w-4 text-primary" />
                               </div>
-                              Card {mobileCardIndex + 1}
+                              <span className="truncate">Card {mobileCardIndex + 1}</span>
                             </CardTitle>
-                            <Button
-                              onClick={() => copyToClipboard(separatedCards[mobileCardIndex], mobileCardIndex)}
-                              variant="outline"
-                              size="sm"
-                            >
-                              {copiedIndex === mobileCardIndex ? (
-                                <Check className="mr-1 h-3 w-3 text-green-500" />
-                              ) : (
-                                <Copy className="mr-1 h-3 w-3" />
+                            <div className="flex items-center gap-1 shrink-0">
+                              {canShare && (
+                                <Button
+                                  onClick={() => shareCard(separatedCards[mobileCardIndex] ?? '', mobileCardIndex)}
+                                  variant="outline"
+                                  size="sm"
+                                  aria-label="Share card"
+                                >
+                                  <Share2 className="h-3 w-3" />
+                                </Button>
                               )}
-                              {copiedIndex === mobileCardIndex ? 'Copied' : 'Copy'}
-                            </Button>
+                              <Button
+                                onClick={() => copyToClipboard(separatedCards[mobileCardIndex] ?? '', mobileCardIndex)}
+                                variant="outline"
+                                size="sm"
+                              >
+                                {copiedIndex === mobileCardIndex ? (
+                                  <Check className="mr-1 h-3 w-3 text-green-500" />
+                                ) : (
+                                  <Copy className="mr-1 h-3 w-3" />
+                                )}
+                                {copiedIndex === mobileCardIndex ? 'Copied' : 'Copy'}
+                              </Button>
+                            </div>
                           </div>
                         </CardHeader>
-                        <CardContent className="space-y-3 flex-1 flex flex-col min-h-0">
-                          <div className="text-card-foreground leading-relaxed text-sm whitespace-pre-wrap break-words bg-muted/50 p-4 rounded-lg border border-border/50 flex-1 overflow-auto min-h-0">
-                            {separatedCards[mobileCardIndex]}
+                        <CardContent className="space-y-3 flex-1 flex flex-col min-h-0 pt-3">
+                          <div
+                            className="text-card-foreground leading-relaxed text-sm whitespace-pre-wrap break-words bg-muted/50 p-4 rounded-lg border border-border/50 flex-1 overflow-auto min-h-0 select-text"
+                            onTouchStart={handleLongPressStart}
+                            onTouchEnd={handleLongPressEnd}
+                            onTouchMove={handleLongPressEnd}
+                            onTouchCancel={handleLongPressEnd}
+                          >
+                            {separatedCards[mobileCardIndex] ?? ''}
                           </div>
                           <div className="flex gap-4 text-xs text-muted-foreground flex-shrink-0">
                             <div className="flex items-center gap-1">
                               <span className="font-medium">Paragraphs:</span>
                               <Badge variant="secondary" className="text-xs">
-                                {separatedCards[mobileCardIndex].split('\n\n').filter(p => p.trim()).length}
+                                {(separatedCards[mobileCardIndex] ?? '').split('\n\n').filter(p => p.trim()).length}
                               </Badge>
                             </div>
                             <div className="flex items-center gap-1">
                               <span className="font-medium">Characters:</span>
                               <Badge variant="secondary" className="text-xs">
-                                {separatedCards[mobileCardIndex].length}
+                                {(separatedCards[mobileCardIndex] ?? '').length}
                               </Badge>
                             </div>
                           </div>
