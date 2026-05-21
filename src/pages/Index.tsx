@@ -912,21 +912,43 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                           <ChevronLeft className="h-5 w-5" />
                           Prev
                         </Button>
-                        <div className="flex items-center gap-1 text-sm text-muted-foreground font-medium">
-                          <Input
-                            type="number"
-                            min={1}
-                            max={separatedCards.length}
-                            value={mobileCardIndex + 1}
-                            onChange={(e) => {
-                              const val = parseInt(e.target.value, 10);
-                              if (val >= 1 && val <= separatedCards.length) {
-                                setMobileCardIndex(val - 1);
-                              }
-                            }}
-                            className="w-12 h-8 text-center p-0 text-sm"
-                          />
-                          <span>/ {separatedCards.length}</span>
+                        <div className="flex items-center gap-1.5 text-sm text-muted-foreground font-medium">
+                          {separatedCards.length <= 10 ? (
+                            <div className="flex items-center gap-1.5" role="tablist" aria-label="Card pages">
+                              {separatedCards.map((_, i) => (
+                                <button
+                                  key={i}
+                                  type="button"
+                                  role="tab"
+                                  aria-selected={i === mobileCardIndex}
+                                  aria-label={`Go to card ${i + 1}`}
+                                  onClick={() => { setMobileCardIndex(i); vibrate(5); }}
+                                  className={`h-2.5 rounded-full transition-all ${
+                                    i === mobileCardIndex
+                                      ? 'w-6 bg-primary'
+                                      : 'w-2.5 bg-muted-foreground/30 hover:bg-muted-foreground/60'
+                                  }`}
+                                />
+                              ))}
+                            </div>
+                          ) : (
+                            <>
+                              <Input
+                                type="number"
+                                min={1}
+                                max={separatedCards.length}
+                                value={mobileCardIndex + 1}
+                                onChange={(e) => {
+                                  const val = parseInt(e.target.value, 10);
+                                  if (val >= 1 && val <= separatedCards.length) {
+                                    setMobileCardIndex(val - 1);
+                                  }
+                                }}
+                                className="w-12 h-8 text-center p-0 text-sm"
+                              />
+                              <span>/ {separatedCards.length}</span>
+                            </>
+                          )}
                         </div>
                         <Button
                           onClick={() => setMobileCardIndex(Math.min(separatedCards.length - 1, mobileCardIndex + 1))}
