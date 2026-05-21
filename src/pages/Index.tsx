@@ -748,7 +748,7 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                   </Collapsible>
                   
                   <div className="space-y-3">
-                    <Tabs defaultValue="paste" className="w-full">
+                    <Tabs value={activeInputTab} onValueChange={setActiveInputTab} className="w-full">
                       <TabsList className="grid w-full grid-cols-2">
                         <TabsTrigger value="paste" className="flex items-center gap-2">
                           <Type className="h-4 w-4" />
@@ -764,6 +764,7 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                           Original Chapter Text
                         </Label>
                         <Textarea
+                          ref={pasteTextareaRef}
                           id="originalText"
                           placeholder="Paste your chapter text here, or use the sample text button above to get started..."
                           value={originalText}
