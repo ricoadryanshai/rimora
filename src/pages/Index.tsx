@@ -36,6 +36,11 @@ const Index = () => {
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
   const [isOffline, setIsOffline] = useState(typeof navigator !== 'undefined' && !navigator.onLine);
   const longPressTimer = useRef<number | null>(null);
+  const pasteTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const [activeInputTab, setActiveInputTab] = useState<string>('paste');
+  const pullStartY = useRef<number | null>(null);
+  const [pullDelta, setPullDelta] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const { toast } = useToast();
   const { user, loading } = useAuth();
   const isMobile = useIsMobile();
