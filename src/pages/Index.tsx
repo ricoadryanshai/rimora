@@ -801,7 +801,21 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
             </div>
 
             {/* Results Section */}
-            <div ref={resultsRef} className="mb-20 sm:mb-0">
+            <div
+              ref={resultsRef}
+              className="mb-32 sm:mb-0"
+              onTouchStart={isMobile && separatedCards.length > 0 ? handleResultsTouchStart : undefined}
+              onTouchMove={isMobile && separatedCards.length > 0 ? handleResultsTouchMove : undefined}
+              onTouchEnd={isMobile && separatedCards.length > 0 ? handleResultsTouchEnd : undefined}
+            >
+              {pullDelta > 0 && (
+                <div
+                  className="sm:hidden flex items-center justify-center text-xs text-muted-foreground overflow-hidden transition-[height] duration-100"
+                  style={{ height: `${pullDelta}px` }}
+                >
+                  {isRefreshing ? 'Refreshing…' : pullDelta > 70 ? 'Release to re-separate' : 'Pull to re-separate'}
+                </div>
+              )}
               {separatedCards.length > 0 ? (
                 <Card className="shadow-lg border-0 bg-card">
                   <CardHeader className="pb-6 bg-gradient-to-r from-primary/5 to-primary/10 rounded-t-lg">
