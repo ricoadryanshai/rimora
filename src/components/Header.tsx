@@ -3,13 +3,15 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { LogOut, User, Crown } from 'lucide-react';
+import { LogOut, User, Crown, Moon, Sun, Monitor } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { useTheme } from 'next-themes';
 
 const Header = () => {
   const { user, userRole, signOut } = useAuth();
   const { toast } = useToast();
+  const { theme, setTheme } = useTheme();
 
   const handleSignOut = async () => {
     await signOut();
@@ -17,6 +19,13 @@ const Header = () => {
       title: "Signed Out",
       description: "You have been successfully signed out.",
     });
+  };
+
+  const ThemeIcon = theme === 'dark' ? Sun : theme === 'light' ? Monitor : Moon;
+  const cycleTheme = () => {
+    if (theme === 'light') setTheme('dark');
+    else if (theme === 'dark') setTheme('system');
+    else setTheme('light');
   };
 
   if (!user) return null;
@@ -31,7 +40,7 @@ const Header = () => {
               <span className="font-medium text-foreground truncate text-sm">{user.email}</span>
             </div>
             {userRole && (
-              <Badge 
+              <Badge
                 variant={userRole === 'super_user' ? 'default' : 'secondary'}
                 className={userRole === 'super_user' ? 'bg-purple-600 hover:bg-purple-700' : ''}
               >
@@ -40,15 +49,27 @@ const Header = () => {
               </Badge>
             )}
           </div>
-          <Button 
-            onClick={handleSignOut}
-            variant="outline"
-            size="sm"
-            className="border-destructive/30 text-destructive hover:bg-destructive/10 shrink-0"
-          >
-            <LogOut className="mr-2 h-4 w-4" />
-            Sign Out
-          </Button>
+          <div className="flex items-center gap-2 shrink-0">
+            <Button
+              onClick={cycleTheme}
+              variant="outline"
+              size="sm"
+              className="sm:hidden"
+              aria-label="Toggle theme"
+            >
+              <ThemeIcon className="h-4 w-4" />
+            </Button>
+            <Button
+              onClick={handleSignOut}
+              variant="outline"
+              size="sm"
+              className="border-destructive/30 text-destructive hover:bg-destructive/10"
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              <span className="hidden sm:inline">Sign Out</span>
+              <span className="sm:hidden">Out</span>
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>

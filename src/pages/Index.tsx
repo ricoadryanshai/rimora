@@ -18,6 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import WordReplacements from "@/components/WordReplacements";
 import AppSidebar from "@/components/AppSidebar";
+import MobileBottomNav from "@/components/MobileBottomNav";
 
 const Index = () => {
   const [originalText, setOriginalText] = useState('');
@@ -35,6 +36,11 @@ const Index = () => {
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
   const [isOffline, setIsOffline] = useState(typeof navigator !== 'undefined' && !navigator.onLine);
   const longPressTimer = useRef<number | null>(null);
+  const pasteTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const [activeInputTab, setActiveInputTab] = useState<string>('paste');
+  const pullStartY = useRef<number | null>(null);
+  const [pullDelta, setPullDelta] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const { toast } = useToast();
   const { user, loading } = useAuth();
   const isMobile = useIsMobile();
@@ -149,6 +155,36 @@ const Index = () => {
       /* user cancelled or share failed */
     }
   };
+
+  // Pull-to-refresh on results section (mobile)
+  const handleResultsTouchStart = (e: React.TouchEvent) => {
+    if (window.scrollY <= 0) {
+      pullStartY.current = e.touches[0].clientY;
+    }
+  };
+  const handleResultsTouchMove = (e: React.TouchEvent) => {
+    if (pullStartY.current === null) return;
+    const delta = e.touches[0].clientY - pullStartY.current;
+    if (delta > 0) setPullDelta(Math.min(delta, 100));
+  };
+  const handleResultsTouchEnd = async () => {
+    if (pullDelta > 70 && !isRefreshing) {
+      setIsRefreshing(true);
+      vibrate(15);
+      await separateChapter();
+      setIsRefreshing(false);
+    }
+    pullStartY.current = null;
+    setPullDelta(0);
+  };
+
+  // Auto-focus textarea when Paste tab is selected on mobile
+  useEffect(() => {
+    if (isMobile && activeInputTab === 'paste') {
+      const t = setTimeout(() => pasteTextareaRef.current?.focus(), 150);
+      return () => clearTimeout(t);
+    }
+  }, [activeInputTab, isMobile]);
 
   // Dummy data for demonstration
   const dummyText = `Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
@@ -453,6 +489,9 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
           )}
 
 
+          {/* Mobile bottom tab navigation */}
+          <MobileBottomNav currentSection={currentSection} onSectionClick={handleSectionClick} />
+
           {/* Sticky mobile CTA */}
           <div className="fixed bottom-0 left-0 right-0 z-40 sm:hidden bg-background/95 backdrop-blur-sm border-t border-border p-3 pb-[env(safe-area-inset-bottom,12px)]">
             <Button 
@@ -466,7 +505,7 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
             </Button>
           </div>
 
-          <div className="container mx-auto px-4 py-4 sm:py-6 lg:py-8 max-w-7xl pb-20 sm:pb-0">
+          <div className="container mx-auto px-4 py-4 sm:py-6 lg:py-8 max-w-7xl pb-40 sm:pb-0">
             {!user && (
               <Card className="mb-6 sm:mb-8 shadow-lg border-l-4 border-l-primary bg-gradient-to-r from-primary/5 to-primary/10 hover:shadow-xl transition-shadow duration-300">
                 <CardContent className="p-4 sm:p-6">
@@ -712,7 +751,7 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                   </Collapsible>
                   
                   <div className="space-y-3">
-                    <Tabs defaultValue="paste" className="w-full">
+                    <Tabs value={activeInputTab} onValueChange={setActiveInputTab} className="w-full">
                       <TabsList className="grid w-full grid-cols-2">
                         <TabsTrigger value="paste" className="flex items-center gap-2">
                           <Type className="h-4 w-4" />
@@ -728,6 +767,7 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                           Original Chapter Text
                         </Label>
                         <Textarea
+                          ref={pasteTextareaRef}
                           id="originalText"
                           placeholder="Paste your chapter text here, or use the sample text button above to get started..."
                           value={originalText}
@@ -764,7 +804,21 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
             </div>
 
             {/* Results Section */}
-            <div ref={resultsRef} className="mb-20 sm:mb-0">
+            <div
+              ref={resultsRef}
+              className="mb-32 sm:mb-0"
+              onTouchStart={isMobile && separatedCards.length > 0 ? handleResultsTouchStart : undefined}
+              onTouchMove={isMobile && separatedCards.length > 0 ? handleResultsTouchMove : undefined}
+              onTouchEnd={isMobile && separatedCards.length > 0 ? handleResultsTouchEnd : undefined}
+            >
+              {pullDelta > 0 && (
+                <div
+                  className="sm:hidden flex items-center justify-center text-xs text-muted-foreground overflow-hidden transition-[height] duration-100"
+                  style={{ height: `${pullDelta}px` }}
+                >
+                  {isRefreshing ? 'Refreshing…' : pullDelta > 70 ? 'Release to re-separate' : 'Pull to re-separate'}
+                </div>
+              )}
               {separatedCards.length > 0 ? (
                 <Card className="shadow-lg border-0 bg-card">
                   <CardHeader className="pb-6 bg-gradient-to-r from-primary/5 to-primary/10 rounded-t-lg">
@@ -861,21 +915,43 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                           <ChevronLeft className="h-5 w-5" />
                           Prev
                         </Button>
-                        <div className="flex items-center gap-1 text-sm text-muted-foreground font-medium">
-                          <Input
-                            type="number"
-                            min={1}
-                            max={separatedCards.length}
-                            value={mobileCardIndex + 1}
-                            onChange={(e) => {
-                              const val = parseInt(e.target.value, 10);
-                              if (val >= 1 && val <= separatedCards.length) {
-                                setMobileCardIndex(val - 1);
-                              }
-                            }}
-                            className="w-12 h-8 text-center p-0 text-sm"
-                          />
-                          <span>/ {separatedCards.length}</span>
+                        <div className="flex items-center gap-1.5 text-sm text-muted-foreground font-medium">
+                          {separatedCards.length <= 10 ? (
+                            <div className="flex items-center gap-1.5" role="tablist" aria-label="Card pages">
+                              {separatedCards.map((_, i) => (
+                                <button
+                                  key={i}
+                                  type="button"
+                                  role="tab"
+                                  aria-selected={i === mobileCardIndex}
+                                  aria-label={`Go to card ${i + 1}`}
+                                  onClick={() => { setMobileCardIndex(i); vibrate(5); }}
+                                  className={`h-2.5 rounded-full transition-all ${
+                                    i === mobileCardIndex
+                                      ? 'w-6 bg-primary'
+                                      : 'w-2.5 bg-muted-foreground/30 hover:bg-muted-foreground/60'
+                                  }`}
+                                />
+                              ))}
+                            </div>
+                          ) : (
+                            <>
+                              <Input
+                                type="number"
+                                min={1}
+                                max={separatedCards.length}
+                                value={mobileCardIndex + 1}
+                                onChange={(e) => {
+                                  const val = parseInt(e.target.value, 10);
+                                  if (val >= 1 && val <= separatedCards.length) {
+                                    setMobileCardIndex(val - 1);
+                                  }
+                                }}
+                                className="w-12 h-8 text-center p-0 text-sm"
+                              />
+                              <span>/ {separatedCards.length}</span>
+                            </>
+                          )}
                         </div>
                         <Button
                           onClick={() => setMobileCardIndex(Math.min(separatedCards.length - 1, mobileCardIndex + 1))}
@@ -960,7 +1036,7 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
           {showScrollTop && (
             <button
               onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-              className="fixed bottom-20 right-4 z-30 sm:hidden bg-primary text-primary-foreground p-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 min-h-[44px] min-w-[44px] flex items-center justify-center"
+              className="fixed bottom-36 right-4 z-30 sm:hidden bg-primary text-primary-foreground p-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 min-h-[44px] min-w-[44px] flex items-center justify-center"
               aria-label="Scroll to top"
             >
               <ChevronUp className="h-5 w-5" />
