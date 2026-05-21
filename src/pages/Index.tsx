@@ -18,6 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import WordReplacements from "@/components/WordReplacements";
 import AppSidebar from "@/components/AppSidebar";
+import MobileBottomNav from "@/components/MobileBottomNav";
 
 const Index = () => {
   const [originalText, setOriginalText] = useState('');
