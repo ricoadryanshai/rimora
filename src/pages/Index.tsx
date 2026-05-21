@@ -1036,7 +1036,7 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
           {showScrollTop && (
             <button
               onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-              className="fixed bottom-20 right-4 z-30 sm:hidden bg-primary text-primary-foreground p-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 min-h-[44px] min-w-[44px] flex items-center justify-center"
+              className="fixed bottom-36 right-4 z-30 sm:hidden bg-primary text-primary-foreground p-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 min-h-[44px] min-w-[44px] flex items-center justify-center"
               aria-label="Scroll to top"
             >
               <ChevronUp className="h-5 w-5" />
