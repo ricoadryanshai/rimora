@@ -489,6 +489,9 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
           )}
 
 
+          {/* Mobile bottom tab navigation */}
+          <MobileBottomNav currentSection={currentSection} onSectionClick={handleSectionClick} />
+
           {/* Sticky mobile CTA */}
           <div className="fixed bottom-0 left-0 right-0 z-40 sm:hidden bg-background/95 backdrop-blur-sm border-t border-border p-3 pb-[env(safe-area-inset-bottom,12px)]">
             <Button 
@@ -502,7 +505,7 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
             </Button>
           </div>
 
-          <div className="container mx-auto px-4 py-4 sm:py-6 lg:py-8 max-w-7xl pb-20 sm:pb-0">
+          <div className="container mx-auto px-4 py-4 sm:py-6 lg:py-8 max-w-7xl pb-40 sm:pb-0">
             {!user && (
               <Card className="mb-6 sm:mb-8 shadow-lg border-l-4 border-l-primary bg-gradient-to-r from-primary/5 to-primary/10 hover:shadow-xl transition-shadow duration-300">
                 <CardContent className="p-4 sm:p-6">
