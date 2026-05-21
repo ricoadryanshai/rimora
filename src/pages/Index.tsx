@@ -156,6 +156,36 @@ const Index = () => {
     }
   };
 
+  // Pull-to-refresh on results section (mobile)
+  const handleResultsTouchStart = (e: React.TouchEvent) => {
+    if (window.scrollY <= 0) {
+      pullStartY.current = e.touches[0].clientY;
+    }
+  };
+  const handleResultsTouchMove = (e: React.TouchEvent) => {
+    if (pullStartY.current === null) return;
+    const delta = e.touches[0].clientY - pullStartY.current;
+    if (delta > 0) setPullDelta(Math.min(delta, 100));
+  };
+  const handleResultsTouchEnd = async () => {
+    if (pullDelta > 70 && !isRefreshing) {
+      setIsRefreshing(true);
+      vibrate(15);
+      await separateChapter();
+      setIsRefreshing(false);
+    }
+    pullStartY.current = null;
+    setPullDelta(0);
+  };
+
+  // Auto-focus textarea when Paste tab is selected on mobile
+  useEffect(() => {
+    if (isMobile && activeInputTab === 'paste') {
+      const t = setTimeout(() => pasteTextareaRef.current?.focus(), 150);
+      return () => clearTimeout(t);
+    }
+  }, [activeInputTab, isMobile]);
+
   // Dummy data for demonstration
   const dummyText = `Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
 
