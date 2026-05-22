@@ -763,18 +763,44 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                         </TabsTrigger>
                       </TabsList>
                       <TabsContent value="paste" className="mt-4 space-y-3">
-                        <Label htmlFor="originalText" className="text-sm font-semibold text-foreground">
-                          Original Chapter Text
-                        </Label>
-                        <Textarea
-                          ref={pasteTextareaRef}
-                          id="originalText"
-                          placeholder="Paste your chapter text here, or use the sample text button above to get started..."
-                          value={originalText}
-                          onChange={(e) => setOriginalText(e.target.value)}
-                          className="min-h-[120px] sm:min-h-[200px] resize-none"
-                        />
+                        <div className="flex items-center justify-between gap-2">
+                          <Label htmlFor="originalText" className="text-sm font-semibold text-foreground">
+                            Original Chapter Text
+                          </Label>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={pasteFromClipboard}
+                            className="h-8 px-2 text-xs gap-1.5"
+                          >
+                            <ClipboardPaste className="h-3.5 w-3.5" />
+                            Paste from clipboard
+                          </Button>
+                        </div>
+                        <div className="relative">
+                          <Textarea
+                            ref={pasteTextareaRef}
+                            id="originalText"
+                            placeholder="Paste your chapter text here, or tap the area below to paste from clipboard..."
+                            value={originalText}
+                            onChange={(e) => setOriginalText(e.target.value)}
+                            className="min-h-[120px] sm:min-h-[200px] resize-none"
+                          />
+                          {!originalText && (
+                            <button
+                              type="button"
+                              onClick={pasteFromClipboard}
+                              aria-label="Tap to paste from clipboard"
+                              className="absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-md bg-transparent text-muted-foreground hover:bg-muted/30 active:bg-muted/50 transition-colors sm:hidden"
+                            >
+                              <ClipboardPaste className="h-6 w-6" />
+                              <span className="text-sm font-medium">Tap to paste from clipboard</span>
+                            </button>
+                          )}
+                        </div>
                       </TabsContent>
+
                       <TabsContent value="url" className="mt-4">
                         <UrlImport onContentReady={(content) => setOriginalText(content)} />
                       </TabsContent>
