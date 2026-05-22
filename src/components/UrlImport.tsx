@@ -92,6 +92,29 @@ const UrlImport: React.FC<UrlImportProps> = ({ onContentReady }) => {
     setStep('input');
   };
 
+  const pasteUrlFromClipboard = async () => {
+    try {
+      if (!navigator.clipboard?.readText) {
+        toast({ title: "Clipboard not available", description: "Your browser doesn't allow clipboard access.", variant: "destructive" });
+        return;
+      }
+      const text = (await navigator.clipboard.readText()).trim();
+      if (!text) {
+        toast({ title: "Clipboard is empty", description: "Copy a URL first, then tap to paste." });
+        return;
+      }
+      setUrl(text);
+      if (navigator.vibrate) navigator.vibrate(10);
+      const looksLikeUrl = /^https?:\/\//i.test(text);
+      toast({
+        title: looksLikeUrl ? "URL pasted" : "Pasted from clipboard",
+        description: looksLikeUrl ? "Tap Extract to continue." : "This doesn't look like a URL — please verify.",
+      });
+    } catch {
+      toast({ title: "Couldn't read clipboard", description: "Permission denied. Long-press the field and choose Paste instead.", variant: "destructive" });
+    }
+  };
+
   if (step === 'preview') {
     return (
       <div className="space-y-4">
