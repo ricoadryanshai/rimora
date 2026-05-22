@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import { Globe, Loader2, Check, X, ArrowRight } from "lucide-react";
+import { Globe, Loader2, Check, X, ArrowRight, ClipboardPaste } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -92,6 +92,29 @@ const UrlImport: React.FC<UrlImportProps> = ({ onContentReady }) => {
     setStep('input');
   };
 
+  const pasteUrlFromClipboard = async () => {
+    try {
+      if (!navigator.clipboard?.readText) {
+        toast({ title: "Clipboard not available", description: "Your browser doesn't allow clipboard access.", variant: "destructive" });
+        return;
+      }
+      const text = (await navigator.clipboard.readText()).trim();
+      if (!text) {
+        toast({ title: "Clipboard is empty", description: "Copy a URL first, then tap to paste." });
+        return;
+      }
+      setUrl(text);
+      if (navigator.vibrate) navigator.vibrate(10);
+      const looksLikeUrl = /^https?:\/\//i.test(text);
+      toast({
+        title: looksLikeUrl ? "URL pasted" : "Pasted from clipboard",
+        description: looksLikeUrl ? "Tap Extract to continue." : "This doesn't look like a URL — please verify.",
+      });
+    } catch {
+      toast({ title: "Couldn't read clipboard", description: "Permission denied. Long-press the field and choose Paste instead.", variant: "destructive" });
+    }
+  };
+
   if (step === 'preview') {
     return (
       <div className="space-y-4">
@@ -128,9 +151,22 @@ const UrlImport: React.FC<UrlImportProps> = ({ onContentReady }) => {
 
   return (
     <div className="space-y-4">
-      <Label className="text-sm font-semibold text-foreground">
-        Import from Webpage URL
-      </Label>
+      <div className="flex items-center justify-between gap-2">
+        <Label className="text-sm font-semibold text-foreground">
+          Import from Webpage URL
+        </Label>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={pasteUrlFromClipboard}
+          disabled={isLoading}
+          className="h-8 px-2 text-xs gap-1.5"
+        >
+          <ClipboardPaste className="h-3.5 w-3.5" />
+          Paste URL
+        </Button>
+      </div>
       <p className="text-xs text-muted-foreground">
         Paste a webpage URL to automatically extract the main readable text. Perfect for iPhone users who can't easily select and copy text from web pages.
       </p>
