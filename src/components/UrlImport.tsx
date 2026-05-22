@@ -151,9 +151,22 @@ const UrlImport: React.FC<UrlImportProps> = ({ onContentReady }) => {
 
   return (
     <div className="space-y-4">
-      <Label className="text-sm font-semibold text-foreground">
-        Import from Webpage URL
-      </Label>
+      <div className="flex items-center justify-between gap-2">
+        <Label className="text-sm font-semibold text-foreground">
+          Import from Webpage URL
+        </Label>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={pasteUrlFromClipboard}
+          disabled={isLoading}
+          className="h-8 px-2 text-xs gap-1.5"
+        >
+          <ClipboardPaste className="h-3.5 w-3.5" />
+          Paste URL
+        </Button>
+      </div>
       <p className="text-xs text-muted-foreground">
         Paste a webpage URL to automatically extract the main readable text. Perfect for iPhone users who can't easily select and copy text from web pages.
       </p>
