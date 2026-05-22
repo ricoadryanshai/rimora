@@ -45,6 +45,26 @@ const Index = () => {
   const { user, loading } = useAuth();
   const isMobile = useIsMobile();
 
+  const pasteFromClipboard = useCallback(async () => {
+    try {
+      if (!navigator.clipboard?.readText) {
+        toast({ title: "Clipboard not available", description: "Your browser doesn't allow clipboard access. Please paste manually.", variant: "destructive" });
+        return;
+      }
+      const text = await navigator.clipboard.readText();
+      if (!text) {
+        toast({ title: "Clipboard is empty", description: "Copy some text first, then tap to paste." });
+        return;
+      }
+      setOriginalText((prev) => prev ? prev + text : text);
+      if (navigator.vibrate) navigator.vibrate(10);
+      toast({ title: "Pasted from clipboard", description: `${text.length.toLocaleString()} characters added.` });
+      setTimeout(() => pasteTextareaRef.current?.focus(), 50);
+    } catch (err) {
+      toast({ title: "Couldn't read clipboard", description: "Permission denied. Long-press the text area and choose Paste instead.", variant: "destructive" });
+    }
+  }, [toast]);
+
   // Reduced motion preference
   const prefersReducedMotion = typeof window !== 'undefined'
     && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
