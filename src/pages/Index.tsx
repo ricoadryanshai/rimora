@@ -20,6 +20,13 @@ import WordReplacements from "@/components/WordReplacements";
 import AppSidebar from "@/components/AppSidebar";
 import MobileBottomNav from "@/components/MobileBottomNav";
 
+const isIosDevice = () => {
+  if (typeof navigator === 'undefined') return false;
+
+  return /iPad|iPhone|iPod/.test(navigator.userAgent)
+    || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+};
+
 const Index = () => {
   const [originalText, setOriginalText] = useState('');
   const [paragraphCount, setParagraphCount] = useState<number>(5);
@@ -38,6 +45,7 @@ const Index = () => {
   const longPressTimer = useRef<number | null>(null);
   const pasteTextareaRef = useRef<HTMLTextAreaElement>(null);
   const [activeInputTab, setActiveInputTab] = useState<string>('paste');
+  const [isManualPasteMode, setIsManualPasteMode] = useState(false);
   const pullStartY = useRef<number | null>(null);
   const [pullDelta, setPullDelta] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -45,10 +53,24 @@ const Index = () => {
   const { user, loading } = useAuth();
   const isMobile = useIsMobile();
 
+  const enableManualPaste = useCallback(() => {
+    setIsManualPasteMode(true);
+    pasteTextareaRef.current?.focus();
+    toast({
+      title: "Paste manually",
+      description: "Long-press the text area, then choose Paste.",
+    });
+  }, [toast]);
+
   const pasteFromClipboard = useCallback(async () => {
+    if (isIosDevice()) {
+      enableManualPaste();
+      return;
+    }
+
     try {
       if (!navigator.clipboard?.readText) {
-        toast({ title: "Clipboard not available", description: "Your browser doesn't allow clipboard access. Please paste manually.", variant: "destructive" });
+        enableManualPaste();
         return;
       }
       const text = await navigator.clipboard.readText();
@@ -61,9 +83,9 @@ const Index = () => {
       toast({ title: "Pasted from clipboard", description: `${text.length.toLocaleString()} characters added.` });
       setTimeout(() => pasteTextareaRef.current?.focus(), 50);
     } catch (err) {
-      toast({ title: "Couldn't read clipboard", description: "Permission denied. Long-press the text area and choose Paste instead.", variant: "destructive" });
+      enableManualPaste();
     }
-  }, [toast]);
+  }, [enableManualPaste, toast]);
 
   // Reduced motion preference
   const prefersReducedMotion = typeof window !== 'undefined'
@@ -804,10 +826,13 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                             id="originalText"
                             placeholder="Paste your chapter text here, or tap the area below to paste from clipboard..."
                             value={originalText}
-                            onChange={(e) => setOriginalText(e.target.value)}
+                            onChange={(e) => {
+                              setOriginalText(e.target.value);
+                              setIsManualPasteMode(false);
+                            }}
                             className="min-h-[120px] sm:min-h-[200px] resize-none"
                           />
-                          {!originalText && (
+                          {!originalText && !isManualPasteMode && (
                             <button
                               type="button"
                               onClick={pasteFromClipboard}
@@ -817,6 +842,11 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                               <ClipboardPaste className="h-6 w-6" />
                               <span className="text-sm font-medium">Tap to paste from clipboard</span>
                             </button>
+                          )}
+                          {!originalText && isManualPasteMode && (
+                            <p className="pointer-events-none absolute bottom-3 left-3 right-3 text-center text-xs text-muted-foreground sm:hidden">
+                              Long-press here, then choose Paste
+                            </p>
                           )}
                         </div>
                       </TabsContent>
