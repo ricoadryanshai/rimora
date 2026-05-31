@@ -478,9 +478,14 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
         existingWords.add(normalizedWord);
         return true;
       });
+      const locallySkippedCount = validatedReplacements.length - uniqueReplacements.length;
 
       if (uniqueReplacements.length == 0) {
-        throw new ValidationError("No new glossary entries found. Existing terms were skipped.");
+        toast({
+          title: "No New Entries",
+          description: `Skipped ${locallySkippedCount} existing glossary entries.`,
+        });
+        return;
       }
 
       // Check total limit
@@ -497,7 +502,7 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
         setReplacements((currentReplacements) => sortReplacements([...currentReplacements, ...newReplacements]));
         toast({
           title: "Import Successful",
-          description: `Imported ${newReplacements.length} glossary entries.`,
+          description: `Imported ${newReplacements.length} glossary entries.${locallySkippedCount > 0 ? ` Skipped ${locallySkippedCount} existing entries.` : ''}`,
         });
         return;
       }
@@ -508,12 +513,16 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
         const insertedRows = await withRetry(async () => {
           const { data, error } = await supabase
             .from('word_replacements')
-            .insert(
+            .upsert(
               batch.map(r => ({
                 session_id: sessionId,
                 original_word: r.original_word,
                 replacement_word: r.replacement_word,
-              }))
+              })),
+              {
+                onConflict: 'session_id,normalized_original_word',
+                ignoreDuplicates: true,
+              }
             )
             .select();
 
@@ -525,10 +534,11 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
       }
 
       setReplacements((currentReplacements) => sortReplacements([...currentReplacements, ...persistedReplacements]));
+      const skippedCount = validatedReplacements.length - persistedReplacements.length;
       
       toast({
         title: "Import Successful",
-        description: `Imported ${persistedReplacements.length} glossary entries to database.`,
+        description: `Imported ${persistedReplacements.length} glossary entries to database.${skippedCount > 0 ? ` Skipped ${skippedCount} existing entries.` : ''}`,
       });
     } catch (error) {
       if (persistedReplacements.length > 0) {
