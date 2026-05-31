@@ -53,7 +53,6 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
   const [newReplacement, setNewReplacement] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
@@ -116,13 +115,13 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
   }, []);
 
   // Replace existing pagination logic with optimized version
-  const totalPages = Math.ceil(pagination.totalItems / pagination.pageSize);
-  const currentReplacements = pagination.currentData;
+  const { currentPage, totalPages, currentData: currentReplacements, goToFirst, goToPage } = pagination;
 
   // Reset pagination and selection on search/data change
   useEffect(() => {
-    setCurrentPage(1);
-  }, [replacements.length, searchTerm]);
+    goToFirst();
+    setShowAllMobileEntries(false);
+  }, [goToFirst, replacements.length, searchTerm]);
 
   useEffect(() => {
     setSelectedItems(new Set());
@@ -551,7 +550,8 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
   };
 
   const handlePageChange = (page: number) => {
-    setCurrentPage(page);
+    goToPage(page);
+    setShowAllMobileEntries(false);
   };
 
   const handleSelectAll = (checked: boolean) => {
