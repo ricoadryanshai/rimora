@@ -20,13 +20,6 @@ import WordReplacements from "@/components/WordReplacements";
 import AppSidebar from "@/components/AppSidebar";
 import MobileBottomNav from "@/components/MobileBottomNav";
 
-const isIosDevice = () => {
-  if (typeof navigator === 'undefined') return false;
-
-  return /iPad|iPhone|iPod/.test(navigator.userAgent)
-    || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-};
-
 const Index = () => {
   const [originalText, setOriginalText] = useState('');
   const [paragraphCount, setParagraphCount] = useState<number>(5);
@@ -63,11 +56,6 @@ const Index = () => {
   }, [toast]);
 
   const pasteFromClipboard = useCallback(async () => {
-    if (isIosDevice()) {
-      enableManualPaste();
-      return;
-    }
-
     try {
       if (!navigator.clipboard?.readText) {
         enableManualPaste();
