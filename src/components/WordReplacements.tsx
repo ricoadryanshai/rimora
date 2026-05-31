@@ -26,6 +26,7 @@ import { PaginationControls } from "./PaginationControls";
 
 // Initialize rate limiter for API calls (10 requests per minute per user)
 const rateLimiter = new RateLimiter(10, 60000);
+const IMPORT_BATCH_SIZE = 500;
 
 interface WordReplacement {
   id: string;
@@ -457,7 +458,9 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
   });
 
   // Enhanced import with validation
-  const handleImportReplacements = handleAsync(async (importedReplacements: Omit<WordReplacement, 'id'>[]) => {
+  const handleImportReplacements = async (importedReplacements: Omit<WordReplacement, 'id'>[]): Promise<void> => {
+    const persistedReplacements: WordReplacement[] = [];
+
     try {
       // Validate all imported items
       const validatedReplacements = importedReplacements.map((r, index) => {
@@ -468,19 +471,30 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
         }
       });
 
+      const existingWords = new Set(replacements.map((replacement) => replacement.original_word.toLowerCase()));
+      const uniqueReplacements = validatedReplacements.filter((replacement) => {
+        const normalizedWord = replacement.original_word.toLowerCase();
+        if (existingWords.has(normalizedWord)) return false;
+        existingWords.add(normalizedWord);
+        return true;
+      });
+
+      if (uniqueReplacements.length == 0) {
+        throw new ValidationError("No new glossary entries found. Existing terms were skipped.");
+      }
+
       // Check total limit
-      if (replacements.length + validatedReplacements.length > 10000) {
+      if (replacements.length + uniqueReplacements.length > 10000) {
         throw new ValidationError("Import would exceed maximum of 10,000 glossary entries");
       }
 
       if (!sessionId) {
-        const newReplacements: WordReplacement[] = validatedReplacements.map((r, index) => ({
+        const newReplacements: WordReplacement[] = uniqueReplacements.map((r, index) => ({
           id: Date.now().toString() + index.toString(),
           original_word: r.original_word,
           replacement_word: r.replacement_word,
         }));
-        const updatedReplacements = sortReplacements([...replacements, ...newReplacements]);
-        setReplacements(updatedReplacements);
+        setReplacements((currentReplacements) => sortReplacements([...currentReplacements, ...newReplacements]));
         toast({
           title: "Import Successful",
           description: `Imported ${newReplacements.length} glossary entries.`,
@@ -489,35 +503,49 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
       }
 
       setIsSaving(true);
-      const result = await withRetry(async () => {
-        const { data, error } = await supabase
-          .from('word_replacements')
-          .insert(
-            validatedReplacements.map(r => ({
-              session_id: sessionId,
-              original_word: r.original_word,
-              replacement_word: r.replacement_word,
-            }))
-          )
-          .select();
+      for (let index = 0; index < uniqueReplacements.length; index += IMPORT_BATCH_SIZE) {
+        const batch = uniqueReplacements.slice(index, index + IMPORT_BATCH_SIZE);
+        const insertedRows = await withRetry(async () => {
+          const { data, error } = await supabase
+            .from('word_replacements')
+            .insert(
+              batch.map(r => ({
+                session_id: sessionId,
+                original_word: r.original_word,
+                replacement_word: r.replacement_word,
+              }))
+            )
+            .select();
 
-        if (error) throw error;
-        return data;
-      });
+          if (error) throw error;
+          return data;
+        });
 
-      const updatedReplacements = sortReplacements([...replacements, ...result]);
-      setReplacements(updatedReplacements);
+        persistedReplacements.push(...insertedRows);
+      }
+
+      setReplacements((currentReplacements) => sortReplacements([...currentReplacements, ...persistedReplacements]));
       
       toast({
         title: "Import Successful",
-        description: `Imported ${result.length} glossary entries to database.`,
+        description: `Imported ${persistedReplacements.length} glossary entries to database.`,
       });
     } catch (error) {
+      if (persistedReplacements.length > 0) {
+        setReplacements((currentReplacements) => sortReplacements([...currentReplacements, ...persistedReplacements]));
+        toast({
+          title: "Import Partially Completed",
+          description: `Saved ${persistedReplacements.length} glossary entries before the import stopped. Please retry the remaining entries.`,
+          variant: "destructive",
+        });
+        return;
+      }
+
       handleError(error, 'handleImportReplacements');
     } finally {
       setIsSaving(false);
     }
-  });
+  };
 
   // Pagination helpers
   const getVisiblePages = () => {

@@ -7,7 +7,7 @@ export const wordReplacementSchema = z.object({
     .min(1, 'Original word is required')
     .max(500, 'Original word cannot exceed 500 characters')
     .refine(
-      (val) => !val.match(/[<>'"]/),
+      (val) => !val.match(/[<>"]/),
       'Words cannot contain HTML or script characters'
     )
     .transform((val) => val.trim()),
@@ -16,7 +16,7 @@ export const wordReplacementSchema = z.object({
     .min(1, 'Replacement word is required')
     .max(500, 'Replacement word cannot exceed 500 characters')
     .refine(
-      (val) => !val.match(/[<>'"]/),
+      (val) => !val.match(/[<>"]/),
       'Words cannot contain HTML or script characters'
     )
     .transform((val) => val.trim()),

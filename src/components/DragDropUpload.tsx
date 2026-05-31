@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Upload, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { parseWordReplacementsCsv } from "@/lib/word-replacements-csv";
+import type { User } from "@supabase/supabase-js";
 
 interface WordReplacement {
   id: string;
@@ -12,9 +14,9 @@ interface WordReplacement {
 }
 
 interface DragDropUploadProps {
-  onImport: (replacements: Omit<WordReplacement, 'id'>[]) => void;
+  onImport: (replacements: Omit<WordReplacement, 'id'>[]) => Promise<void>;
   canUseFeature: boolean;
-  user: any;
+  user: User | null;
 }
 
 const DragDropUpload: React.FC<DragDropUploadProps> = ({ onImport, canUseFeature, user }) => {
@@ -64,29 +66,10 @@ const DragDropUpload: React.FC<DragDropUploadProps> = ({ onImport, canUseFeature
 
   const processFile = (file: File) => {
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       try {
         const text = e.target?.result as string;
-        const lines = text.split('\n').filter(line => line.trim() !== '');
-        
-        // Skip header row if it exists
-        const dataLines = lines[0].toLowerCase().includes('original') ? lines.slice(1) : lines;
-        
-        const importedReplacements: Omit<WordReplacement, 'id'>[] = [];
-        
-        for (const line of dataLines) {
-          // Parse CSV line with proper quote handling
-          const match = line.match(/^"([^"]*)","([^"]*)"$/) || line.match(/^([^,]*),(.*)$/);
-          if (match) {
-            const [, original, replacement] = match;
-            if (original?.trim() && replacement?.trim()) {
-              importedReplacements.push({
-                original_word: original.trim(),
-                replacement_word: replacement.trim(),
-              });
-            }
-          }
-        }
+        const importedReplacements = parseWordReplacementsCsv(text);
 
         if (importedReplacements.length === 0) {
           toast({
@@ -97,12 +80,7 @@ const DragDropUpload: React.FC<DragDropUploadProps> = ({ onImport, canUseFeature
           return;
         }
 
-        onImport(importedReplacements);
-        
-        toast({
-          title: "Import Successful",
-          description: `Imported ${importedReplacements.length} word replacement pairs.`,
-        });
+        await onImport(importedReplacements);
       } catch (error) {
         console.error('Error parsing CSV:', error);
         toast({

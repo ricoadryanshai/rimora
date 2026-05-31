@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileText, Upload, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { parseWordReplacementsCsv } from "@/lib/word-replacements-csv";
 
 interface WordReplacement {
   id: string;
@@ -16,7 +17,7 @@ interface WordReplacement {
 
 interface CSVManagerProps {
   replacements: WordReplacement[];
-  onImport: (replacements: Omit<WordReplacement, 'id'>[]) => void;
+  onImport: (replacements: Omit<WordReplacement, 'id'>[]) => Promise<void>;
   userRole: string | null;
 }
 
@@ -95,29 +96,10 @@ const CSVManager: React.FC<CSVManagerProps> = ({ replacements, onImport, userRol
     }
 
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       try {
         const text = e.target?.result as string;
-        const lines = text.split('\n').filter(line => line.trim() !== '');
-        
-        // Skip header row if it exists
-        const dataLines = lines[0].toLowerCase().includes('original') ? lines.slice(1) : lines;
-        
-        const importedReplacements: Omit<WordReplacement, 'id'>[] = [];
-        
-        for (const line of dataLines) {
-          // Parse CSV line with proper quote handling
-          const match = line.match(/^"([^"]*)","([^"]*)"$/) || line.match(/^([^,]*),(.*)$/);
-          if (match) {
-            const [, original, replacement] = match;
-            if (original?.trim() && replacement?.trim()) {
-              importedReplacements.push({
-                original_word: original.trim(),
-                replacement_word: replacement.trim(),
-              });
-            }
-          }
-        }
+        const importedReplacements = parseWordReplacementsCsv(text);
 
         if (importedReplacements.length === 0) {
           toast({
@@ -128,12 +110,7 @@ const CSVManager: React.FC<CSVManagerProps> = ({ replacements, onImport, userRol
           return;
         }
 
-        onImport(importedReplacements);
-        
-        toast({
-          title: "Import Successful",
-          description: `Imported ${importedReplacements.length} word replacement pairs.`,
-        });
+        await onImport(importedReplacements);
       } catch (error) {
         console.error('Error parsing CSV:', error);
         toast({
