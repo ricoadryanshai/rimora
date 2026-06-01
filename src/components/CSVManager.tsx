@@ -39,24 +39,40 @@ const CSVManager: React.FC<CSVManagerProps> = ({ replacements, onImport, userRol
     return userRole === 'user';
   };
 
-  const exportToCSV = () => {
+  const triggerDownload = (blob: Blob, filename: string) => {
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', filename);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const ensureExportable = () => {
     if (!canUseFeature()) {
       toast({
         title: "Feature Restricted",
         description: !user ? "Please sign in to use this feature." : "This feature requires a premium account.",
         variant: "destructive",
       });
-      return;
+      return false;
     }
-
     if (replacements.length === 0) {
       toast({
         title: "No Data to Export",
         description: "Add some word replacements before exporting.",
         variant: "destructive",
       });
-      return;
+      return false;
     }
+    return true;
+  };
+
+  const exportToCSV = () => {
+    if (!ensureExportable()) return;
 
     const csvContent = [
       'Original Word,Replacement Word',
@@ -64,19 +80,41 @@ const CSVManager: React.FC<CSVManagerProps> = ({ replacements, onImport, userRol
     ].join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', 'word-replacements.csv');
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    triggerDownload(blob, 'word-replacements.csv');
 
     toast({
       title: "Export Successful",
       description: `Exported ${replacements.length} word replacements to CSV.`,
     });
+  };
+
+  const exportToExcel = async () => {
+    if (!ensureExportable()) return;
+
+    try {
+      const { default: writeXlsxFile } = await import('write-excel-file');
+      const schema = [
+        { column: 'Original Word', type: String, value: (r: WordReplacement) => r.original_word },
+        { column: 'Replacement Word', type: String, value: (r: WordReplacement) => r.replacement_word },
+      ];
+      const blob = await writeXlsxFile(replacements, {
+        schema,
+        fileName: undefined,
+      } as never) as unknown as Blob;
+      triggerDownload(blob, 'word-replacements.xlsx');
+
+      toast({
+        title: "Export Successful",
+        description: `Exported ${replacements.length} word replacements to Excel.`,
+      });
+    } catch (error) {
+      console.error('Excel export failed:', error);
+      toast({
+        title: "Export Failed",
+        description: "Could not generate the Excel file. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const importFromFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
