@@ -182,6 +182,93 @@ const CSVManager: React.FC<CSVManagerProps> = ({ replacements, onImport, userRol
     fileInputRef.current?.click();
   };
 
+  const buildSheetCsvUrl = (url: string): string | null => {
+    const idMatch = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+    if (!idMatch) return null;
+    const id = idMatch[1];
+    const gidMatch = url.match(/[#?&]gid=([0-9]+)/);
+    const gid = gidMatch ? gidMatch[1] : '0';
+    return `https://docs.google.com/spreadsheets/d/${id}/export?format=csv&gid=${gid}`;
+  };
+
+  const pasteSheetUrl = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      setSheetUrl(text.trim());
+      if (navigator.vibrate) navigator.vibrate(10);
+    } catch {
+      toast({
+        title: "Clipboard Unavailable",
+        description: "Could not read from clipboard. Please paste manually.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const importFromGoogleSheet = async () => {
+    if (!canUseFeature()) {
+      toast({
+        title: "Feature Restricted",
+        description: !user ? "Please sign in to use this feature." : "This feature requires a premium account.",
+        variant: "destructive",
+      });
+      return;
+    }
+    const trimmed = sheetUrl.trim();
+    if (!trimmed) {
+      toast({ title: "Missing URL", description: "Please paste a Google Sheets link.", variant: "destructive" });
+      return;
+    }
+    const csvUrl = buildSheetCsvUrl(trimmed);
+    if (!csvUrl) {
+      toast({
+        title: "Invalid Google Sheets Link",
+        description: "Paste a full link like https://docs.google.com/spreadsheets/d/…",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsImportingSheet(true);
+    try {
+      const response = await fetch(csvUrl, { redirect: 'follow' });
+      if (!response.ok) throw new Error(`Request failed (${response.status})`);
+      const text = await response.text();
+      if (text.trimStart().toLowerCase().startsWith('<!doctype html') || text.includes('<html')) {
+        toast({
+          title: "Sheet Not Public",
+          description: "Set sharing to \"Anyone with the link\" (Viewer) and try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+      const imported = parseWordReplacementsCsv(text);
+      if (imported.length === 0) {
+        toast({
+          title: "No Valid Data",
+          description: "No valid word replacement pairs found in this sheet.",
+          variant: "destructive",
+        });
+        return;
+      }
+      await onImport(imported);
+      setSheetUrl('');
+      toast({
+        title: "Import Successful",
+        description: `Imported ${imported.length} mappings from Google Sheets.`,
+      });
+    } catch (error) {
+      console.error('Google Sheets import failed:', error);
+      toast({
+        title: "Import Failed",
+        description: "Could not fetch the sheet. Check the link and sharing settings.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsImportingSheet(false);
+    }
+  };
+
   return (
     <Card className="glass-card shadow-elegant hover:shadow-glow transition-smooth">
       <CardHeader className="pb-4 bg-gradient-to-r from-primary/5 to-accent/5 rounded-t-lg">
