@@ -30,6 +30,8 @@ interface CSVManagerProps {
 
 const CSVManager: React.FC<CSVManagerProps> = ({ replacements, onImport, userRole }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [sheetUrl, setSheetUrl] = useState('');
+  const [isImportingSheet, setIsImportingSheet] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
 
