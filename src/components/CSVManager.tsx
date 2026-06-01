@@ -208,17 +208,31 @@ const CSVManager: React.FC<CSVManagerProps> = ({ replacements, onImport, userRol
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label className="text-sm font-medium">Export to CSV</Label>
-            <Button
-              onClick={exportToCSV}
-              variant="outline"
-              className="w-full border-accent/30 text-accent hover:bg-accent/10 hover:border-accent/50 transition-smooth shadow-accent/20 hover:shadow-accent"
-              disabled={!canUseFeature() || replacements.length === 0}
-            >
-              <Download className="mr-2 h-4 w-4" />
-              Export CSV
-            </Button>
+            <Label className="text-sm font-medium">Export to CSV or Excel</Label>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="w-full border-accent/30 text-accent hover:bg-accent/10 hover:border-accent/50 transition-smooth shadow-accent/20 hover:shadow-accent"
+                  disabled={!canUseFeature() || replacements.length === 0}
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  Export
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem onClick={exportToCSV}>
+                  <FileText className="mr-2 h-4 w-4" />
+                  Export as CSV
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={exportToExcel}>
+                  <FileSpreadsheet className="mr-2 h-4 w-4" />
+                  Export as Excel
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
+
           
           <div className="space-y-2">
             <Label className="text-sm font-medium">Import from CSV or Excel</Label>
