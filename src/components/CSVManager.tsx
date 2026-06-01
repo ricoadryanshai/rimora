@@ -345,6 +345,54 @@ const CSVManager: React.FC<CSVManagerProps> = ({ replacements, onImport, userRol
           </div>
         </div>
 
+        <div className="space-y-2 pt-2 border-t border-border/50">
+          <div className="flex items-center justify-between gap-2">
+            <Label className="text-sm font-medium flex items-center gap-2">
+              <Sheet className="h-4 w-4 text-accent" />
+              Import from Google Sheets
+            </Label>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={pasteSheetUrl}
+              disabled={!canUseFeature() || isImportingSheet}
+              className="h-8 px-2 text-xs"
+            >
+              <ClipboardPaste className="mr-1 h-3 w-3" />
+              Paste
+            </Button>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Input
+              type="url"
+              inputMode="url"
+              placeholder="https://docs.google.com/spreadsheets/d/…"
+              value={sheetUrl}
+              onChange={(e) => setSheetUrl(e.target.value)}
+              disabled={!canUseFeature() || isImportingSheet}
+              className="flex-1"
+            />
+            <Button
+              onClick={importFromGoogleSheet}
+              variant="outline"
+              className="border-accent/30 text-accent hover:bg-accent/10 hover:border-accent/50 transition-smooth"
+              disabled={!canUseFeature() || isImportingSheet || !sheetUrl.trim()}
+            >
+              {isImportingSheet ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Sheet className="mr-2 h-4 w-4" />
+              )}
+              Import Sheet
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Share the sheet as "Anyone with the link (Viewer)". First column: Original Term, second: Text Glossary.
+          </p>
+        </div>
+
+
         <div className="bg-muted/50 border border-muted rounded-lg p-4 transition-smooth">
           <h4 className="font-medium text-foreground mb-2 flex items-center gap-2">
             <div className="w-2 h-2 bg-accent rounded-full"></div>
