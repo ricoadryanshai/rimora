@@ -1178,7 +1178,7 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
                   </div>
                   <h3 className="text-lg font-medium text-foreground mb-2">No glossary entries yet</h3>
                   <p className="text-muted-foreground mb-4 max-w-md mx-auto">
-                    Add glossary entries above or import from a CSV file below
+                    Add glossary entries above or import from a CSV or Excel file below
                   </p>
                 </div>
                 

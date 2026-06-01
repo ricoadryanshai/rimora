@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileText, Upload, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { parseWordReplacementsCsv } from "@/lib/word-replacements-csv";
+import { isSupportedWordMappingsFile, parseWordMappingsFile } from "@/lib/word-replacements-file";
 
 interface WordReplacement {
   id: string;
@@ -73,7 +73,7 @@ const CSVManager: React.FC<CSVManagerProps> = ({ replacements, onImport, userRol
     });
   };
 
-  const importFromCSV = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const importFromFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
     if (!canUseFeature()) {
       toast({
         title: "Feature Restricted",
@@ -86,42 +86,36 @@ const CSVManager: React.FC<CSVManagerProps> = ({ replacements, onImport, userRol
     const file = event.target.files?.[0];
     if (!file) return;
 
-    if (file.type !== 'text/csv' && !file.name.endsWith('.csv')) {
+    if (!isSupportedWordMappingsFile(file)) {
       toast({
         title: "Invalid File Type",
-        description: "Please select a CSV file.",
+        description: "Please select a CSV or Excel file.",
         variant: "destructive",
       });
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      try {
-        const text = e.target?.result as string;
-        const importedReplacements = parseWordReplacementsCsv(text);
+    try {
+      const importedReplacements = await parseWordMappingsFile(file);
 
-        if (importedReplacements.length === 0) {
-          toast({
-            title: "No Valid Data",
-            description: "No valid word replacement pairs found in the CSV file.",
-            variant: "destructive",
-          });
-          return;
-        }
-
-        await onImport(importedReplacements);
-      } catch (error) {
-        console.error('Error parsing CSV:', error);
+      if (importedReplacements.length == 0) {
         toast({
-          title: "Import Failed",
-          description: "Failed to parse the CSV file. Please check the format.",
+          title: "No Valid Data",
+          description: "No valid word replacement pairs found in the selected file.",
           variant: "destructive",
         });
+        return;
       }
-    };
 
-    reader.readAsText(file);
+      await onImport(importedReplacements);
+    } catch (error) {
+      console.error('Error parsing word mappings file:', error);
+      toast({
+        title: "Import Failed",
+        description: "Failed to parse the file. Please check the CSV or Excel table format.",
+        variant: "destructive",
+      });
+    }
     
     // Reset file input
     if (fileInputRef.current) {
@@ -183,7 +177,7 @@ const CSVManager: React.FC<CSVManagerProps> = ({ replacements, onImport, userRol
           </div>
           
           <div className="space-y-2">
-            <Label className="text-sm font-medium">Import from CSV</Label>
+            <Label className="text-sm font-medium">Import from CSV or Excel</Label>
             <Button
               onClick={triggerFileInput}
               variant="outline"
@@ -191,13 +185,13 @@ const CSVManager: React.FC<CSVManagerProps> = ({ replacements, onImport, userRol
               disabled={!canUseFeature()}
             >
               <Upload className="mr-2 h-4 w-4" />
-              Import CSV
+              Import File
             </Button>
             <Input
               ref={fileInputRef}
               type="file"
-              accept=".csv"
-              onChange={importFromCSV}
+              accept=".csv,.xlsx"
+              onChange={importFromFile}
               className="hidden"
             />
           </div>
@@ -206,7 +200,7 @@ const CSVManager: React.FC<CSVManagerProps> = ({ replacements, onImport, userRol
         <div className="bg-muted/50 border border-muted rounded-lg p-4 transition-smooth">
           <h4 className="font-medium text-foreground mb-2 flex items-center gap-2">
             <div className="w-2 h-2 bg-accent rounded-full"></div>
-            CSV Format Example:
+            CSV or Excel Table Format:
           </h4>
           <code className="text-sm text-muted-foreground block font-mono bg-background/50 p-2 rounded border">
             Original Word,Replacement Word<br />
