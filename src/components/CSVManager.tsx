@@ -1,10 +1,10 @@
 
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, Upload, Download, FileSpreadsheet } from "lucide-react";
+import { FileText, Upload, Download, FileSpreadsheet, Sheet, ClipboardPaste, Loader2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,6 +14,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { isSupportedWordMappingsFile, parseWordMappingsFile } from "@/lib/word-replacements-file";
+import { parseWordReplacementsCsv } from "@/lib/word-replacements-csv";
 
 interface WordReplacement {
   id: string;
