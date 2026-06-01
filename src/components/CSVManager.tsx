@@ -92,7 +92,7 @@ const CSVManager: React.FC<CSVManagerProps> = ({ replacements, onImport, userRol
     if (!ensureExportable()) return;
 
     try {
-      const { default: writeXlsxFile } = await import('write-excel-file');
+      const { default: writeXlsxFile } = await import('write-excel-file/browser');
       const schema = [
         { column: 'Original Word', type: String, value: (r: WordReplacement) => r.original_word },
         { column: 'Replacement Word', type: String, value: (r: WordReplacement) => r.replacement_word },
