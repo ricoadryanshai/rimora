@@ -27,6 +27,8 @@ import { PaginationControls } from "./PaginationControls";
 // Initialize rate limiter for API calls (10 requests per minute per user)
 const rateLimiter = new RateLimiter(10, 60000);
 const IMPORT_BATCH_SIZE = 500;
+const DATABASE_PAGE_SIZE = 1000;
+const MAX_GLOSSARY_ENTRIES = 10000;
 
 interface WordReplacement {
   id: string;
@@ -47,6 +49,32 @@ interface WordReplacementsProps {
   sessionId: string | null;
   onReplacementsChange: (replacements: WordReplacement[]) => void;
 }
+
+const fetchSessionReplacements = async (sessionId: string): Promise<WordReplacement[]> => {
+  const replacements: WordReplacement[] = [];
+
+  for (let start = 0; start < MAX_GLOSSARY_ENTRIES; start += DATABASE_PAGE_SIZE) {
+    const { data, error } = await supabase
+      .from('word_replacements')
+      .select('id, original_word, replacement_word')
+      .eq('session_id', sessionId)
+      .order('created_at', { ascending: true })
+      .order('id', { ascending: true })
+      .range(start, start + DATABASE_PAGE_SIZE - 1);
+
+    if (error) throw error;
+
+    const page = (data || []).filter((item) =>
+      item.id && item.original_word && item.replacement_word
+    ) as WordReplacement[];
+
+    replacements.push(...page);
+
+    if (page.length < DATABASE_PAGE_SIZE) break;
+  }
+
+  return replacements;
+};
 
 const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplacementsChange }) => {
   const [replacements, setReplacements] = useState<WordReplacement[]>([]);
@@ -285,19 +313,8 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
 
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('word_replacements')
-        .select('*')
-        .eq('session_id', sessionId)
-        .order('created_at', { ascending: true });
-
-      if (error) throw error;
-
-      // Sort the loaded replacements with proper type assertion
-      const validData = (data || []).filter(item => 
-        item.id && item.original_word && item.replacement_word
-      ) as WordReplacement[];
-      const sortedData = sortReplacements(validData);
+      const loadedReplacements = await fetchSessionReplacements(sessionId);
+      const sortedData = sortReplacements(loadedReplacements);
       setReplacements(sortedData);
     } catch (error) {
       handleError(error, 'loadReplacements');
@@ -338,7 +355,7 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
       }
 
       // Check reasonable limits
-      if (replacements.length >= 10000) {
+      if (replacements.length >= MAX_GLOSSARY_ENTRIES) {
         throw new ValidationError("Maximum of 10,000 glossary entries allowed");
       }
 
@@ -489,7 +506,7 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
       }
 
       // Check total limit
-      if (replacements.length + uniqueReplacements.length > 10000) {
+      if (replacements.length + uniqueReplacements.length > MAX_GLOSSARY_ENTRIES) {
         throw new ValidationError("Import would exceed maximum of 10,000 glossary entries");
       }
 
