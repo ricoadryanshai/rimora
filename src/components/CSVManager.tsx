@@ -1,10 +1,10 @@
 
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, Upload, Download, FileSpreadsheet } from "lucide-react";
+import { FileText, Upload, Download, FileSpreadsheet, Sheet, ClipboardPaste, Loader2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,6 +14,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { isSupportedWordMappingsFile, parseWordMappingsFile } from "@/lib/word-replacements-file";
+import { parseWordReplacementsCsv } from "@/lib/word-replacements-csv";
 
 interface WordReplacement {
   id: string;
@@ -29,6 +30,8 @@ interface CSVManagerProps {
 
 const CSVManager: React.FC<CSVManagerProps> = ({ replacements, onImport, userRole }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [sheetUrl, setSheetUrl] = useState('');
+  const [isImportingSheet, setIsImportingSheet] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -179,6 +182,93 @@ const CSVManager: React.FC<CSVManagerProps> = ({ replacements, onImport, userRol
     fileInputRef.current?.click();
   };
 
+  const buildSheetCsvUrl = (url: string): string | null => {
+    const idMatch = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+    if (!idMatch) return null;
+    const id = idMatch[1];
+    const gidMatch = url.match(/[#?&]gid=([0-9]+)/);
+    const gid = gidMatch ? gidMatch[1] : '0';
+    return `https://docs.google.com/spreadsheets/d/${id}/export?format=csv&gid=${gid}`;
+  };
+
+  const pasteSheetUrl = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      setSheetUrl(text.trim());
+      if (navigator.vibrate) navigator.vibrate(10);
+    } catch {
+      toast({
+        title: "Clipboard Unavailable",
+        description: "Could not read from clipboard. Please paste manually.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const importFromGoogleSheet = async () => {
+    if (!canUseFeature()) {
+      toast({
+        title: "Feature Restricted",
+        description: !user ? "Please sign in to use this feature." : "This feature requires a premium account.",
+        variant: "destructive",
+      });
+      return;
+    }
+    const trimmed = sheetUrl.trim();
+    if (!trimmed) {
+      toast({ title: "Missing URL", description: "Please paste a Google Sheets link.", variant: "destructive" });
+      return;
+    }
+    const csvUrl = buildSheetCsvUrl(trimmed);
+    if (!csvUrl) {
+      toast({
+        title: "Invalid Google Sheets Link",
+        description: "Paste a full link like https://docs.google.com/spreadsheets/d/…",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsImportingSheet(true);
+    try {
+      const response = await fetch(csvUrl, { redirect: 'follow' });
+      if (!response.ok) throw new Error(`Request failed (${response.status})`);
+      const text = await response.text();
+      if (text.trimStart().toLowerCase().startsWith('<!doctype html') || text.includes('<html')) {
+        toast({
+          title: "Sheet Not Public",
+          description: "Set sharing to \"Anyone with the link\" (Viewer) and try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+      const imported = parseWordReplacementsCsv(text);
+      if (imported.length === 0) {
+        toast({
+          title: "No Valid Data",
+          description: "No valid word replacement pairs found in this sheet.",
+          variant: "destructive",
+        });
+        return;
+      }
+      await onImport(imported);
+      setSheetUrl('');
+      toast({
+        title: "Import Successful",
+        description: `Imported ${imported.length} mappings from Google Sheets.`,
+      });
+    } catch (error) {
+      console.error('Google Sheets import failed:', error);
+      toast({
+        title: "Import Failed",
+        description: "Could not fetch the sheet. Check the link and sharing settings.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsImportingSheet(false);
+    }
+  };
+
   return (
     <Card className="glass-card shadow-elegant hover:shadow-glow transition-smooth">
       <CardHeader className="pb-4 bg-gradient-to-r from-primary/5 to-accent/5 rounded-t-lg">
@@ -254,6 +344,54 @@ const CSVManager: React.FC<CSVManagerProps> = ({ replacements, onImport, userRol
             />
           </div>
         </div>
+
+        <div className="space-y-2 pt-2 border-t border-border/50">
+          <div className="flex items-center justify-between gap-2">
+            <Label className="text-sm font-medium flex items-center gap-2">
+              <Sheet className="h-4 w-4 text-accent" />
+              Import from Google Sheets
+            </Label>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={pasteSheetUrl}
+              disabled={!canUseFeature() || isImportingSheet}
+              className="h-8 px-2 text-xs"
+            >
+              <ClipboardPaste className="mr-1 h-3 w-3" />
+              Paste
+            </Button>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Input
+              type="url"
+              inputMode="url"
+              placeholder="https://docs.google.com/spreadsheets/d/…"
+              value={sheetUrl}
+              onChange={(e) => setSheetUrl(e.target.value)}
+              disabled={!canUseFeature() || isImportingSheet}
+              className="flex-1"
+            />
+            <Button
+              onClick={importFromGoogleSheet}
+              variant="outline"
+              className="border-accent/30 text-accent hover:bg-accent/10 hover:border-accent/50 transition-smooth"
+              disabled={!canUseFeature() || isImportingSheet || !sheetUrl.trim()}
+            >
+              {isImportingSheet ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Sheet className="mr-2 h-4 w-4" />
+              )}
+              Import Sheet
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Share the sheet as "Anyone with the link (Viewer)". First column: Original Term, second: Text Glossary.
+          </p>
+        </div>
+
 
         <div className="bg-muted/50 border border-muted rounded-lg p-4 transition-smooth">
           <h4 className="font-medium text-foreground mb-2 flex items-center gap-2">
