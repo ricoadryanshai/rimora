@@ -13,7 +13,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { isSupportedWordMappingsFile, parseWordMappingsFile } from "@/lib/word-replacements-file";
+import {
+  createWordMappingsSheetData,
+  isSupportedWordMappingsFile,
+  parseWordMappingsFile,
+} from "@/lib/word-replacements-file";
 import { parseWordReplacementsCsv } from "@/lib/word-replacements-csv";
 
 interface WordReplacement {
@@ -51,7 +55,7 @@ const CSVManager: React.FC<CSVManagerProps> = ({ replacements, onImport, userRol
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    window.setTimeout(() => URL.revokeObjectURL(url), 0);
   };
 
   const ensureExportable = () => {
@@ -96,14 +100,7 @@ const CSVManager: React.FC<CSVManagerProps> = ({ replacements, onImport, userRol
 
     try {
       const { default: writeXlsxFile } = await import('write-excel-file/browser');
-      const schema = [
-        { column: 'Original Word', type: String, value: (r: WordReplacement) => r.original_word },
-        { column: 'Replacement Word', type: String, value: (r: WordReplacement) => r.replacement_word },
-      ];
-      const blob = await writeXlsxFile(replacements, {
-        schema,
-        fileName: undefined,
-      } as never) as unknown as Blob;
+      const blob = await writeXlsxFile(createWordMappingsSheetData(replacements)).toBlob();
       triggerDownload(blob, 'word-replacements.xlsx');
 
       toast({

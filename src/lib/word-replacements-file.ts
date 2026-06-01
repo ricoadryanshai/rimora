@@ -3,6 +3,8 @@ import { parseWordReplacementsCsv, type WordReplacementInput } from "@/lib/word-
 const CSV_EXTENSION = '.csv';
 const EXCEL_EXTENSIONS = ['.xlsx'];
 
+type WordReplacement = WordReplacementInput & { id?: string };
+
 const getFileExtension = (fileName: string) => {
   const extensionStart = fileName.lastIndexOf('.');
   return extensionStart >= 0 ? fileName.slice(extensionStart).toLowerCase() : '';
@@ -33,6 +35,11 @@ export const isSupportedWordMappingsFile = (file: File) => {
   return extension === CSV_EXTENSION || EXCEL_EXTENSIONS.includes(extension);
 };
 
+export const createWordMappingsSheetData = (replacements: WordReplacement[]) => [
+  ['Original Word', 'Replacement Word'],
+  ...replacements.map((replacement) => [replacement.original_word, replacement.replacement_word]),
+];
+
 export const parseWordMappingsFile = async (file: File): Promise<WordReplacementInput[]> => {
   const extension = getFileExtension(file.name);
 
@@ -44,6 +51,6 @@ export const parseWordMappingsFile = async (file: File): Promise<WordReplacement
     throw new Error('Unsupported word mappings file type');
   }
 
-  const { default: readXlsxFile } = await import('read-excel-file/browser');
-  return parseWorksheetRows((await readXlsxFile(file)) as unknown as unknown[][]);
+  const { readSheet } = await import('read-excel-file/browser');
+  return parseWorksheetRows(await readSheet(file));
 };
