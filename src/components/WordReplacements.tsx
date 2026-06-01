@@ -29,6 +29,8 @@ const IMPORT_BATCH_SIZE = 500;
 const DATABASE_PAGE_SIZE = 1000;
 const MAX_GLOSSARY_ENTRIES = 10000;
 
+const normalizeOriginalWord = (word: string) => word.trim().toLowerCase();
+
 interface WordReplacement {
   id: string;
   original_word: string;
@@ -73,6 +75,35 @@ const fetchSessionReplacements = async (sessionId: string): Promise<WordReplacem
   }
 
   return replacements;
+};
+
+const fetchSessionImportState = async (sessionId: string, normalizedWords: string[]) => {
+  const existingWords = new Set<string>();
+  const { count, error: countError } = await supabase
+    .from('word_replacements')
+    .select('id', { count: 'exact', head: true })
+    .eq('session_id', sessionId);
+
+  if (countError) throw countError;
+
+  for (let start = 0; start < normalizedWords.length; start += IMPORT_BATCH_SIZE) {
+    const { data, error } = await supabase
+      .from('word_replacements')
+      .select('normalized_original_word')
+      .eq('session_id', sessionId)
+      .in('normalized_original_word', normalizedWords.slice(start, start + IMPORT_BATCH_SIZE));
+
+    if (error) throw error;
+
+    for (const replacement of data || []) {
+      existingWords.add(replacement.normalized_original_word);
+    }
+  }
+
+  return {
+    existingWords,
+    totalEntries: count || 0,
+  };
 };
 
 const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplacementsChange }) => {
@@ -400,7 +431,7 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
   // Enhanced remove replacement with error handling
   const removeReplacement = handleAsync(async (id: string) => {
     if (!sessionId) {
-      setReplacements(replacements.filter(r => r.id !== id));
+      setReplacements((currentReplacements) => currentReplacements.filter(r => r.id !== id));
       return;
     }
 
@@ -414,7 +445,7 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
         if (error) throw error;
       });
 
-      setReplacements(replacements.filter(r => r.id !== id));
+      setReplacements((currentReplacements) => currentReplacements.filter(r => r.id !== id));
       toast({
         title: "Glossary Entry Removed",
         description: "The glossary entry has been deleted.",
@@ -426,10 +457,12 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
 
   // Enhanced remove selected replacements
   const removeSelectedReplacements = handleAsync(async () => {
-    if (selectedItems.size === 0) return;
+    if (selectedItems.size == 0) return;
+
+    const selectedIds = new Set(selectedItems);
 
     if (!sessionId) {
-      setReplacements(replacements.filter(r => !selectedItems.has(r.id)));
+      setReplacements((currentReplacements) => currentReplacements.filter(r => !selectedIds.has(r.id)));
       setSelectedItems(new Set());
       return;
     }
@@ -440,17 +473,17 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
         const { error } = await supabase
           .from('word_replacements')
           .delete()
-          .in('id', Array.from(selectedItems));
+          .in('id', Array.from(selectedIds));
 
         if (error) throw error;
       });
 
-      setReplacements(replacements.filter(r => !selectedItems.has(r.id)));
+      setReplacements((currentReplacements) => currentReplacements.filter(r => !selectedIds.has(r.id)));
       setSelectedItems(new Set());
 
       toast({
         title: "Glossary Entries Removed",
-        description: `${selectedItems.size} glossary entries have been deleted.`,
+        description: `${selectedIds.size} glossary entries have been deleted.`,
       });
     } catch (error) {
       handleError(error, 'removeSelectedReplacements');
@@ -483,13 +516,21 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
         }
       });
 
-      const existingWords = new Set(replacements.map((replacement) => replacement.original_word.toLowerCase()));
-      const uniqueReplacements = validatedReplacements.filter((replacement) => {
-        const normalizedWord = replacement.original_word.toLowerCase();
-        if (existingWords.has(normalizedWord)) return false;
-        existingWords.add(normalizedWord);
+      const importedWords = new Set<string>();
+      const distinctReplacements = validatedReplacements.filter((replacement) => {
+        const normalizedWord = normalizeOriginalWord(replacement.original_word);
+        if (importedWords.has(normalizedWord)) return false;
+        importedWords.add(normalizedWord);
         return true;
       });
+      const sessionImportState = sessionId
+        ? await fetchSessionImportState(sessionId, Array.from(importedWords))
+        : null;
+      const existingWords = sessionImportState?.existingWords
+        || new Set(replacements.map((replacement) => normalizeOriginalWord(replacement.original_word)));
+      const uniqueReplacements = distinctReplacements.filter(
+        (replacement) => !existingWords.has(normalizeOriginalWord(replacement.original_word))
+      );
       const locallySkippedCount = validatedReplacements.length - uniqueReplacements.length;
 
       if (uniqueReplacements.length == 0) {
@@ -501,7 +542,9 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
       }
 
       // Check total limit
-      if (replacements.length + uniqueReplacements.length > MAX_GLOSSARY_ENTRIES) {
+      const totalEntries = sessionImportState ? sessionImportState.totalEntries : replacements.length;
+
+      if (totalEntries + uniqueReplacements.length > MAX_GLOSSARY_ENTRIES) {
         throw new ValidationError("Import would exceed maximum of 10,000 glossary entries");
       }
 

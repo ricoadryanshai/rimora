@@ -156,6 +156,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          normalized_original_word: string
           original_word: string
           replacement_word: string
           session_id: string | null
