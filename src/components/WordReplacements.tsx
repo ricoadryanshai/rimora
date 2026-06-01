@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious, PaginationEllipsis } from "@/components/ui/pagination";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Search, BookText, AlertCircle, Database, Shield, AlertTriangle, Keyboard } from "lucide-react";
+import { Plus, Trash2, Search, BookText, Database, Shield, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -16,13 +16,12 @@ import CSVManager from "./CSVManager";
 import DragDropUpload from "./DragDropUpload";
 import { listSavedGlossaries, createSavedGlossary, deleteSavedGlossary as deleteSavedGlossaryDb } from "@/lib/glossaries";
 import { validateInput, wordReplacementSchema, glossaryNameSchema, ValidationError, RateLimiter } from "@/lib/validation";
-import { handleError, handleAsync, withRetry, ErrorCategory } from "@/lib/error-handler";
+import { handleError, handleAsync, withRetry } from "@/lib/error-handler";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { WordReplacementsSkeleton } from "./LoadingStates";
 import { usePagination } from "@/hooks/usePagination";
-import { PaginationControls } from "./PaginationControls";
 
 // Initialize rate limiter for API calls (10 requests per minute per user)
 const rateLimiter = new RateLimiter(10, 60000);
@@ -90,6 +89,10 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [showAllGlossaries, setShowAllGlossaries] = useState(false);
   const [showAllMobileEntries, setShowAllMobileEntries] = useState(false);
+  const saveGlossaryRef = useRef<() => void>(() => undefined);
+  const addReplacementRef = useRef<() => void>(() => undefined);
+  const loadReplacementsRef = useRef<() => void>(() => undefined);
+  const loadSavedGlossariesRef = useRef<() => void>(() => undefined);
   
   const { toast } = useToast();
   const { userRole, user } = useAuth();
@@ -114,29 +117,16 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
   // Pagination hook for better performance with large datasets
   const pagination = usePagination(filteredReplacements, { pageSize: itemsPerPage });
 
-  // Keyboard shortcuts
-  const shortcutCallbacks = useMemo(() => ({
-    onSave: () => saveGlossary(),
-    onAdd: () => addReplacement(),
-    onDelete: () => removeSelectedReplacements(),
-    onClear: () => {
-      setReplacements([]);
-      setSelectedItems(new Set());
-    },
-    onExport: () => document.getElementById('csv-export-button')?.click(),
-    onImport: () => document.getElementById('csv-import-button')?.click(),
-  }), []);
-
   // Keyboard shortcuts - simplified version
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.ctrlKey && e.key === 's') {
         e.preventDefault();
-        saveGlossary();
+        saveGlossaryRef.current();
       }
       if (e.ctrlKey && e.key === 'n') {
         e.preventDefault();
-        addReplacement();
+        addReplacementRef.current();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -159,7 +149,7 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
   // Load data when component mounts or sessionId changes
   useEffect(() => {
     if (sessionId) {
-      loadReplacements();
+      loadReplacementsRef.current();
     } else {
       setReplacements([]);
     }
@@ -172,17 +162,12 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
 
   // Load saved glossaries for authenticated users
   useEffect(() => {
-    if (user) {
-      loadSavedGlossaries();
+    if (user?.id) {
+      loadSavedGlossariesRef.current();
     } else {
       setSavedGlossaries([]);
     }
   }, [user?.id]);
-
-  // Show loading skeleton while data is being fetched
-  if (isLoading) {
-    return <WordReplacementsSkeleton />;
-  }
 
   // Enhanced load saved glossaries with error handling
   const loadSavedGlossaries = handleAsync(async () => {
@@ -473,6 +458,16 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
       setIsSaving(false);
     }
   });
+
+  saveGlossaryRef.current = saveGlossary;
+  addReplacementRef.current = addReplacement;
+  loadReplacementsRef.current = loadReplacements;
+  loadSavedGlossariesRef.current = loadSavedGlossaries;
+
+  // Show loading skeleton while data is being fetched
+  if (isLoading) {
+    return <WordReplacementsSkeleton />;
+  }
 
   // Enhanced import with validation
   const handleImportReplacements = async (importedReplacements: Omit<WordReplacement, 'id'>[]): Promise<void> => {
