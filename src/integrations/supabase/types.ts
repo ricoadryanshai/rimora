@@ -156,7 +156,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
-          normalized_original_word: string
+          normalized_original_word: string | null
           original_word: string
           replacement_word: string
           session_id: string | null
@@ -164,6 +164,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          normalized_original_word?: string | null
           original_word: string
           replacement_word: string
           session_id?: string | null
@@ -171,6 +172,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          normalized_original_word?: string | null
           original_word?: string
           replacement_word?: string
           session_id?: string | null

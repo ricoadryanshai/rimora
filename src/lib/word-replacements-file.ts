@@ -45,5 +45,5 @@ export const parseWordMappingsFile = async (file: File): Promise<WordReplacement
   }
 
   const { default: readXlsxFile } = await import('read-excel-file/browser');
-  return parseWorksheetRows(await readXlsxFile(file));
+  return parseWorksheetRows((await readXlsxFile(file)) as unknown as unknown[][]);
 };
