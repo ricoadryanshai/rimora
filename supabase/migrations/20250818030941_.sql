@@ -45,4 +45,4 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER update_saved_glossaries_updated_at
 BEFORE UPDATE ON public.saved_glossaries
 FOR EACH ROW
-EXECUTE FUNCTION public.update_updated_at_column();
+EXECUTE FUNCTION public.update_updated_at_column();;

@@ -65,4 +65,4 @@ DROP TRIGGER IF EXISTS validate_word_replacement ON public.word_replacements;
 CREATE TRIGGER validate_word_replacement
   BEFORE INSERT OR UPDATE ON public.word_replacements
   FOR EACH ROW
-  EXECUTE FUNCTION public.validate_word_replacement_trigger();
+  EXECUTE FUNCTION public.validate_word_replacement_trigger();;

@@ -85,3 +85,4 @@ DO $$ BEGIN
     EXECUTE FUNCTION public.audit_role_changes();
   END IF;
 END $$;
+;

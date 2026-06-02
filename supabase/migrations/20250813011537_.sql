@@ -130,4 +130,4 @@ DROP TRIGGER IF EXISTS audit_role_changes_trigger ON public.user_roles;
 CREATE TRIGGER audit_role_changes_trigger
   AFTER INSERT OR UPDATE OR DELETE ON public.user_roles
   FOR EACH ROW
-  EXECUTE FUNCTION public.audit_role_changes();
+  EXECUTE FUNCTION public.audit_role_changes();;

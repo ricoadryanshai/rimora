@@ -38,3 +38,4 @@ CREATE POLICY "Super users can view all chapter sessions"
   ON public.chapter_sessions 
   FOR SELECT 
   USING (public.has_role(auth.uid(), 'super_user'));
+;

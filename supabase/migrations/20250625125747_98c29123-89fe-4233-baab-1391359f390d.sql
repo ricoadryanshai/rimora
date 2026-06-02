@@ -58,3 +58,4 @@ CREATE POLICY "Users can delete their own word replacements"
       AND cs.user_id = auth.uid()
     )
   );
+;

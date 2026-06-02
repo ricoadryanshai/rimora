@@ -5,4 +5,4 @@
 DROP TABLE IF EXISTS public.portfolio_skills CASCADE;
 DROP TABLE IF EXISTS public.portfolio_projects CASCADE; 
 DROP TABLE IF EXISTS public.portfolio_profiles CASCADE;
-DROP TABLE IF EXISTS public.portfolio_settings CASCADE;
+DROP TABLE IF EXISTS public.portfolio_settings CASCADE;;
