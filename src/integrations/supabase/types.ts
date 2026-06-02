@@ -159,7 +159,7 @@ export type Database = {
           normalized_original_word: string | null
           original_word: string
           replacement_word: string
-          session_id: string | null
+          session_id: string
         }
         Insert: {
           created_at?: string
@@ -167,7 +167,7 @@ export type Database = {
           normalized_original_word?: string | null
           original_word: string
           replacement_word: string
-          session_id?: string | null
+          session_id: string
         }
         Update: {
           created_at?: string
@@ -175,7 +175,7 @@ export type Database = {
           normalized_original_word?: string | null
           original_word?: string
           replacement_word?: string
-          session_id?: string | null
+          session_id?: string
         }
         Relationships: [
           {
