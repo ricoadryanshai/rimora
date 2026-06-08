@@ -400,6 +400,14 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
     });
   };
 
+  const separateChapterOnEnter = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key !== 'Enter' || event.nativeEvent.isComposing) return;
+    event.preventDefault();
+
+    if (!originalText && !dummyText) return;
+    separateChapter();
+  };
+
   const resetAll = async () => {
     setOriginalText('');
     setParagraphCount(5);
@@ -663,6 +671,7 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                             max="20"
                             value={paragraphCount}
                             onChange={(e) => setParagraphCount(Number(e.target.value))}
+                            onKeyDown={separateChapterOnEnter}
                             className="text-center font-medium"
                           />
                         </div>
@@ -678,6 +687,7 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                             max="50"
                             value={cardCount}
                             onChange={(e) => setCardCount(Number(e.target.value))}
+                            onKeyDown={separateChapterOnEnter}
                             className="text-center font-medium"
                           />
                         </div>
@@ -749,6 +759,7 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                               max="20"
                               value={paragraphCount}
                               onChange={(e) => setParagraphCount(Number(e.target.value))}
+                              onKeyDown={separateChapterOnEnter}
                               className="text-center font-medium"
                             />
                           </div>
@@ -764,6 +775,7 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                               max="50"
                               value={cardCount}
                               onChange={(e) => setCardCount(Number(e.target.value))}
+                              onKeyDown={separateChapterOnEnter}
                               className="text-center font-medium"
                             />
                           </div>

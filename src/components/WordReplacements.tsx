@@ -497,6 +497,14 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
   loadReplacementsRef.current = loadReplacements;
   loadSavedGlossariesRef.current = loadSavedGlossaries;
 
+  const addReplacementOnEnter = useCallback((event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key !== 'Enter' || event.nativeEvent.isComposing) return;
+    event.preventDefault();
+
+    if (isSaving || !newOriginal.trim() || !newReplacement.trim()) return;
+    addReplacement();
+  }, [addReplacement, isSaving, newOriginal, newReplacement]);
+
   // Show loading skeleton while data is being fetched
   if (isLoading) {
     return <WordReplacementsSkeleton />;
@@ -860,6 +868,7 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
                     id="originalWord"
                     placeholder="Term to replace"
                     value={newOriginal}
+                    onKeyDown={addReplacementOnEnter}
                     onChange={(e) => {
                       setNewOriginal(e.target.value);
                       if (validationErrors.original_word) {
@@ -887,6 +896,7 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
                     id="replacementWord"
                     placeholder="Replace with"
                     value={newReplacement}
+                    onKeyDown={addReplacementOnEnter}
                     onChange={(e) => {
                       setNewReplacement(e.target.value);
                       if (validationErrors.replacement_word) {

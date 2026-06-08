@@ -266,6 +266,14 @@ const CSVManager: React.FC<CSVManagerProps> = ({ replacements, onImport, userRol
     }
   };
 
+  const importSheetOnEnter = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key !== 'Enter' || event.nativeEvent.isComposing) return;
+    event.preventDefault();
+
+    if (!canUseFeature() || isImportingSheet || !sheetUrl.trim()) return;
+    importFromGoogleSheet();
+  };
+
   return (
     <Card className="glass-card shadow-elegant hover:shadow-glow transition-smooth">
       <CardHeader className="pb-4 bg-gradient-to-r from-primary/5 to-accent/5 rounded-t-lg">
@@ -367,6 +375,7 @@ const CSVManager: React.FC<CSVManagerProps> = ({ replacements, onImport, userRol
               placeholder="https://docs.google.com/spreadsheets/d/…"
               value={sheetUrl}
               onChange={(e) => setSheetUrl(e.target.value)}
+              onKeyDown={importSheetOnEnter}
               disabled={!canUseFeature() || isImportingSheet}
               className="flex-1"
             />
