@@ -565,7 +565,7 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
         setReplacements((currentReplacements) => sortReplacements([...currentReplacements, ...newReplacements]));
         toast({
           title: "Import Successful",
-          description: `Imported ${newReplacements.length} glossary entries.${locallySkippedCount > 0 ? ` Skipped ${locallySkippedCount} existing entries.` : ''}`,
+          description: `Added ${newReplacements.length} glossary entries.${locallySkippedCount > 0 ? ` Skipped ${locallySkippedCount} existing entries.` : ''}`,
         });
         return;
       }
@@ -601,7 +601,7 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
       
       toast({
         title: "Import Successful",
-        description: `Imported ${persistedReplacements.length} glossary entries to database.${skippedCount > 0 ? ` Skipped ${skippedCount} existing entries.` : ''}`,
+        description: `Added ${persistedReplacements.length} glossary entries.${skippedCount > 0 ? ` Skipped ${skippedCount} existing entries.` : ''}`,
       });
     } catch (error) {
       if (persistedReplacements.length > 0) {

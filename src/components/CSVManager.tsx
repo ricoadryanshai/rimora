@@ -250,10 +250,6 @@ const CSVManager: React.FC<CSVManagerProps> = ({ replacements, onImport, userRol
       }
       await onImport(imported);
       setSheetUrl('');
-      toast({
-        title: "Import Successful",
-        description: `Imported ${imported.length} mappings from Google Sheets.`,
-      });
     } catch (error) {
       console.error('Google Sheets import failed:', error);
       toast({
