@@ -384,18 +384,22 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
         setCurrentSessionId(result.data.id);
       }
 
+      localStorage.removeItem(PENDING_SYNC_KEY);
+
       toast({
         title: "Saved Successfully!",
         description: "Your chapter session has been saved to the database.",
       });
     } catch (error) {
       console.error('Error saving to database:', error);
+      localStorage.setItem(PENDING_SYNC_KEY, '1');
       toast({
         title: "Save Failed",
         description: "Failed to save your session. Please try again.",
         variant: "destructive",
       });
     }
+
   };
 
   const separateChapter = async () => {
