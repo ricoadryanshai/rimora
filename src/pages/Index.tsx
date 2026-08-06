@@ -20,6 +20,9 @@ import WordReplacements from "@/components/WordReplacements";
 import AppSidebar from "@/components/AppSidebar";
 import MobileBottomNav from "@/components/MobileBottomNav";
 
+const LOCAL_SESSION_KEY = 'chapterSession';
+const PENDING_SYNC_KEY = 'chapterSessionPendingSync';
+
 const Index = () => {
   const [originalText, setOriginalText] = useState('');
   const [paragraphCount, setParagraphCount] = useState<number>(5);
