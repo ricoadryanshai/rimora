@@ -298,6 +298,17 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
       return;
     }
 
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      localStorage.setItem(PENDING_SYNC_KEY, '1');
+      toast({
+        title: "Saved on this device",
+        description: "You're offline — your work will sync automatically when you're back online.",
+      });
+      return;
+    }
+
+
+
     try {
       const cardsData = cardsToSave || separatedCards;
       
