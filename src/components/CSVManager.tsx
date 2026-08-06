@@ -367,7 +367,7 @@ const CSVManager: React.FC<CSVManagerProps> = ({ replacements, onImport, userRol
               variant="outline"
               size="sm"
               onClick={pasteSheetUrl}
-              disabled={!canUseFeature() || isImportingSheet}
+              disabled={!canUseFeature() || isImportingSheet || !isOnline}
               className="h-8 px-2 text-xs"
             >
               <ClipboardPaste className="mr-1 h-3 w-3" />
@@ -382,14 +382,14 @@ const CSVManager: React.FC<CSVManagerProps> = ({ replacements, onImport, userRol
               value={sheetUrl}
               onChange={(e) => setSheetUrl(e.target.value)}
               onKeyDown={importSheetOnEnter}
-              disabled={!canUseFeature() || isImportingSheet}
+              disabled={!canUseFeature() || isImportingSheet || !isOnline}
               className="flex-1"
             />
             <Button
               onClick={importFromGoogleSheet}
               variant="outline"
               className="border-accent/30 text-accent hover:bg-accent/10 hover:border-accent/50 transition-smooth"
-              disabled={!canUseFeature() || isImportingSheet || !sheetUrl.trim()}
+              disabled={!canUseFeature() || isImportingSheet || !sheetUrl.trim() || !isOnline}
             >
               {isImportingSheet ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -402,6 +402,9 @@ const CSVManager: React.FC<CSVManagerProps> = ({ replacements, onImport, userRol
           <p className="text-xs text-muted-foreground">
             Share the sheet as "Anyone with the link (Viewer)". First column: Original Term, second: Text Glossary.
           </p>
+          {!isOnline && (
+            <p className="text-xs text-destructive">You're offline — sheet import will work again once you're back online.</p>
+          )}
         </div>
 
 
