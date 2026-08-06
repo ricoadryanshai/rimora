@@ -177,6 +177,11 @@ const UrlImport: React.FC<UrlImportProps> = ({ onContentReady }) => {
       <p className="text-xs text-muted-foreground">
         Paste a webpage URL to automatically extract the main readable text. Perfect for iPhone users who can't easily select and copy text from web pages.
       </p>
+      {!isOnline && (
+        <p className="text-xs text-destructive">
+          You're offline — URL import will work again once you're back online.
+        </p>
+      )}
       <div className="flex flex-col sm:flex-row gap-2">
         <div className="relative flex-1">
           <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -186,10 +191,10 @@ const UrlImport: React.FC<UrlImportProps> = ({ onContentReady }) => {
             placeholder="https://example.com/chapter-1"
             className="pl-10"
             onKeyDown={(e) => e.key === 'Enter' && handleFetch()}
-            disabled={isLoading}
+            disabled={isLoading || !isOnline}
           />
         </div>
-        <Button onClick={handleFetch} disabled={isLoading || !url.trim()} className="w-full sm:w-auto">
+        <Button onClick={handleFetch} disabled={isLoading || !url.trim() || !isOnline} className="w-full sm:w-auto">
           {isLoading ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           ) : (
@@ -197,6 +202,7 @@ const UrlImport: React.FC<UrlImportProps> = ({ onContentReady }) => {
           )}
           {isLoading ? 'Extracting...' : 'Extract'}
         </Button>
+
       </div>
     </div>
   );
