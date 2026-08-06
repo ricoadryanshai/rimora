@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,16 +9,20 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Copy, Check, BookOpen, Scissors, RotateCcw, LogIn, Database, Sparkles, Globe, Type, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Settings, Share2, WifiOff, ClipboardPaste } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
-import UrlImport from "@/components/UrlImport";
+const UrlImport = lazy(() => import("@/components/UrlImport"));
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
-import WordReplacements from "@/components/WordReplacements";
+const WordReplacements = lazy(() => import("@/components/WordReplacements"));
+import { WordReplacementsSkeleton } from "@/components/LoadingStates";
 import AppSidebar from "@/components/AppSidebar";
 import MobileBottomNav from "@/components/MobileBottomNav";
+
+const LOCAL_SESSION_KEY = 'chapterSession';
+const PENDING_SYNC_KEY = 'chapterSessionPendingSync';
 
 const Index = () => {
   const [originalText, setOriginalText] = useState('');
@@ -241,14 +245,48 @@ Totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architec
 
 Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit.`;
 
+  // Restore the last session from this device so the app is usable offline
   useEffect(() => {
-    if (user) {
+    try {
+      const cached = localStorage.getItem(LOCAL_SESSION_KEY);
+      if (!cached) return;
+      const parsed = JSON.parse(cached);
+      if (typeof parsed.originalText === 'string') setOriginalText(parsed.originalText);
+      if (typeof parsed.paragraphCount === 'number') setParagraphCount(parsed.paragraphCount);
+      if (typeof parsed.cardCount === 'number') setCardCount(parsed.cardCount);
+      if (parsed.separationMode === 'paragraph' || parsed.separationMode === 'card') {
+        setSeparationMode(parsed.separationMode);
+      }
+      if (Array.isArray(parsed.separatedCards)) setSeparatedCards(parsed.separatedCards);
+    } catch {
+      // ignore malformed cache
+    }
+  }, []);
+
+  // Keep the local copy up to date
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        LOCAL_SESSION_KEY,
+        JSON.stringify({ originalText, paragraphCount, cardCount, separationMode, separatedCards }),
+      );
+    } catch {
+      // storage full or unavailable
+    }
+  }, [originalText, paragraphCount, cardCount, separationMode, separatedCards]);
+
+  useEffect(() => {
+    if (user && !isOffline) {
       loadLastSession();
     }
-  }, [user]);
+  }, [user, isOffline]);
+
 
   const loadLastSession = async () => {
     if (!user) return;
+    // Don't clobber local edits that still need to sync
+    if (localStorage.getItem(PENDING_SYNC_KEY) === '1') return;
+
 
     try {
       const { data, error } = await supabase
@@ -298,6 +336,17 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
       return;
     }
 
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      localStorage.setItem(PENDING_SYNC_KEY, '1');
+      toast({
+        title: "Saved on this device",
+        description: "You're offline — your work will sync automatically when you're back online.",
+      });
+      return;
+    }
+
+
+
     try {
       const cardsData = cardsToSave || separatedCards;
       
@@ -336,19 +385,34 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
         setCurrentSessionId(result.data.id);
       }
 
+      localStorage.removeItem(PENDING_SYNC_KEY);
+
       toast({
         title: "Saved Successfully!",
         description: "Your chapter session has been saved to the database.",
       });
     } catch (error) {
       console.error('Error saving to database:', error);
+      localStorage.setItem(PENDING_SYNC_KEY, '1');
       toast({
         title: "Save Failed",
         description: "Failed to save your session. Please try again.",
         variant: "destructive",
       });
     }
+
   };
+
+  // Retry a pending save as soon as the connection returns
+  useEffect(() => {
+    if (isOffline || !user) return;
+    if (localStorage.getItem(PENDING_SYNC_KEY) !== '1') return;
+    localStorage.removeItem(PENDING_SYNC_KEY);
+    saveToDatabase();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOffline, user]);
+
+
 
   const separateChapter = async () => {
     const textToProcess = originalText || dummyText;
@@ -852,7 +916,9 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                       </TabsContent>
 
                       <TabsContent value="url" className="mt-4">
-                        <UrlImport onContentReady={(content) => setOriginalText(content)} />
+                        <Suspense fallback={<div className="text-sm text-muted-foreground py-4">Loading importer…</div>}>
+                          <UrlImport onContentReady={(content) => setOriginalText(content)} />
+                        </Suspense>
                       </TabsContent>
                     </Tabs>
                    </div>
@@ -873,10 +939,12 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
             </div>
 
             <div ref={glossaryRef} className="mb-8">
-              <WordReplacements 
-                sessionId={currentSessionId}
-                onReplacementsChange={handleWordReplacementsChange}
-              />
+              <Suspense fallback={<WordReplacementsSkeleton />}>
+                <WordReplacements 
+                  sessionId={currentSessionId}
+                  onReplacementsChange={handleWordReplacementsChange}
+                />
+              </Suspense>
             </div>
 
             {/* Results Section */}
