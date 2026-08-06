@@ -203,6 +203,14 @@ const CSVManager: React.FC<CSVManagerProps> = ({ replacements, onImport, userRol
   };
 
   const importFromGoogleSheet = async () => {
+    if (!isOnline) {
+      toast({
+        title: "You're offline",
+        description: "Google Sheets import needs an internet connection.",
+        variant: "destructive",
+      });
+      return;
+    }
     if (!canUseFeature()) {
       toast({
         title: "Feature Restricted",
