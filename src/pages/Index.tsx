@@ -283,6 +283,9 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
 
   const loadLastSession = async () => {
     if (!user) return;
+    // Don't clobber local edits that still need to sync
+    if (localStorage.getItem(PENDING_SYNC_KEY) === '1') return;
+
 
     try {
       const { data, error } = await supabase
