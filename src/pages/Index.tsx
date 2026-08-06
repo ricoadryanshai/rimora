@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,14 +9,15 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Copy, Check, BookOpen, Scissors, RotateCcw, LogIn, Database, Sparkles, Globe, Type, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Settings, Share2, WifiOff, ClipboardPaste } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
-import UrlImport from "@/components/UrlImport";
+const UrlImport = lazy(() => import("@/components/UrlImport"));
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
-import WordReplacements from "@/components/WordReplacements";
+const WordReplacements = lazy(() => import("@/components/WordReplacements"));
+import { WordReplacementsSkeleton } from "@/components/LoadingStates";
 import AppSidebar from "@/components/AppSidebar";
 import MobileBottomNav from "@/components/MobileBottomNav";
 
@@ -915,7 +916,9 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                       </TabsContent>
 
                       <TabsContent value="url" className="mt-4">
-                        <UrlImport onContentReady={(content) => setOriginalText(content)} />
+                        <Suspense fallback={<div className="text-sm text-muted-foreground py-4">Loading importer…</div>}>
+                          <UrlImport onContentReady={(content) => setOriginalText(content)} />
+                        </Suspense>
                       </TabsContent>
                     </Tabs>
                    </div>
@@ -936,10 +939,12 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
             </div>
 
             <div ref={glossaryRef} className="mb-8">
-              <WordReplacements 
-                sessionId={currentSessionId}
-                onReplacementsChange={handleWordReplacementsChange}
-              />
+              <Suspense fallback={<WordReplacementsSkeleton />}>
+                <WordReplacements 
+                  sessionId={currentSessionId}
+                  onReplacementsChange={handleWordReplacementsChange}
+                />
+              </Suspense>
             </div>
 
             {/* Results Section */}
