@@ -402,6 +402,17 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
 
   };
 
+  // Retry a pending save as soon as the connection returns
+  useEffect(() => {
+    if (isOffline || !user) return;
+    if (localStorage.getItem(PENDING_SYNC_KEY) !== '1') return;
+    localStorage.removeItem(PENDING_SYNC_KEY);
+    saveToDatabase();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOffline, user]);
+
+
+
   const separateChapter = async () => {
     const textToProcess = originalText || dummyText;
     
