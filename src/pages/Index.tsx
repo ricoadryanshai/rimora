@@ -244,11 +244,42 @@ Totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architec
 
 Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit.`;
 
+  // Restore the last session from this device so the app is usable offline
   useEffect(() => {
-    if (user) {
+    try {
+      const cached = localStorage.getItem(LOCAL_SESSION_KEY);
+      if (!cached) return;
+      const parsed = JSON.parse(cached);
+      if (typeof parsed.originalText === 'string') setOriginalText(parsed.originalText);
+      if (typeof parsed.paragraphCount === 'number') setParagraphCount(parsed.paragraphCount);
+      if (typeof parsed.cardCount === 'number') setCardCount(parsed.cardCount);
+      if (parsed.separationMode === 'paragraph' || parsed.separationMode === 'card') {
+        setSeparationMode(parsed.separationMode);
+      }
+      if (Array.isArray(parsed.separatedCards)) setSeparatedCards(parsed.separatedCards);
+    } catch {
+      // ignore malformed cache
+    }
+  }, []);
+
+  // Keep the local copy up to date
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        LOCAL_SESSION_KEY,
+        JSON.stringify({ originalText, paragraphCount, cardCount, separationMode, separatedCards }),
+      );
+    } catch {
+      // storage full or unavailable
+    }
+  }, [originalText, paragraphCount, cardCount, separationMode, separatedCards]);
+
+  useEffect(() => {
+    if (user && !isOffline) {
       loadLastSession();
     }
-  }, [user]);
+  }, [user, isOffline]);
+
 
   const loadLastSession = async () => {
     if (!user) return;
