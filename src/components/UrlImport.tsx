@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Globe, Loader2, Check, X, ArrowRight, ClipboardPaste } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useOnline } from "@/hooks/use-online";
 import { supabase } from "@/integrations/supabase/client";
 
 interface UrlImportProps {
