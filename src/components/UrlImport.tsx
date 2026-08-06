@@ -20,12 +20,18 @@ const UrlImport: React.FC<UrlImportProps> = ({ onContentReady }) => {
   const [pageTitle, setPageTitle] = useState('');
   const [step, setStep] = useState<'input' | 'preview'>('input');
   const { toast } = useToast();
+  const isOnline = useOnline();
 
   const handleFetch = async () => {
+    if (!isOnline) {
+      toast({ title: "You're offline", description: "URL import needs an internet connection.", variant: "destructive" });
+      return;
+    }
     if (!url.trim()) {
       toast({ title: "URL Required", description: "Please enter a webpage URL.", variant: "destructive" });
       return;
     }
+
 
     setIsLoading(true);
     try {
