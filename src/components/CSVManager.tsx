@@ -38,6 +38,7 @@ const CSVManager: React.FC<CSVManagerProps> = ({ replacements, onImport, userRol
   const [isImportingSheet, setIsImportingSheet] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
+  const isOnline = useOnline();
 
   const canUseFeature = () => {
     if (!user) return false;
