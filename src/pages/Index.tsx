@@ -36,6 +36,7 @@ const Index = () => {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [mobileCardIndex, setMobileCardIndex] = useState(0);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+  const [copiedOriginal, setCopiedOriginal] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
   const [isOffline, setIsOffline] = useState(typeof navigator !== 'undefined' && !navigator.onLine);
@@ -505,6 +506,26 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
     }
   };
 
+  const copyOriginalText = async () => {
+    if (!originalText) return;
+    try {
+      await navigator.clipboard.writeText(originalText);
+      setCopiedOriginal(true);
+      vibrate(10);
+      setTimeout(() => setCopiedOriginal(false), 1500);
+      toast({
+        title: "Copied to Clipboard!",
+        description: "Original chapter text copied successfully.",
+      });
+    } catch (err) {
+      toast({
+        title: "Copy Failed",
+        description: "Failed to copy text to clipboard.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const copyAllCards = async () => {
     try {
       const allText = separatedCards.map((card, i) => `--- Card ${i + 1} ---\n${card}`).join('\n\n');
@@ -873,16 +894,39 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                           <Label htmlFor="originalText" className="text-sm font-semibold text-foreground">
                             Original Chapter Text
                           </Label>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={pasteFromClipboard}
-                            className="h-8 px-2 text-xs gap-1.5"
-                          >
-                            <ClipboardPaste className="h-3.5 w-3.5" />
-                            Paste from clipboard
-                          </Button>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={copyOriginalText}
+                              disabled={!originalText}
+                              className="h-8 px-2 text-xs gap-1.5"
+                              aria-label="Copy original chapter text"
+                            >
+                              {copiedOriginal ? (
+                                <>
+                                  <Check className="h-3.5 w-3.5" />
+                                  Copied
+                                </>
+                              ) : (
+                                <>
+                                  <Copy className="h-3.5 w-3.5" />
+                                  Copy
+                                </>
+                              )}
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={pasteFromClipboard}
+                              className="h-8 px-2 text-xs gap-1.5"
+                            >
+                              <ClipboardPaste className="h-3.5 w-3.5" />
+                              Paste from clipboard
+                            </Button>
+                          </div>
                         </div>
                         <div className="relative">
                           <Textarea
