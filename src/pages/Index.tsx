@@ -506,6 +506,26 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
     }
   };
 
+  const copyOriginalText = async () => {
+    if (!originalText) return;
+    try {
+      await navigator.clipboard.writeText(originalText);
+      setCopiedOriginal(true);
+      vibrate(10);
+      setTimeout(() => setCopiedOriginal(false), 1500);
+      toast({
+        title: "Copied to Clipboard!",
+        description: "Original chapter text copied successfully.",
+      });
+    } catch (err) {
+      toast({
+        title: "Copy Failed",
+        description: "Failed to copy text to clipboard.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const copyAllCards = async () => {
     try {
       const allText = separatedCards.map((card, i) => `--- Card ${i + 1} ---\n${card}`).join('\n\n');
