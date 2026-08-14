@@ -894,16 +894,39 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                           <Label htmlFor="originalText" className="text-sm font-semibold text-foreground">
                             Original Chapter Text
                           </Label>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={pasteFromClipboard}
-                            className="h-8 px-2 text-xs gap-1.5"
-                          >
-                            <ClipboardPaste className="h-3.5 w-3.5" />
-                            Paste from clipboard
-                          </Button>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={copyOriginalText}
+                              disabled={!originalText}
+                              className="h-8 px-2 text-xs gap-1.5"
+                              aria-label="Copy original chapter text"
+                            >
+                              {copiedOriginal ? (
+                                <>
+                                  <Check className="h-3.5 w-3.5" />
+                                  Copied
+                                </>
+                              ) : (
+                                <>
+                                  <Copy className="h-3.5 w-3.5" />
+                                  Copy
+                                </>
+                              )}
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={pasteFromClipboard}
+                              className="h-8 px-2 text-xs gap-1.5"
+                            >
+                              <ClipboardPaste className="h-3.5 w-3.5" />
+                              Paste from clipboard
+                            </Button>
+                          </div>
                         </div>
                         <div className="relative">
                           <Textarea
