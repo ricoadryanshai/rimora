@@ -36,6 +36,7 @@ const Index = () => {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [mobileCardIndex, setMobileCardIndex] = useState(0);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+  const [copiedOriginal, setCopiedOriginal] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
   const [isOffline, setIsOffline] = useState(typeof navigator !== 'undefined' && !navigator.onLine);
