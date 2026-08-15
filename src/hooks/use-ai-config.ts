@@ -20,6 +20,7 @@ export interface AiModel {
   group_id: string | null;
   model_id: string;
   display_name: string;
+  provider_name?: string;
 }
 
 export interface AiSettings {
@@ -50,7 +51,10 @@ export const useAiConfig = () => {
     ]);
     setProviders(p.data ?? []);
     setGroups(g.data ?? []);
-    setModels(m.data ?? []);
+    setModels((m.data ?? []).map((model) => ({
+      ...model,
+      provider_name: p.data?.find((provider) => provider.id === model.provider_id)?.display_name,
+    })));
     if (s.data) setSettings(s.data as AiSettings);
     setLoading(false);
   }, [user]);

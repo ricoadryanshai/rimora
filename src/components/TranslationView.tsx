@@ -246,7 +246,7 @@ const TranslationView = ({
                 <SelectContent>
                   {models.map((model) => (
                     <SelectItem key={model.id} value={model.id}>
-                      {model.display_name}
+                      {model.display_name} — {model.provider_name ?? "Unknown provider"}
                     </SelectItem>
                   ))}
                 </SelectContent>

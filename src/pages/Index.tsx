@@ -1536,44 +1536,46 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                           className="group hover:shadow-lg transition-all duration-300 border-border hover:border-primary/50 bg-card h-80 flex flex-col"
                         >
                           <CardHeader className="pb-3 flex-shrink-0">
-                            <div className="flex items-center justify-between">
-                              <CardTitle className="text-lg font-semibold text-card-foreground flex items-center gap-2">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <CardTitle className="min-w-0 text-lg font-semibold text-card-foreground flex items-center gap-2">
                                 <div className="bg-primary/10 p-1.5 rounded-md shadow-sm">
                                   <BookOpen className="h-4 w-4 text-primary" />
                                 </div>
                                 Card {index + 1}
                               </CardTitle>
-                              <Button
-                                onClick={() =>
-                                  openTranslation(
-                                    card,
-                                    `Translate card ${index + 1}`,
-                                    (translation) =>
-                                      setSeparatedCards((cards) =>
-                                        cards.map((item, itemIndex) =>
-                                          itemIndex === index
-                                            ? translation
-                                            : item,
+                              <div className="flex w-full flex-wrap justify-end gap-1">
+                                <Button
+                                  onClick={() =>
+                                    openTranslation(
+                                      card,
+                                      `Translate card ${index + 1}`,
+                                      (translation) =>
+                                        setSeparatedCards((cards) =>
+                                          cards.map((item, itemIndex) =>
+                                            itemIndex === index
+                                              ? translation
+                                              : item,
+                                          ),
                                         ),
-                                      ),
-                                  )
-                                }
-                                variant="outline"
-                                size="sm"
-                                className="group-hover:border-primary/50 group-hover:text-primary transition-all duration-200 shadow-sm hover:shadow-md"
-                              >
-                                <Languages className="mr-1 h-3 w-3" />
-                                Translate
-                              </Button>
-                              <Button
-                                onClick={() => copyToClipboard(card, index)}
-                                variant="outline"
-                                size="sm"
-                                className="group-hover:border-primary/50 group-hover:text-primary transition-all duration-200 shadow-sm hover:shadow-md"
-                              >
-                                <Copy className="mr-1 h-3 w-3" />
-                                Copy
-                              </Button>
+                                    )
+                                  }
+                                  variant="outline"
+                                  size="sm"
+                                  className="min-w-[100px] flex-1 basis-0 group-hover:border-primary/50 group-hover:text-primary transition-all duration-200 shadow-sm hover:shadow-md"
+                                >
+                                  <Languages className="mr-1 h-3 w-3" />
+                                  Translate
+                                </Button>
+                                <Button
+                                  onClick={() => copyToClipboard(card, index)}
+                                  variant="outline"
+                                  size="sm"
+                                  className="min-w-[100px] flex-1 basis-0 group-hover:border-primary/50 group-hover:text-primary transition-all duration-200 shadow-sm hover:shadow-md"
+                                >
+                                  <Copy className="mr-1 h-3 w-3" />
+                                  Copy
+                                </Button>
+                              </div>
                             </div>
                           </CardHeader>
                           <CardContent className="space-y-4 flex-1 flex flex-col min-h-0">
