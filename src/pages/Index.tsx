@@ -1117,32 +1117,32 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                         </TabsTrigger>
                       </TabsList>
                       <TabsContent value="paste" className="mt-4 space-y-3">
-                        <div className="flex items-center justify-between gap-2">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
                           <Label
                             htmlFor="originalText"
                             className="text-sm font-semibold text-foreground"
                           >
                             Original Chapter Text
                           </Label>
-                          <div className="flex items-center gap-2">
+                          <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2 sm:flex-none">
                             <Button
                               type="button"
                               variant="outline"
                               size="sm"
                               onClick={copyOriginalText}
                               disabled={!originalText}
-                              className="h-8 px-2 text-xs gap-1.5"
+                              className="h-10 min-w-10 px-2 text-xs gap-1.5 sm:h-8 sm:min-w-0 sm:px-2"
                               aria-label="Copy original chapter text"
                             >
                               {copiedOriginal ? (
                                 <>
                                   <Check className="h-3.5 w-3.5" />
-                                  Copied
+                                  <span className="hidden sm:inline">Copied</span>
                                 </>
                               ) : (
                                 <>
                                   <Copy className="h-3.5 w-3.5" />
-                                  Copy
+                                  <span className="hidden sm:inline">Copy</span>
                                 </>
                               )}
                             </Button>
@@ -1160,21 +1160,22 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                                 )
                               }
                               disabled={!originalText || isOffline}
-                              className="h-8 px-2 text-xs gap-1.5"
+                              className="h-10 min-w-10 px-2 text-xs gap-1.5 sm:h-8 sm:min-w-0 sm:px-2"
                               aria-label="Translate chapter with glossary applied"
                             >
                               <Languages className="h-3.5 w-3.5" />
-                              Translate
+                              <span className="hidden sm:inline">Translate</span>
                             </Button>
                             <Button
                               type="button"
                               variant="outline"
                               size="sm"
                               onClick={pasteFromClipboard}
-                              className="h-8 px-2 text-xs gap-1.5"
+                              className="h-10 min-w-10 px-2 text-xs gap-1.5 sm:h-8 sm:min-w-0 sm:px-2"
+                              aria-label="Paste from clipboard"
                             >
                               <ClipboardPaste className="h-3.5 w-3.5" />
-                              Paste from clipboard
+                              <span className="hidden sm:inline">Paste from clipboard</span>
                             </Button>
                           </div>
                         </div>
