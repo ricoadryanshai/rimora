@@ -57,6 +57,10 @@ import { useAiConfig } from "@/hooks/use-ai-config";
 
 const LOCAL_SESSION_KEY = "chapterSession";
 const PENDING_SYNC_KEY = "chapterSessionPendingSync";
+type GlossaryImportEntry = {
+  original_word: string;
+  replacement_word: string;
+};
 
 const Index = () => {
   const [originalText, setOriginalText] = useState("");
@@ -87,6 +91,7 @@ const Index = () => {
   const [pullDelta, setPullDelta] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [providerManagerOpen, setProviderManagerOpen] = useState(false);
+  const [pendingGlossaryImport, setPendingGlossaryImport] = useState<GlossaryImportEntry[]>([]);
   const [translationRequest, setTranslationRequest] = useState<{
     text: string;
     title: string;
@@ -677,6 +682,11 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
     setWordReplacements(replacements);
   };
 
+  const queueGlossaryImport = (entries: GlossaryImportEntry[]) => {
+    setPendingGlossaryImport(entries);
+    glossaryRef.current?.scrollIntoView({ behavior: scrollBehavior, block: "start" });
+  };
+
   const handleSectionClick = (sectionId: string) => {
     if (sectionId === "ai-providers") {
       setProviderManagerOpen(true);
@@ -1227,9 +1237,9 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                           }
                         >
                           <UrlImport
-                            onContentReady={(content) =>
-                              setOriginalText(content)
-                            }
+                            onContentReady={(content) => setOriginalText(content)}
+                            modelRowId={aiConfig.activeModel?.id}
+                            onGlossaryEntries={queueGlossaryImport}
                           />
                         </Suspense>
                       </TabsContent>
@@ -1255,6 +1265,8 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                 <WordReplacements
                   sessionId={currentSessionId}
                   onReplacementsChange={handleWordReplacementsChange}
+                  pendingImport={pendingGlossaryImport}
+                  onPendingImportHandled={() => setPendingGlossaryImport([])}
                 />
               </Suspense>
             </div>

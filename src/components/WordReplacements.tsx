@@ -49,6 +49,8 @@ interface SavedGlossary {
 interface WordReplacementsProps {
   sessionId: string | null;
   onReplacementsChange: (replacements: WordReplacement[]) => void;
+  pendingImport?: Omit<WordReplacement, 'id'>[];
+  onPendingImportHandled?: () => void;
 }
 
 const fetchSessionReplacements = async (sessionId: string): Promise<WordReplacement[]> => {
@@ -106,7 +108,7 @@ const fetchSessionImportState = async (sessionId: string, normalizedWords: strin
   };
 };
 
-const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplacementsChange }) => {
+const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplacementsChange, pendingImport, onPendingImportHandled }) => {
   const [replacements, setReplacements] = useState<WordReplacement[]>([]);
   const [newOriginal, setNewOriginal] = useState('');
   const [newReplacement, setNewReplacement] = useState('');
@@ -127,6 +129,11 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
   
   const { toast } = useToast();
   const { userRole, user } = useAuth();
+
+  useEffect(() => {
+    if (!pendingImport?.length) return;
+    void handleImportReplacements(pendingImport).finally(() => onPendingImportHandled?.());
+  }, [pendingImport]);
 
   // Memoized sort function for performance
   const sortReplacements = useCallback((replacements: WordReplacement[]) => {

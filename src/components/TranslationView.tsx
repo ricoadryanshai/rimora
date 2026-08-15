@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   Copy,
   Expand,
@@ -200,15 +201,72 @@ const TranslationView = ({
     setFullscreen(true);
   };
 
+  const readingArea = (
+    <div
+      ref={readingRef}
+      className={
+        usesFallbackFullscreen
+          ? "fixed inset-0 z-[60] flex h-[100dvh] min-h-screen w-screen flex-col overflow-hidden rounded-none border-0 bg-background p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:p-6"
+          : "flex min-h-[220px] flex-col overflow-hidden rounded-lg border border-border bg-muted/30"
+      }
+    >
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-background/80 p-2">
+        <div className="flex items-center gap-2">
+          <Label htmlFor="translation-font-size" className="text-xs">
+            Text size
+          </Label>
+          <Slider
+            id="translation-font-size"
+            min={14}
+            max={30}
+            step={1}
+            value={[fontSize]}
+            onValueChange={([value]) => setFontSize(value)}
+            className="w-24"
+          />
+          <span className="w-8 text-xs text-muted-foreground">{fontSize}</span>
+        </div>
+        <div className="flex gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={copyTranslation}
+            disabled={!translation}
+            aria-label="Copy translation"
+          >
+            <Copy className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleFullscreen}
+            aria-label="Toggle fullscreen"
+          >
+            {fullscreen ? (
+              <Minimize className="h-4 w-4" />
+            ) : (
+              <Expand className="h-4 w-4" />
+            )}
+          </Button>
+        </div>
+      </div>
+      <div className="flex-1 overflow-y-auto p-5 sm:p-8" style={{ fontSize }}>
+        {error ? (
+          <p className="text-sm text-destructive">{error}</p>
+        ) : translation ? (
+          <p className="whitespace-pre-wrap leading-relaxed">{translation}</p>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            Your translation will appear here.
+          </p>
+        )}
+      </div>
+    </div>
+  );
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className={
-          usesFallbackFullscreen
-            ? "fixed inset-0 left-0 top-0 z-[60] flex h-[100dvh] min-h-screen max-h-none w-screen max-w-none translate-x-0 translate-y-0 flex-col overscroll-contain overflow-hidden rounded-none p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:p-6"
-            : "max-w-4xl max-h-[90vh] overflow-hidden flex flex-col"
-        }
-      >
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Languages className="h-5 w-5" />
@@ -246,7 +304,8 @@ const TranslationView = ({
                 <SelectContent>
                   {models.map((model) => (
                     <SelectItem key={model.id} value={model.id}>
-                      {model.display_name} — {model.provider_name ?? "Unknown provider"}
+                      {model.display_name} —{" "}
+                      {model.provider_name ?? "Unknown provider"}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -266,69 +325,9 @@ const TranslationView = ({
             </Button>
           </div>
 
-          <div
-            ref={readingRef}
-            className="flex min-h-[220px] flex-col overflow-hidden rounded-lg border border-border bg-muted/30"
-          >
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-background/80 p-2">
-              <div className="flex items-center gap-2">
-                <Label htmlFor="translation-font-size" className="text-xs">
-                  Text size
-                </Label>
-                <Slider
-                  id="translation-font-size"
-                  min={14}
-                  max={30}
-                  step={1}
-                  value={[fontSize]}
-                  onValueChange={([value]) => setFontSize(value)}
-                  className="w-24"
-                />
-                <span className="w-8 text-xs text-muted-foreground">
-                  {fontSize}
-                </span>
-              </div>
-              <div className="flex gap-1">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={copyTranslation}
-                  disabled={!translation}
-                  aria-label="Copy translation"
-                >
-                  <Copy className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={toggleFullscreen}
-                  aria-label="Toggle fullscreen"
-                >
-                  {fullscreen ? (
-                    <Minimize className="h-4 w-4" />
-                  ) : (
-                    <Expand className="h-4 w-4" />
-                  )}
-                </Button>
-              </div>
-            </div>
-            <div
-              className="flex-1 overflow-y-auto p-5 sm:p-8"
-              style={{ fontSize }}
-            >
-              {error ? (
-                <p className="text-sm text-destructive">{error}</p>
-              ) : translation ? (
-                <p className="whitespace-pre-wrap leading-relaxed">
-                  {translation}
-                </p>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  Your translation will appear here.
-                </p>
-              )}
-            </div>
-          </div>
+          {usesFallbackFullscreen
+            ? createPortal(readingArea, document.body)
+            : readingArea}
           {onApply && translation && !streaming && (
             <Button
               variant="outline"

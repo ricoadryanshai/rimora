@@ -4,21 +4,24 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import { Globe, Loader2, Check, X, ArrowRight, ClipboardPaste } from "lucide-react";
+import { Globe, Loader2, Check, X, ArrowRight, ClipboardPaste, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useOnline } from "@/hooks/use-online";
 import { supabase } from "@/integrations/supabase/client";
 
 interface UrlImportProps {
   onContentReady: (content: string) => void;
+  modelRowId?: string | null;
+  onGlossaryEntries?: (entries: { original_word: string; replacement_word: string }[]) => void;
 }
 
-const UrlImport: React.FC<UrlImportProps> = ({ onContentReady }) => {
+const UrlImport: React.FC<UrlImportProps> = ({ onContentReady, modelRowId, onGlossaryEntries }) => {
   const [url, setUrl] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [extractedContent, setExtractedContent] = useState('');
   const [pageTitle, setPageTitle] = useState('');
   const [step, setStep] = useState<'input' | 'preview'>('input');
+  const [isExtractingGlossary, setIsExtractingGlossary] = useState(false);
   const { toast } = useToast();
   const isOnline = useOnline();
 
@@ -79,13 +82,50 @@ const UrlImport: React.FC<UrlImportProps> = ({ onContentReady }) => {
     }
   };
 
-  const handleInsert = () => {
+  const handleInsert = async () => {
     if (!extractedContent.trim()) {
       toast({ title: "No Content", description: "There is no content to insert.", variant: "destructive" });
       return;
     }
     onContentReady(extractedContent);
     toast({ title: "Content Inserted!", description: "The extracted text has been added to the chapter input." });
+
+    if (!modelRowId || !onGlossaryEntries) {
+      toast({
+        title: "Glossary Extraction Skipped",
+        description: "Select an active AI model to extract glossary terms.",
+      });
+    } else if (!isOnline) {
+      toast({
+        title: "Glossary Extraction Skipped",
+        description: "Go online to extract glossary terms from imported text.",
+      });
+    } else {
+      setIsExtractingGlossary(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('ai-glossary-extract', {
+          body: { text: extractedContent, modelRowId },
+        });
+        if (error) throw new Error(error.message);
+        const entries = Array.isArray(data?.entries) ? data.entries : [];
+        onGlossaryEntries(entries);
+        toast({
+          title: entries.length ? "Glossary Extracted" : "No Glossary Terms Found",
+          description: entries.length
+            ? `${entries.length} terms were sent to Glossary Entries. Existing terms will be skipped.`
+            : "The chapter text was imported without new glossary terms.",
+        });
+      } catch (error) {
+        toast({
+          title: "Glossary Extraction Failed",
+          description: error instanceof Error ? error.message : "The chapter text was imported, but glossary extraction failed.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsExtractingGlossary(false);
+      }
+    }
+
     // Reset state
     setUrl('');
     setExtractedContent('');
@@ -143,9 +183,9 @@ const UrlImport: React.FC<UrlImportProps> = ({ onContentReady }) => {
           placeholder="Extracted content will appear here..."
         />
         <div className="flex flex-col sm:flex-row gap-3">
-          <Button onClick={handleInsert} size="lg" className="w-full sm:flex-1 py-3 sm:py-4 text-base sm:text-lg font-semibold">
-            <Check className="mr-2 h-4 w-4" />
-            Insert into Chapter Text
+          <Button onClick={handleInsert} disabled={isExtractingGlossary} size="lg" className="w-full sm:flex-1 py-3 sm:py-4 text-base sm:text-lg font-semibold">
+            {isExtractingGlossary ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Check className="mr-2 h-4 w-4" />}
+            {isExtractingGlossary ? "Extracting Glossary..." : "Insert into Chapter Text"}
           </Button>
           <Button onClick={handleCancel} variant="outline" size="lg" className="w-full sm:w-auto py-3 sm:py-4 text-base sm:text-lg font-semibold">
             <X className="mr-2 h-4 w-4" />
