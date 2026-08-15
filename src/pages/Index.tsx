@@ -1,5 +1,12 @@
-import React, { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
-import { Link } from 'react-router-dom';
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  lazy,
+  Suspense,
+} from "react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -7,11 +14,35 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Copy, Check, BookOpen, Scissors, RotateCcw, LogIn, Database, Sparkles, Globe, Type, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Settings, Share2, WifiOff, ClipboardPaste, Languages } from "lucide-react";
+import {
+  Copy,
+  Check,
+  BookOpen,
+  Scissors,
+  RotateCcw,
+  LogIn,
+  Database,
+  Sparkles,
+  Globe,
+  Type,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
+  Settings,
+  Share2,
+  WifiOff,
+  ClipboardPaste,
+  Languages,
+} from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 const UrlImport = lazy(() => import("@/components/UrlImport"));
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -24,34 +55,43 @@ import AiProviderManager from "@/components/AiProviderManager";
 import TranslationView from "@/components/TranslationView";
 import { useAiConfig } from "@/hooks/use-ai-config";
 
-const LOCAL_SESSION_KEY = 'chapterSession';
-const PENDING_SYNC_KEY = 'chapterSessionPendingSync';
+const LOCAL_SESSION_KEY = "chapterSession";
+const PENDING_SYNC_KEY = "chapterSessionPendingSync";
 
 const Index = () => {
-  const [originalText, setOriginalText] = useState('');
+  const [originalText, setOriginalText] = useState("");
   const [paragraphCount, setParagraphCount] = useState<number>(5);
   const [cardCount, setCardCount] = useState<number>(10);
-  const [separationMode, setSeparationMode] = useState<'paragraph' | 'card'>('paragraph');
+  const [separationMode, setSeparationMode] = useState<"paragraph" | "card">(
+    "paragraph",
+  );
   const [separatedCards, setSeparatedCards] = useState<string[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [wordReplacements, setWordReplacements] = useState<any[]>([]);
-  const [currentSection, setCurrentSection] = useState<string>('input-settings');
+  const [currentSection, setCurrentSection] =
+    useState<string>("input-settings");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [mobileCardIndex, setMobileCardIndex] = useState(0);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [copiedOriginal, setCopiedOriginal] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
-  const [isOffline, setIsOffline] = useState(typeof navigator !== 'undefined' && !navigator.onLine);
+  const [isOffline, setIsOffline] = useState(
+    typeof navigator !== "undefined" && !navigator.onLine,
+  );
   const longPressTimer = useRef<number | null>(null);
   const pasteTextareaRef = useRef<HTMLTextAreaElement>(null);
-  const [activeInputTab, setActiveInputTab] = useState<string>('paste');
+  const [activeInputTab, setActiveInputTab] = useState<string>("paste");
   const [isManualPasteMode, setIsManualPasteMode] = useState(false);
   const pullStartY = useRef<number | null>(null);
   const [pullDelta, setPullDelta] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [providerManagerOpen, setProviderManagerOpen] = useState(false);
-  const [translationRequest, setTranslationRequest] = useState<{ text: string; title: string; onApply?: (translation: string) => void } | null>(null);
+  const [translationRequest, setTranslationRequest] = useState<{
+    text: string;
+    title: string;
+    onApply?: (translation: string) => void;
+  } | null>(null);
   const { toast } = useToast();
   const { user, loading } = useAuth();
   const isMobile = useIsMobile();
@@ -74,12 +114,18 @@ const Index = () => {
       }
       const text = await navigator.clipboard.readText();
       if (!text) {
-        toast({ title: "Clipboard is empty", description: "Copy some text first, then tap to paste." });
+        toast({
+          title: "Clipboard is empty",
+          description: "Copy some text first, then tap to paste.",
+        });
         return;
       }
-      setOriginalText((prev) => prev ? prev + text : text);
+      setOriginalText((prev) => (prev ? prev + text : text));
       if (navigator.vibrate) navigator.vibrate(10);
-      toast({ title: "Pasted from clipboard", description: `${text.length.toLocaleString()} characters added.` });
+      toast({
+        title: "Pasted from clipboard",
+        description: `${text.length.toLocaleString()} characters added.`,
+      });
       setTimeout(() => pasteTextareaRef.current?.focus(), 50);
     } catch (err) {
       enableManualPaste();
@@ -87,12 +133,16 @@ const Index = () => {
   }, [enableManualPaste, toast]);
 
   // Reduced motion preference
-  const prefersReducedMotion = typeof window !== 'undefined'
-    && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const scrollBehavior: ScrollBehavior = prefersReducedMotion ? 'auto' : 'smooth';
+  const prefersReducedMotion =
+    typeof window !== "undefined" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const scrollBehavior: ScrollBehavior = prefersReducedMotion
+    ? "auto"
+    : "smooth";
 
   // Web Share API availability
-  const canShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function';
+  const canShare =
+    typeof navigator !== "undefined" && typeof navigator.share === "function";
 
   // Refs for smooth scrolling
   const inputSettingsRef = useRef<HTMLDivElement>(null);
@@ -101,8 +151,13 @@ const Index = () => {
 
   // Light haptic helper
   const vibrate = (ms = 10) => {
-    if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
-      try { navigator.vibrate(ms); } catch {}
+    if (
+      typeof navigator !== "undefined" &&
+      typeof navigator.vibrate === "function"
+    ) {
+      try {
+        navigator.vibrate(ms);
+      } catch {}
     }
   };
 
@@ -111,37 +166,40 @@ const Index = () => {
     const handleScroll = () => {
       setShowScrollTop(window.scrollY > 300);
     };
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   // Online/offline listener
   useEffect(() => {
     const on = () => setIsOffline(false);
     const off = () => setIsOffline(true);
-    window.addEventListener('online', on);
-    window.addEventListener('offline', off);
+    window.addEventListener("online", on);
+    window.addEventListener("offline", off);
     return () => {
-      window.removeEventListener('online', on);
-      window.removeEventListener('offline', off);
+      window.removeEventListener("online", on);
+      window.removeEventListener("offline", off);
     };
   }, []);
 
   // Persist last-viewed mobile card index
   useEffect(() => {
-    const saved = sessionStorage.getItem('mobileCardIndex');
+    const saved = sessionStorage.getItem("mobileCardIndex");
     if (saved !== null) {
       const idx = parseInt(saved, 10);
       if (!isNaN(idx)) setMobileCardIndex(idx);
     }
   }, []);
   useEffect(() => {
-    sessionStorage.setItem('mobileCardIndex', String(mobileCardIndex));
+    sessionStorage.setItem("mobileCardIndex", String(mobileCardIndex));
   }, [mobileCardIndex]);
 
   // Clamp persisted card index if it exceeds current card count
   useEffect(() => {
-    if (separatedCards.length > 0 && mobileCardIndex > separatedCards.length - 1) {
+    if (
+      separatedCards.length > 0 &&
+      mobileCardIndex > separatedCards.length - 1
+    ) {
       setMobileCardIndex(separatedCards.length - 1);
     }
   }, [separatedCards.length, mobileCardIndex]);
@@ -151,19 +209,22 @@ const Index = () => {
     setTouchStartX(e.touches[0].clientX);
   }, []);
 
-  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
-    if (touchStartX === null) return;
-    const delta = e.changedTouches[0].clientX - touchStartX;
-    const threshold = 50;
-    if (delta < -threshold && mobileCardIndex < separatedCards.length - 1) {
-      setMobileCardIndex(prev => prev + 1);
-      vibrate(10);
-    } else if (delta > threshold && mobileCardIndex > 0) {
-      setMobileCardIndex(prev => prev - 1);
-      vibrate(10);
-    }
-    setTouchStartX(null);
-  }, [touchStartX, mobileCardIndex, separatedCards.length]);
+  const handleTouchEnd = useCallback(
+    (e: React.TouchEvent) => {
+      if (touchStartX === null) return;
+      const delta = e.changedTouches[0].clientX - touchStartX;
+      const threshold = 50;
+      if (delta < -threshold && mobileCardIndex < separatedCards.length - 1) {
+        setMobileCardIndex((prev) => prev + 1);
+        vibrate(10);
+      } else if (delta > threshold && mobileCardIndex > 0) {
+        setMobileCardIndex((prev) => prev - 1);
+        vibrate(10);
+      }
+      setTouchStartX(null);
+    },
+    [touchStartX, mobileCardIndex, separatedCards.length],
+  );
 
   // Long-press to copy current mobile card
   const handleLongPressStart = useCallback(() => {
@@ -221,7 +282,7 @@ const Index = () => {
 
   // Auto-focus textarea when Paste tab is selected on mobile
   useEffect(() => {
-    if (isMobile && activeInputTab === 'paste') {
+    if (isMobile && activeInputTab === "paste") {
       const t = setTimeout(() => pasteTextareaRef.current?.focus(), 150);
       return () => clearTimeout(t);
     }
@@ -258,13 +319,19 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
       const cached = localStorage.getItem(LOCAL_SESSION_KEY);
       if (!cached) return;
       const parsed = JSON.parse(cached);
-      if (typeof parsed.originalText === 'string') setOriginalText(parsed.originalText);
-      if (typeof parsed.paragraphCount === 'number') setParagraphCount(parsed.paragraphCount);
-      if (typeof parsed.cardCount === 'number') setCardCount(parsed.cardCount);
-      if (parsed.separationMode === 'paragraph' || parsed.separationMode === 'card') {
+      if (typeof parsed.originalText === "string")
+        setOriginalText(parsed.originalText);
+      if (typeof parsed.paragraphCount === "number")
+        setParagraphCount(parsed.paragraphCount);
+      if (typeof parsed.cardCount === "number") setCardCount(parsed.cardCount);
+      if (
+        parsed.separationMode === "paragraph" ||
+        parsed.separationMode === "card"
+      ) {
         setSeparationMode(parsed.separationMode);
       }
-      if (Array.isArray(parsed.separatedCards)) setSeparatedCards(parsed.separatedCards);
+      if (Array.isArray(parsed.separatedCards))
+        setSeparatedCards(parsed.separatedCards);
     } catch {
       // ignore malformed cache
     }
@@ -275,7 +342,13 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
     try {
       localStorage.setItem(
         LOCAL_SESSION_KEY,
-        JSON.stringify({ originalText, paragraphCount, cardCount, separationMode, separatedCards }),
+        JSON.stringify({
+          originalText,
+          paragraphCount,
+          cardCount,
+          separationMode,
+          separatedCards,
+        }),
       );
     } catch {
       // storage full or unavailable
@@ -288,19 +361,17 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
     }
   }, [user, isOffline]);
 
-
   const loadLastSession = async () => {
     if (!user) return;
     // Don't clobber local edits that still need to sync
-    if (localStorage.getItem(PENDING_SYNC_KEY) === '1') return;
-
+    if (localStorage.getItem(PENDING_SYNC_KEY) === "1") return;
 
     try {
       const { data, error } = await supabase
-        .from('chapter_sessions')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('updated_at', { ascending: false })
+        .from("chapter_sessions")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("updated_at", { ascending: false })
         .limit(1)
         .maybeSingle();
 
@@ -312,24 +383,31 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
         setOriginalText(data.original_text);
         setParagraphCount(data.paragraph_count);
         setCardCount(data.card_count || data.paragraph_count || 10);
-        setSeparationMode((data.separation_mode as 'paragraph' | 'card') || 'paragraph');
-        const cards = Array.isArray(data.separated_cards) ? data.separated_cards as string[] : [];
+        setSeparationMode(
+          (data.separation_mode as "paragraph" | "card") || "paragraph",
+        );
+        const cards = Array.isArray(data.separated_cards)
+          ? (data.separated_cards as string[])
+          : [];
         setSeparatedCards(cards);
         setCurrentSessionId(data.id);
       }
     } catch (error) {
-      console.error('Error loading session:', error);
+      console.error("Error loading session:", error);
     }
   };
 
   const applyWordReplacements = (text: string, replacements: any[]) => {
     let processedText = text;
-    
+
     replacements.forEach(({ original_word, replacement_word }) => {
-      const regex = new RegExp(original_word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
-      processedText = processedText.replace(regex, replacement_word + ' ');
+      const regex = new RegExp(
+        original_word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+        "gi",
+      );
+      processedText = processedText.replace(regex, replacement_word + " ");
     });
-    
+
     return processedText;
   };
 
@@ -343,20 +421,19 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
       return;
     }
 
-    if (typeof navigator !== 'undefined' && !navigator.onLine) {
-      localStorage.setItem(PENDING_SYNC_KEY, '1');
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      localStorage.setItem(PENDING_SYNC_KEY, "1");
       toast({
         title: "Saved on this device",
-        description: "You're offline — your work will sync automatically when you're back online.",
+        description:
+          "You're offline — your work will sync automatically when you're back online.",
       });
       return;
     }
 
-
-
     try {
       const cardsData = cardsToSave || separatedCards;
-      
+
       const sessionData = {
         user_id: user.id,
         original_text: originalText,
@@ -370,15 +447,15 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
       let result;
       if (currentSessionId) {
         result = await supabase
-          .from('chapter_sessions')
+          .from("chapter_sessions")
           .update(sessionData)
-          .eq('id', currentSessionId)
-          .eq('user_id', user.id)
+          .eq("id", currentSessionId)
+          .eq("user_id", user.id)
           .select()
           .single();
       } else {
         result = await supabase
-          .from('chapter_sessions')
+          .from("chapter_sessions")
           .insert(sessionData)
           .select()
           .single();
@@ -399,40 +476,42 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
         description: "Your chapter session has been saved to the database.",
       });
     } catch (error) {
-      console.error('Error saving to database:', error);
-      localStorage.setItem(PENDING_SYNC_KEY, '1');
+      console.error("Error saving to database:", error);
+      localStorage.setItem(PENDING_SYNC_KEY, "1");
       toast({
         title: "Save Failed",
         description: "Failed to save your session. Please try again.",
         variant: "destructive",
       });
     }
-
   };
 
   // Retry a pending save as soon as the connection returns
   useEffect(() => {
     if (isOffline || !user) return;
-    if (localStorage.getItem(PENDING_SYNC_KEY) !== '1') return;
+    if (localStorage.getItem(PENDING_SYNC_KEY) !== "1") return;
     localStorage.removeItem(PENDING_SYNC_KEY);
     saveToDatabase();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOffline, user]);
 
-
-
   const separateChapter = async () => {
     const textToProcess = originalText || dummyText;
-    
-    const processedText = applyWordReplacements(textToProcess, wordReplacements);
-    
-    const paragraphs = processedText.split('\n').filter(p => p.trim() !== '');
-    
+
+    const processedText = applyWordReplacements(
+      textToProcess,
+      wordReplacements,
+    );
+
+    const paragraphs = processedText.split("\n").filter((p) => p.trim() !== "");
+
     let cards: string[] = [];
-    
-    if (separationMode === 'paragraph') {
+
+    if (separationMode === "paragraph") {
       for (let i = 0; i < paragraphs.length; i += paragraphCount) {
-        const cardContent = paragraphs.slice(i, i + paragraphCount).join('\n\n');
+        const cardContent = paragraphs
+          .slice(i, i + paragraphCount)
+          .join("\n\n");
         cards.push(cardContent);
       }
     } else {
@@ -440,39 +519,50 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
       const paragraphsPerCard = Math.ceil(paragraphs.length / cardCount);
       for (let i = 0; i < cardCount; i++) {
         const startIndex = i * paragraphsPerCard;
-        const endIndex = Math.min(startIndex + paragraphsPerCard, paragraphs.length);
+        const endIndex = Math.min(
+          startIndex + paragraphsPerCard,
+          paragraphs.length,
+        );
         if (startIndex < paragraphs.length) {
-          const cardContent = paragraphs.slice(startIndex, endIndex).join('\n\n');
+          const cardContent = paragraphs
+            .slice(startIndex, endIndex)
+            .join("\n\n");
           cards.push(cardContent);
         }
       }
     }
-    
+
     setSeparatedCards(cards);
     setMobileCardIndex(0);
-    
+
     // Auto-scroll to results after a brief delay
     setTimeout(() => {
-      resultsRef.current?.scrollIntoView({ behavior: scrollBehavior, block: 'start' });
+      resultsRef.current?.scrollIntoView({
+        behavior: scrollBehavior,
+        block: "start",
+      });
     }, 100);
-    
+
     if (user) {
       await saveToDatabase(cards);
     }
 
     const replacementCount = wordReplacements.length;
-    const modeDesc = separationMode === 'paragraph' 
-      ? `${paragraphCount} paragraphs each` 
-      : `divided into ${cardCount} cards`;
-    
+    const modeDesc =
+      separationMode === "paragraph"
+        ? `${paragraphCount} paragraphs each`
+        : `divided into ${cardCount} cards`;
+
     toast({
       title: "Chapter Separated Successfully!",
-      description: `Created ${cards.length} cards with ${modeDesc}.${replacementCount > 0 ? ` Applied ${replacementCount} glossary entries.` : ''}${!user ? ' Sign in to save your work!' : ''}`,
+      description: `Created ${cards.length} cards with ${modeDesc}.${replacementCount > 0 ? ` Applied ${replacementCount} glossary entries.` : ""}${!user ? " Sign in to save your work!" : ""}`,
     });
   };
 
-  const separateChapterOnEnter = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key !== 'Enter' || event.nativeEvent.isComposing) return;
+  const separateChapterOnEnter = (
+    event: React.KeyboardEvent<HTMLInputElement>,
+  ) => {
+    if (event.key !== "Enter" || event.nativeEvent.isComposing) return;
     event.preventDefault();
 
     if (!originalText && !dummyText) return;
@@ -480,13 +570,13 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
   };
 
   const resetAll = async () => {
-    setOriginalText('');
+    setOriginalText("");
     setParagraphCount(5);
     setCardCount(10);
-    setSeparationMode('paragraph');
+    setSeparationMode("paragraph");
     setSeparatedCards([]);
     setCurrentSessionId(null);
-    
+
     toast({
       title: "Reset Complete",
       description: "All data has been cleared and reset to initial state.",
@@ -534,7 +624,9 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
 
   const copyAllCards = async () => {
     try {
-      const allText = separatedCards.map((card, i) => `--- Card ${i + 1} ---\n${card}`).join('\n\n');
+      const allText = separatedCards
+        .map((card, i) => `--- Card ${i + 1} ---\n${card}`)
+        .join("\n\n");
       await navigator.clipboard.writeText(allText);
       toast({
         title: "All Cards Copied!",
@@ -549,13 +641,25 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
     }
   };
 
-  const openTranslation = (text: string, title: string, onApply?: (translation: string) => void) => {
+  const openTranslation = (
+    text: string,
+    title: string,
+    onApply?: (translation: string) => void,
+  ) => {
     if (isOffline) {
-      toast({ title: 'You are offline', description: 'AI translation requires an internet connection.', variant: 'destructive' });
+      toast({
+        title: "You are offline",
+        description: "AI translation requires an internet connection.",
+        variant: "destructive",
+      });
       return;
     }
     if (!user) {
-      toast({ title: 'Sign in required', description: 'Sign in to use AI translation.', variant: 'destructive' });
+      toast({
+        title: "Sign in required",
+        description: "Sign in to use AI translation.",
+        variant: "destructive",
+      });
       return;
     }
     setTranslationRequest({ text, title, onApply });
@@ -574,22 +678,22 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
   };
 
   const handleSectionClick = (sectionId: string) => {
-    if (sectionId === 'ai-providers') {
+    if (sectionId === "ai-providers") {
       setProviderManagerOpen(true);
       return;
     }
     setCurrentSection(sectionId);
     const refs = {
-      'input-settings': inputSettingsRef,
-      'glossary': glossaryRef,
-      'results': resultsRef,
+      "input-settings": inputSettingsRef,
+      glossary: glossaryRef,
+      results: resultsRef,
     };
-    
+
     const targetRef = refs[sectionId as keyof typeof refs];
     if (targetRef?.current) {
-      targetRef.current.scrollIntoView({ 
-        behavior: scrollBehavior, 
-        block: 'start' 
+      targetRef.current.scrollIntoView({
+        behavior: scrollBehavior,
+        block: "start",
       });
     }
   };
@@ -600,8 +704,12 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
         <div className="text-center space-y-4">
           <BookOpen className="h-16 w-16 text-primary mx-auto animate-pulse" />
           <div className="space-y-2">
-            <h3 className="text-xl font-semibold text-foreground">Loading your workspace...</h3>
-            <p className="text-muted-foreground">Please wait while we set things up</p>
+            <h3 className="text-xl font-semibold text-foreground">
+              Loading your workspace...
+            </h3>
+            <p className="text-muted-foreground">
+              Please wait while we set things up
+            </p>
           </div>
         </div>
       </div>
@@ -611,7 +719,7 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
-        <AppSidebar 
+        <AppSidebar
           onSectionClick={handleSectionClick}
           currentSection={currentSection}
         />
@@ -628,7 +736,9 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
         {translationRequest && (
           <TranslationView
             open
-            onOpenChange={(open) => { if (!open) setTranslationRequest(null); }}
+            onOpenChange={(open) => {
+              if (!open) setTranslationRequest(null);
+            }}
             text={translationRequest.text}
             title={translationRequest.title}
             models={aiConfig.models}
@@ -638,13 +748,15 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
             onApply={translationRequest.onApply}
           />
         )}
-        
+
         <main className="flex-1 overflow-auto relative">
           {/* Header with sidebar trigger */}
-           <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-b border-border">
+          <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-b border-border">
             <div className="flex items-center px-4 py-2 sm:py-3">
               <SidebarTrigger className="mr-3 sm:mr-4" />
-              <h2 className="font-semibold text-foreground text-sm sm:text-base">Novel Chapter Separator</h2>
+              <h2 className="font-semibold text-foreground text-sm sm:text-base">
+                Novel Chapter Separator
+              </h2>
             </div>
           </header>
 
@@ -652,17 +764,20 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
           {isOffline && (
             <div className="sticky top-[44px] sm:top-[52px] z-10 bg-warning text-warning-foreground px-4 py-2 text-xs sm:text-sm flex items-center gap-2 justify-center border-b border-border">
               <WifiOff className="h-4 w-4" />
-              You're offline — generated cards still work, but uploads and saving are paused.
+              You're offline — generated cards still work, but uploads and
+              saving are paused.
             </div>
           )}
 
-
           {/* Mobile bottom tab navigation */}
-          <MobileBottomNav currentSection={currentSection} onSectionClick={handleSectionClick} />
+          <MobileBottomNav
+            currentSection={currentSection}
+            onSectionClick={handleSectionClick}
+          />
 
           {/* Sticky mobile CTA */}
           <div className="fixed bottom-0 left-0 right-0 z-40 sm:hidden bg-background/95 backdrop-blur-sm border-t border-border p-3 pb-[env(safe-area-inset-bottom,12px)]">
-            <Button 
+            <Button
               onClick={separateChapter}
               size="lg"
               className="w-full py-3 text-base font-semibold"
@@ -683,16 +798,20 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                         <LogIn className="h-6 w-6 text-primary" />
                       </div>
                       <div className="space-y-2">
-                        <h3 className="text-primary font-semibold text-lg">Save Your Work Permanently</h3>
+                        <h3 className="text-primary font-semibold text-lg">
+                          Save Your Work Permanently
+                        </h3>
                         <p className="hidden sm:block text-primary/80 text-sm leading-relaxed">
-                          Create an account to save your separated chapters, word replacements, and continue working across sessions.
+                          Create an account to save your separated chapters,
+                          word replacements, and continue working across
+                          sessions.
                         </p>
                       </div>
                     </div>
                     <Link to="/auth">
-                      <Button 
-                        variant="outline" 
-                        size="lg" 
+                      <Button
+                        variant="outline"
+                        size="lg"
                         className="transition-all duration-200 whitespace-nowrap shadow-sm hover:shadow-md"
                       >
                         <LogIn className="mr-2 h-4 w-4" />
@@ -718,10 +837,11 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                   </h1>
                 </div>
                 <p className="hidden sm:block text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-                  Transform long chapters into manageable sections with smart word replacement and organized card layouts.
+                  Transform long chapters into manageable sections with smart
+                  word replacement and organized card layouts.
                 </p>
               </div>
-              
+
               <div className="hidden sm:flex flex-wrap justify-center gap-3">
                 <Badge variant="secondary" className="px-4 py-2 text-sm">
                   <Sparkles className="mr-2 h-4 w-4" />
@@ -750,17 +870,25 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-4 sm:p-6 space-y-6">
-                  <Collapsible open={settingsOpen} onOpenChange={setSettingsOpen}>
+                  <Collapsible
+                    open={settingsOpen}
+                    onOpenChange={setSettingsOpen}
+                  >
                     <CollapsibleTrigger asChild>
-                      <Button variant="ghost" className="w-full flex items-center justify-between sm:hidden mb-2">
+                      <Button
+                        variant="ghost"
+                        className="w-full flex items-center justify-between sm:hidden mb-2"
+                      >
                         <span className="flex items-center gap-2 text-sm font-semibold">
                           <Settings className="h-4 w-4" />
                           Settings
                         </span>
-                        <ChevronDown className={`h-4 w-4 transition-transform ${settingsOpen ? 'rotate-180' : ''}`} />
+                        <ChevronDown
+                          className={`h-4 w-4 transition-transform ${settingsOpen ? "rotate-180" : ""}`}
+                        />
                       </Button>
                     </CollapsibleTrigger>
-                    
+
                     {/* Desktop: always visible */}
                     <div className="hidden sm:grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                       <div className="space-y-3 sm:col-span-2 lg:col-span-1">
@@ -770,28 +898,37 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                         <div className="flex gap-2">
                           <Button
                             type="button"
-                            variant={separationMode === 'paragraph' ? 'default' : 'outline'}
+                            variant={
+                              separationMode === "paragraph"
+                                ? "default"
+                                : "outline"
+                            }
                             size="sm"
-                            onClick={() => setSeparationMode('paragraph')}
+                            onClick={() => setSeparationMode("paragraph")}
                             className="flex-1 text-xs"
                           >
                             By Paragraphs
                           </Button>
                           <Button
                             type="button"
-                            variant={separationMode === 'card' ? 'default' : 'outline'}
+                            variant={
+                              separationMode === "card" ? "default" : "outline"
+                            }
                             size="sm"
-                            onClick={() => setSeparationMode('card')}
+                            onClick={() => setSeparationMode("card")}
                             className="flex-1 text-xs"
                           >
                             By Cards
                           </Button>
                         </div>
                       </div>
-                      
-                      {separationMode === 'paragraph' ? (
+
+                      {separationMode === "paragraph" ? (
                         <div className="space-y-3">
-                          <Label htmlFor="paragraphCount" className="text-sm font-semibold text-foreground">
+                          <Label
+                            htmlFor="paragraphCount"
+                            className="text-sm font-semibold text-foreground"
+                          >
                             Paragraphs per Card
                           </Label>
                           <Input
@@ -800,14 +937,19 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                             min="1"
                             max="20"
                             value={paragraphCount}
-                            onChange={(e) => setParagraphCount(Number(e.target.value))}
+                            onChange={(e) =>
+                              setParagraphCount(Number(e.target.value))
+                            }
                             onKeyDown={separateChapterOnEnter}
                             className="text-center font-medium"
                           />
                         </div>
                       ) : (
                         <div className="space-y-3">
-                          <Label htmlFor="cardCount" className="text-sm font-semibold text-foreground">
+                          <Label
+                            htmlFor="cardCount"
+                            className="text-sm font-semibold text-foreground"
+                          >
                             Number of Cards
                           </Label>
                           <Input
@@ -816,14 +958,16 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                             min="1"
                             max="50"
                             value={cardCount}
-                            onChange={(e) => setCardCount(Number(e.target.value))}
+                            onChange={(e) =>
+                              setCardCount(Number(e.target.value))
+                            }
                             onKeyDown={separateChapterOnEnter}
                             className="text-center font-medium"
                           />
                         </div>
                       )}
                       <div className="flex items-end">
-                        <Button 
+                        <Button
                           onClick={loadDummyData}
                           variant="outline"
                           size="lg"
@@ -835,7 +979,7 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                         </Button>
                       </div>
                       <div className="flex items-end">
-                        <Button 
+                        <Button
                           onClick={resetAll}
                           variant="outline"
                           size="lg"
@@ -858,28 +1002,39 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                           <div className="flex gap-2">
                             <Button
                               type="button"
-                              variant={separationMode === 'paragraph' ? 'default' : 'outline'}
+                              variant={
+                                separationMode === "paragraph"
+                                  ? "default"
+                                  : "outline"
+                              }
                               size="sm"
-                              onClick={() => setSeparationMode('paragraph')}
+                              onClick={() => setSeparationMode("paragraph")}
                               className="flex-1 text-xs"
                             >
                               By Paragraphs
                             </Button>
                             <Button
                               type="button"
-                              variant={separationMode === 'card' ? 'default' : 'outline'}
+                              variant={
+                                separationMode === "card"
+                                  ? "default"
+                                  : "outline"
+                              }
                               size="sm"
-                              onClick={() => setSeparationMode('card')}
+                              onClick={() => setSeparationMode("card")}
                               className="flex-1 text-xs"
                             >
                               By Cards
                             </Button>
                           </div>
                         </div>
-                        
-                        {separationMode === 'paragraph' ? (
+
+                        {separationMode === "paragraph" ? (
                           <div className="space-y-2">
-                            <Label htmlFor="paragraphCountMobile" className="text-sm font-semibold text-foreground">
+                            <Label
+                              htmlFor="paragraphCountMobile"
+                              className="text-sm font-semibold text-foreground"
+                            >
                               Paragraphs/Card
                             </Label>
                             <Input
@@ -888,14 +1043,19 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                               min="1"
                               max="20"
                               value={paragraphCount}
-                              onChange={(e) => setParagraphCount(Number(e.target.value))}
+                              onChange={(e) =>
+                                setParagraphCount(Number(e.target.value))
+                              }
                               onKeyDown={separateChapterOnEnter}
                               className="text-center font-medium"
                             />
                           </div>
                         ) : (
                           <div className="space-y-2">
-                            <Label htmlFor="cardCountMobile" className="text-sm font-semibold text-foreground">
+                            <Label
+                              htmlFor="cardCountMobile"
+                              className="text-sm font-semibold text-foreground"
+                            >
                               Num Cards
                             </Label>
                             <Input
@@ -904,39 +1064,64 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                               min="1"
                               max="50"
                               value={cardCount}
-                              onChange={(e) => setCardCount(Number(e.target.value))}
+                              onChange={(e) =>
+                                setCardCount(Number(e.target.value))
+                              }
                               onKeyDown={separateChapterOnEnter}
                               className="text-center font-medium"
                             />
                           </div>
                         )}
-                        <Button onClick={loadDummyData} variant="outline" size="sm" className="w-full">
+                        <Button
+                          onClick={loadDummyData}
+                          variant="outline"
+                          size="sm"
+                          className="w-full"
+                        >
                           <BookOpen className="mr-2 h-4 w-4" />
                           Sample
                         </Button>
-                        <Button onClick={resetAll} variant="outline" size="sm" className="w-full col-span-2">
+                        <Button
+                          onClick={resetAll}
+                          variant="outline"
+                          size="sm"
+                          className="w-full col-span-2"
+                        >
                           <RotateCcw className="mr-2 h-4 w-4" />
                           Reset All
                         </Button>
                       </div>
                     </CollapsibleContent>
                   </Collapsible>
-                  
+
                   <div className="space-y-3">
-                    <Tabs value={activeInputTab} onValueChange={setActiveInputTab} className="w-full">
+                    <Tabs
+                      value={activeInputTab}
+                      onValueChange={setActiveInputTab}
+                      className="w-full"
+                    >
                       <TabsList className="grid w-full grid-cols-2">
-                        <TabsTrigger value="paste" className="flex items-center gap-2">
+                        <TabsTrigger
+                          value="paste"
+                          className="flex items-center gap-2"
+                        >
                           <Type className="h-4 w-4" />
                           Paste Text
                         </TabsTrigger>
-                        <TabsTrigger value="url" className="flex items-center gap-2">
+                        <TabsTrigger
+                          value="url"
+                          className="flex items-center gap-2"
+                        >
                           <Globe className="h-4 w-4" />
                           Import from URL
                         </TabsTrigger>
                       </TabsList>
                       <TabsContent value="paste" className="mt-4 space-y-3">
                         <div className="flex items-center justify-between gap-2">
-                          <Label htmlFor="originalText" className="text-sm font-semibold text-foreground">
+                          <Label
+                            htmlFor="originalText"
+                            className="text-sm font-semibold text-foreground"
+                          >
                             Original Chapter Text
                           </Label>
                           <div className="flex items-center gap-2">
@@ -965,7 +1150,15 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                               type="button"
                               variant="outline"
                               size="sm"
-                              onClick={() => openTranslation(applyWordReplacements(originalText, wordReplacements), 'Translate chapter with glossary applied')}
+                              onClick={() =>
+                                openTranslation(
+                                  applyWordReplacements(
+                                    originalText,
+                                    wordReplacements,
+                                  ),
+                                  "Translate chapter with glossary applied",
+                                )
+                              }
                               disabled={!originalText || isOffline}
                               className="h-8 px-2 text-xs gap-1.5"
                               aria-label="Translate chapter with glossary applied"
@@ -1005,7 +1198,9 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                               className="absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-md bg-transparent text-muted-foreground hover:bg-muted/30 active:bg-muted/50 transition-colors sm:hidden"
                             >
                               <ClipboardPaste className="h-6 w-6" />
-                              <span className="text-sm font-medium">Tap to paste from clipboard</span>
+                              <span className="text-sm font-medium">
+                                Tap to paste from clipboard
+                              </span>
                             </button>
                           )}
                           {!originalText && isManualPasteMode && (
@@ -1017,31 +1212,40 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                       </TabsContent>
 
                       <TabsContent value="url" className="mt-4">
-                        <Suspense fallback={<div className="text-sm text-muted-foreground py-4">Loading importer…</div>}>
-                          <UrlImport onContentReady={(content) => setOriginalText(content)} />
+                        <Suspense
+                          fallback={
+                            <div className="text-sm text-muted-foreground py-4">
+                              Loading importer…
+                            </div>
+                          }
+                        >
+                          <UrlImport
+                            onContentReady={(content) =>
+                              setOriginalText(content)
+                            }
+                          />
                         </Suspense>
                       </TabsContent>
                     </Tabs>
-                   </div>
-                   
-                   {/* Desktop CTA */}
-                   <Button 
-                     onClick={separateChapter}
-                     size="lg"
-                     className="hidden sm:flex w-full py-3 sm:py-4 text-base sm:text-lg font-semibold"
-                     disabled={!originalText && !dummyText}
-                   >
-                     <Scissors className="mr-3 h-5 w-5" />
-                     Apply Glossary & Separate Chapter
-                   </Button>
-                   
+                  </div>
+
+                  {/* Desktop CTA */}
+                  <Button
+                    onClick={separateChapter}
+                    size="lg"
+                    className="hidden sm:flex w-full py-3 sm:py-4 text-base sm:text-lg font-semibold"
+                    disabled={!originalText && !dummyText}
+                  >
+                    <Scissors className="mr-3 h-5 w-5" />
+                    Apply Glossary & Separate Chapter
+                  </Button>
                 </CardContent>
               </Card>
             </div>
 
             <div ref={glossaryRef} className="mb-8">
               <Suspense fallback={<WordReplacementsSkeleton />}>
-                <WordReplacements 
+                <WordReplacements
                   sessionId={currentSessionId}
                   onReplacementsChange={handleWordReplacementsChange}
                 />
@@ -1052,16 +1256,32 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
             <div
               ref={resultsRef}
               className="mb-32 sm:mb-0"
-              onTouchStart={isMobile && separatedCards.length > 0 ? handleResultsTouchStart : undefined}
-              onTouchMove={isMobile && separatedCards.length > 0 ? handleResultsTouchMove : undefined}
-              onTouchEnd={isMobile && separatedCards.length > 0 ? handleResultsTouchEnd : undefined}
+              onTouchStart={
+                isMobile && separatedCards.length > 0
+                  ? handleResultsTouchStart
+                  : undefined
+              }
+              onTouchMove={
+                isMobile && separatedCards.length > 0
+                  ? handleResultsTouchMove
+                  : undefined
+              }
+              onTouchEnd={
+                isMobile && separatedCards.length > 0
+                  ? handleResultsTouchEnd
+                  : undefined
+              }
             >
               {pullDelta > 0 && (
                 <div
                   className="sm:hidden flex items-center justify-center text-xs text-muted-foreground overflow-hidden transition-[height] duration-100"
                   style={{ height: `${pullDelta}px` }}
                 >
-                  {isRefreshing ? 'Refreshing…' : pullDelta > 70 ? 'Release to re-separate' : 'Pull to re-separate'}
+                  {isRefreshing
+                    ? "Refreshing…"
+                    : pullDelta > 70
+                      ? "Release to re-separate"
+                      : "Pull to re-separate"}
                 </div>
               )}
               {separatedCards.length > 0 ? (
@@ -1084,7 +1304,12 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                         Copy All Cards
                       </Button>
                       <Button
-                        onClick={() => openTranslation(separatedCards.join('\n\n'), 'Translate all cards as one reading block')}
+                        onClick={() =>
+                          openTranslation(
+                            separatedCards.join("\n\n"),
+                            "Translate all cards as one reading block",
+                          )
+                        }
                         variant="outline"
                         size="sm"
                         className="shrink-0"
@@ -1096,7 +1321,11 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                   </CardHeader>
                   <CardContent className="p-4 sm:p-6">
                     {/* Mobile: single card navigator */}
-                    <div className="sm:hidden" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
+                    <div
+                      className="sm:hidden"
+                      onTouchStart={handleTouchStart}
+                      onTouchEnd={handleTouchEnd}
+                    >
                       <Card className="border-border bg-card min-h-[200px] max-h-[60vh] flex flex-col overflow-hidden">
                         <CardHeader className="pb-3 flex-shrink-0 sticky top-0 z-10 bg-card border-b border-border/50">
                           <div className="flex items-center justify-between gap-2">
@@ -1104,12 +1333,19 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                               <div className="bg-primary/10 p-1.5 rounded-md shadow-sm shrink-0">
                                 <BookOpen className="h-4 w-4 text-primary" />
                               </div>
-                              <span className="truncate">Card {mobileCardIndex + 1}</span>
+                              <span className="truncate">
+                                Card {mobileCardIndex + 1}
+                              </span>
                             </CardTitle>
                             <div className="flex items-center gap-1 shrink-0">
                               {canShare && (
                                 <Button
-                                  onClick={() => shareCard(separatedCards[mobileCardIndex] ?? '', mobileCardIndex)}
+                                  onClick={() =>
+                                    shareCard(
+                                      separatedCards[mobileCardIndex] ?? "",
+                                      mobileCardIndex,
+                                    )
+                                  }
                                   variant="outline"
                                   size="sm"
                                   aria-label="Share card"
@@ -1118,25 +1354,56 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                                 </Button>
                               )}
                               <Button
-                                onClick={() => openTranslation(separatedCards[mobileCardIndex] ?? '', `Translate card ${mobileCardIndex + 1}`, (translation) => setSeparatedCards((cards) => cards.map((card, index) => index === mobileCardIndex ? translation : card)))}
+                                onClick={() =>
+                                  openTranslation(
+                                    separatedCards[mobileCardIndex] ?? "",
+                                    `Translate card ${mobileCardIndex + 1}`,
+                                    (translation) =>
+                                      setSeparatedCards((cards) =>
+                                        cards.map((card, index) =>
+                                          index === mobileCardIndex
+                                            ? translation
+                                            : card,
+                                        ),
+                                      ),
+                                  )
+                                }
                                 variant="outline"
                                 size="sm"
+                                className="min-h-[44px] min-w-[44px] px-2 sm:min-h-0 sm:min-w-0 sm:px-3"
                                 aria-label="Translate card"
                               >
-                                <Languages className="mr-1 h-3 w-3" />
-                                Translate
+                                <Languages className="h-3 w-3 sm:mr-1" />
+                                <span className="hidden sm:inline">
+                                  Translate
+                                </span>
                               </Button>
                               <Button
-                                onClick={() => copyToClipboard(separatedCards[mobileCardIndex] ?? '', mobileCardIndex)}
+                                onClick={() =>
+                                  copyToClipboard(
+                                    separatedCards[mobileCardIndex] ?? "",
+                                    mobileCardIndex,
+                                  )
+                                }
                                 variant="outline"
                                 size="sm"
+                                className="min-h-[44px] min-w-[44px] px-2 sm:min-h-0 sm:min-w-0 sm:px-3"
+                                aria-label={
+                                  copiedIndex === mobileCardIndex
+                                    ? "Card copied"
+                                    : "Copy card"
+                                }
                               >
                                 {copiedIndex === mobileCardIndex ? (
-                                  <Check className="mr-1 h-3 w-3 text-green-500" />
+                                  <Check className="h-3 w-3 text-green-500" />
                                 ) : (
-                                  <Copy className="mr-1 h-3 w-3" />
+                                  <Copy className="h-3 w-3" />
                                 )}
-                                {copiedIndex === mobileCardIndex ? 'Copied' : 'Copy'}
+                                <span className="hidden sm:inline">
+                                  {copiedIndex === mobileCardIndex
+                                    ? "Copied"
+                                    : "Copy"}
+                                </span>
                               </Button>
                             </div>
                           </div>
@@ -1149,19 +1416,23 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                             onTouchMove={handleLongPressEnd}
                             onTouchCancel={handleLongPressEnd}
                           >
-                            {separatedCards[mobileCardIndex] ?? ''}
+                            {separatedCards[mobileCardIndex] ?? ""}
                           </div>
                           <div className="flex gap-4 text-xs text-muted-foreground flex-shrink-0">
                             <div className="flex items-center gap-1">
                               <span className="font-medium">Paragraphs:</span>
                               <Badge variant="secondary" className="text-xs">
-                                {(separatedCards[mobileCardIndex] ?? '').split('\n\n').filter(p => p.trim()).length}
+                                {
+                                  (separatedCards[mobileCardIndex] ?? "")
+                                    .split("\n\n")
+                                    .filter((p) => p.trim()).length
+                                }
                               </Badge>
                             </div>
                             <div className="flex items-center gap-1">
                               <span className="font-medium">Characters:</span>
                               <Badge variant="secondary" className="text-xs">
-                                {(separatedCards[mobileCardIndex] ?? '').length}
+                                {(separatedCards[mobileCardIndex] ?? "").length}
                               </Badge>
                             </div>
                           </div>
@@ -1169,7 +1440,9 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                       </Card>
                       <div className="flex items-center justify-between mt-4">
                         <Button
-                          onClick={() => setMobileCardIndex(Math.max(0, mobileCardIndex - 1))}
+                          onClick={() =>
+                            setMobileCardIndex(Math.max(0, mobileCardIndex - 1))
+                          }
                           variant="outline"
                           size="sm"
                           disabled={mobileCardIndex === 0}
@@ -1180,7 +1453,11 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                         </Button>
                         <div className="flex items-center gap-1.5 text-sm text-muted-foreground font-medium">
                           {separatedCards.length <= 10 ? (
-                            <div className="flex items-center gap-1.5" role="tablist" aria-label="Card pages">
+                            <div
+                              className="flex items-center gap-1.5"
+                              role="tablist"
+                              aria-label="Card pages"
+                            >
                               {separatedCards.map((_, i) => (
                                 <button
                                   key={i}
@@ -1188,11 +1465,14 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                                   role="tab"
                                   aria-selected={i === mobileCardIndex}
                                   aria-label={`Go to card ${i + 1}`}
-                                  onClick={() => { setMobileCardIndex(i); vibrate(5); }}
+                                  onClick={() => {
+                                    setMobileCardIndex(i);
+                                    vibrate(5);
+                                  }}
                                   className={`h-2.5 rounded-full transition-all ${
                                     i === mobileCardIndex
-                                      ? 'w-6 bg-primary'
-                                      : 'w-2.5 bg-muted-foreground/30 hover:bg-muted-foreground/60'
+                                      ? "w-6 bg-primary"
+                                      : "w-2.5 bg-muted-foreground/30 hover:bg-muted-foreground/60"
                                   }`}
                                 />
                               ))}
@@ -1206,7 +1486,10 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                                 value={mobileCardIndex + 1}
                                 onChange={(e) => {
                                   const val = parseInt(e.target.value, 10);
-                                  if (val >= 1 && val <= separatedCards.length) {
+                                  if (
+                                    val >= 1 &&
+                                    val <= separatedCards.length
+                                  ) {
                                     setMobileCardIndex(val - 1);
                                   }
                                 }}
@@ -1217,10 +1500,19 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                           )}
                         </div>
                         <Button
-                          onClick={() => setMobileCardIndex(Math.min(separatedCards.length - 1, mobileCardIndex + 1))}
+                          onClick={() =>
+                            setMobileCardIndex(
+                              Math.min(
+                                separatedCards.length - 1,
+                                mobileCardIndex + 1,
+                              ),
+                            )
+                          }
                           variant="outline"
                           size="sm"
-                          disabled={mobileCardIndex === separatedCards.length - 1}
+                          disabled={
+                            mobileCardIndex === separatedCards.length - 1
+                          }
                           className="min-h-[44px] min-w-[44px]"
                         >
                           Next
@@ -1232,44 +1524,63 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                     {/* Desktop: grid */}
                     <div className="hidden sm:grid gap-4 grid-cols-1 sm:gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                       {separatedCards.map((card, index) => (
-                         <Card key={index} className="group hover:shadow-lg transition-all duration-300 border-border hover:border-primary/50 bg-card h-80 flex flex-col">
-                           <CardHeader className="pb-3 flex-shrink-0">
-                             <div className="flex items-center justify-between">
-                               <CardTitle className="text-lg font-semibold text-card-foreground flex items-center gap-2">
-                                 <div className="bg-primary/10 p-1.5 rounded-md shadow-sm">
-                                   <BookOpen className="h-4 w-4 text-primary" />
-                                 </div>
-                                 Card {index + 1}
-                               </CardTitle>
-                               <Button
-                                 onClick={() => openTranslation(card, `Translate card ${index + 1}`, (translation) => setSeparatedCards((cards) => cards.map((item, itemIndex) => itemIndex === index ? translation : item)))}
-                                 variant="outline"
-                                 size="sm"
-                                 className="group-hover:border-primary/50 group-hover:text-primary transition-all duration-200 shadow-sm hover:shadow-md"
-                               >
-                                 <Languages className="mr-1 h-3 w-3" />
-                                 Translate
-                               </Button>
-                               <Button
-                                 onClick={() => copyToClipboard(card, index)}
-                                 variant="outline"
-                                 size="sm"
-                                 className="group-hover:border-primary/50 group-hover:text-primary transition-all duration-200 shadow-sm hover:shadow-md"
-                               >
-                                 <Copy className="mr-1 h-3 w-3" />
-                                 Copy
-                               </Button>
-                             </div>
-                           </CardHeader>
-                           <CardContent className="space-y-4 flex-1 flex flex-col min-h-0">
-                             <div className="text-card-foreground leading-relaxed text-sm whitespace-pre-wrap break-words bg-muted/50 p-4 rounded-lg border border-border/50 flex-1 overflow-auto min-h-0">
-                               {card}
-                             </div>
+                        <Card
+                          key={index}
+                          className="group hover:shadow-lg transition-all duration-300 border-border hover:border-primary/50 bg-card h-80 flex flex-col"
+                        >
+                          <CardHeader className="pb-3 flex-shrink-0">
+                            <div className="flex items-center justify-between">
+                              <CardTitle className="text-lg font-semibold text-card-foreground flex items-center gap-2">
+                                <div className="bg-primary/10 p-1.5 rounded-md shadow-sm">
+                                  <BookOpen className="h-4 w-4 text-primary" />
+                                </div>
+                                Card {index + 1}
+                              </CardTitle>
+                              <Button
+                                onClick={() =>
+                                  openTranslation(
+                                    card,
+                                    `Translate card ${index + 1}`,
+                                    (translation) =>
+                                      setSeparatedCards((cards) =>
+                                        cards.map((item, itemIndex) =>
+                                          itemIndex === index
+                                            ? translation
+                                            : item,
+                                        ),
+                                      ),
+                                  )
+                                }
+                                variant="outline"
+                                size="sm"
+                                className="group-hover:border-primary/50 group-hover:text-primary transition-all duration-200 shadow-sm hover:shadow-md"
+                              >
+                                <Languages className="mr-1 h-3 w-3" />
+                                Translate
+                              </Button>
+                              <Button
+                                onClick={() => copyToClipboard(card, index)}
+                                variant="outline"
+                                size="sm"
+                                className="group-hover:border-primary/50 group-hover:text-primary transition-all duration-200 shadow-sm hover:shadow-md"
+                              >
+                                <Copy className="mr-1 h-3 w-3" />
+                                Copy
+                              </Button>
+                            </div>
+                          </CardHeader>
+                          <CardContent className="space-y-4 flex-1 flex flex-col min-h-0">
+                            <div className="text-card-foreground leading-relaxed text-sm whitespace-pre-wrap break-words bg-muted/50 p-4 rounded-lg border border-border/50 flex-1 overflow-auto min-h-0">
+                              {card}
+                            </div>
                             <div className="flex gap-4 text-xs text-muted-foreground flex-shrink-0">
                               <div className="flex items-center gap-1">
                                 <span className="font-medium">Paragraphs:</span>
                                 <Badge variant="secondary" className="text-xs">
-                                  {card.split('\n\n').filter(p => p.trim()).length}
+                                  {
+                                    card.split("\n\n").filter((p) => p.trim())
+                                      .length
+                                  }
                                 </Badge>
                               </div>
                               <div className="flex items-center gap-1">
@@ -1292,10 +1603,19 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                       <BookOpen className="h-8 w-8 sm:h-12 sm:w-12 text-muted-foreground" />
                     </div>
                     <div className="space-y-3">
-                      <h3 className="text-xl font-semibold text-card-foreground">No Cards Generated Yet</h3>
+                      <h3 className="text-xl font-semibold text-card-foreground">
+                        No Cards Generated Yet
+                      </h3>
                       <p className="text-muted-foreground max-w-md mx-auto leading-relaxed">
-                        <span className="hidden sm:inline">Enter your chapter text above and click "Separate Chapter" to start breaking it down into manageable cards.</span>
-                        <span className="sm:hidden">Tap <strong>Separate Chapter</strong> below to get started.</span>
+                        <span className="hidden sm:inline">
+                          Enter your chapter text above and click "Separate
+                          Chapter" to start breaking it down into manageable
+                          cards.
+                        </span>
+                        <span className="sm:hidden">
+                          Tap <strong>Separate Chapter</strong> below to get
+                          started.
+                        </span>
                       </p>
                     </div>
                   </CardContent>
@@ -1307,7 +1627,7 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
           {/* Scroll-to-top button (mobile only) */}
           {showScrollTop && (
             <button
-              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+              onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
               className="fixed bottom-36 right-4 z-30 sm:hidden bg-primary text-primary-foreground p-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 min-h-[44px] min-w-[44px] flex items-center justify-center"
               aria-label="Scroll to top"
             >
