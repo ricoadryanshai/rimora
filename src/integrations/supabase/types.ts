@@ -14,6 +14,140 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_models: {
+        Row: {
+          created_at: string
+          display_name: string
+          group_id: string | null
+          id: string
+          model_id: string
+          provider_id: string
+          sort_order: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_name: string
+          group_id?: string | null
+          id?: string
+          model_id: string
+          provider_id: string
+          sort_order?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          group_id?: string | null
+          id?: string
+          model_id?: string
+          provider_id?: string
+          sort_order?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_models_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "ai_provider_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_models_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "ai_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_provider_groups: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          sort_order: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          sort_order?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          sort_order?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ai_providers: {
+        Row: {
+          api_key_encrypted: string | null
+          api_url: string
+          created_at: string
+          display_name: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          api_key_encrypted?: string | null
+          api_url: string
+          created_at?: string
+          display_name: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          api_key_encrypted?: string | null
+          api_url?: string
+          created_at?: string
+          display_name?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ai_settings: {
+        Row: {
+          active_model_id: string | null
+          id: string
+          target_language: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active_model_id?: string | null
+          id?: string
+          target_language?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active_model_id?: string | null
+          id?: string
+          target_language?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_settings_active_model_id_fkey"
+            columns: ["active_model_id"]
+            isOneToOne: false
+            referencedRelation: "ai_models"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chapter_sessions: {
         Row: {
           card_count: number | null
