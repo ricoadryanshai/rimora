@@ -1137,7 +1137,9 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                               {copiedOriginal ? (
                                 <>
                                   <Check className="h-3.5 w-3.5" />
-                                  <span className="hidden sm:inline">Copied</span>
+                                  <span className="hidden sm:inline">
+                                    Copied
+                                  </span>
                                 </>
                               ) : (
                                 <>
@@ -1164,7 +1166,9 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                               aria-label="Translate chapter with glossary applied"
                             >
                               <Languages className="h-3.5 w-3.5" />
-                              <span className="hidden sm:inline">Translate</span>
+                              <span className="hidden sm:inline">
+                                Translate
+                              </span>
                             </Button>
                             <Button
                               type="button"
@@ -1175,7 +1179,9 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                               aria-label="Paste from clipboard"
                             >
                               <ClipboardPaste className="h-3.5 w-3.5" />
-                              <span className="hidden sm:inline">Paste from clipboard</span>
+                              <span className="hidden sm:inline">
+                                Paste from clipboard
+                              </span>
                             </Button>
                           </div>
                         </div>

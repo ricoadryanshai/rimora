@@ -61,14 +61,30 @@ const TranslationView = ({
   const [streaming, setStreaming] = useState(false);
   const [fontSize, setFontSize] = useState(18);
   const [fullscreen, setFullscreen] = useState(false);
+  const [usesFallbackFullscreen, setUsesFallbackFullscreen] = useState(false);
   const [applied, setApplied] = useState(false);
 
   useEffect(() => {
+    const handleFullscreenChange = () => {
+      setFullscreen(document.fullscreenElement === readingRef.current);
+    };
+
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () =>
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, []);
+
+  useEffect(() => {
     if (!open) {
+      if (document.fullscreenElement === readingRef.current) {
+        document.exitFullscreen().catch(() => undefined);
+      }
       setTranslation("");
       setError(null);
       setStreaming(false);
       setApplied(false);
+      setUsesFallbackFullscreen(false);
+      setFullscreen(false);
     }
   }, [open]);
 
@@ -159,18 +175,40 @@ const TranslationView = ({
   };
 
   const toggleFullscreen = async () => {
-    if (!document.fullscreenElement) {
-      await readingRef.current?.requestFullscreen();
-      setFullscreen(true);
-    } else {
-      await document.exitFullscreen();
+    const readingElement = readingRef.current;
+    if (!readingElement) return;
+
+    if (fullscreen || usesFallbackFullscreen) {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen().catch(() => undefined);
+      }
+      setUsesFallbackFullscreen(false);
       setFullscreen(false);
+      return;
     }
+
+    if (typeof readingElement.requestFullscreen === "function") {
+      try {
+        await readingElement.requestFullscreen();
+        return;
+      } catch {
+        // Fall through to the CSS fallback used by iOS Safari and PWAs.
+      }
+    }
+
+    setUsesFallbackFullscreen(true);
+    setFullscreen(true);
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+      <DialogContent
+        className={
+          usesFallbackFullscreen
+            ? "fixed inset-0 left-0 top-0 z-[60] flex h-[100dvh] min-h-screen max-h-none w-screen max-w-none translate-x-0 translate-y-0 flex-col overscroll-contain overflow-hidden rounded-none p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:p-6"
+            : "max-w-4xl max-h-[90vh] overflow-hidden flex flex-col"
+        }
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Languages className="h-5 w-5" />
