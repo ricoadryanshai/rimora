@@ -1,5 +1,5 @@
 import React from 'react';
-import { BookOpen, Scissors, FileText, Settings, Moon, Sun, Monitor } from 'lucide-react';
+import { BookOpen, Scissors, FileText, Settings, Moon, Sun, Monitor, Brain } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarSeparator, useSidebar } from '@/components/ui/sidebar';
@@ -34,6 +34,10 @@ const AppSidebar = ({
     id: 'results',
     title: 'Separated Cards',
     icon: FileText
+  }, {
+    id: 'ai-providers',
+    title: 'AI Providers',
+    icon: Brain
   }];
   const themeIcon = theme === 'dark' ? Sun : theme === 'light' ? Monitor : Moon;
   const ThemeIcon = themeIcon;

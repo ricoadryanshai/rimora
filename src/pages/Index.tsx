@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Copy, Check, BookOpen, Scissors, RotateCcw, LogIn, Database, Sparkles, Globe, Type, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Settings, Share2, WifiOff, ClipboardPaste } from "lucide-react";
+import { Copy, Check, BookOpen, Scissors, RotateCcw, LogIn, Database, Sparkles, Globe, Type, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Settings, Share2, WifiOff, ClipboardPaste, Languages } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 const UrlImport = lazy(() => import("@/components/UrlImport"));
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
@@ -20,6 +20,9 @@ const WordReplacements = lazy(() => import("@/components/WordReplacements"));
 import { WordReplacementsSkeleton } from "@/components/LoadingStates";
 import AppSidebar from "@/components/AppSidebar";
 import MobileBottomNav from "@/components/MobileBottomNav";
+import AiProviderManager from "@/components/AiProviderManager";
+import TranslationView from "@/components/TranslationView";
+import { useAiConfig } from "@/hooks/use-ai-config";
 
 const LOCAL_SESSION_KEY = 'chapterSession';
 const PENDING_SYNC_KEY = 'chapterSessionPendingSync';
@@ -47,9 +50,12 @@ const Index = () => {
   const pullStartY = useRef<number | null>(null);
   const [pullDelta, setPullDelta] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [providerManagerOpen, setProviderManagerOpen] = useState(false);
+  const [translationRequest, setTranslationRequest] = useState<{ text: string; title: string; onApply?: (translation: string) => void } | null>(null);
   const { toast } = useToast();
   const { user, loading } = useAuth();
   const isMobile = useIsMobile();
+  const aiConfig = useAiConfig();
 
   const enableManualPaste = useCallback(() => {
     setIsManualPasteMode(true);
@@ -543,6 +549,18 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
     }
   };
 
+  const openTranslation = (text: string, title: string, onApply?: (translation: string) => void) => {
+    if (isOffline) {
+      toast({ title: 'You are offline', description: 'AI translation requires an internet connection.', variant: 'destructive' });
+      return;
+    }
+    if (!user) {
+      toast({ title: 'Sign in required', description: 'Sign in to use AI translation.', variant: 'destructive' });
+      return;
+    }
+    setTranslationRequest({ text, title, onApply });
+  };
+
   const loadDummyData = () => {
     setOriginalText(dummyText);
     toast({
@@ -556,6 +574,10 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
   };
 
   const handleSectionClick = (sectionId: string) => {
+    if (sectionId === 'ai-providers') {
+      setProviderManagerOpen(true);
+      return;
+    }
     setCurrentSection(sectionId);
     const refs = {
       'input-settings': inputSettingsRef,
@@ -593,6 +615,29 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
           onSectionClick={handleSectionClick}
           currentSection={currentSection}
         />
+        <AiProviderManager
+          open={providerManagerOpen}
+          onOpenChange={setProviderManagerOpen}
+          providers={aiConfig.providers}
+          groups={aiConfig.groups}
+          models={aiConfig.models}
+          settings={aiConfig.settings}
+          refresh={aiConfig.refresh}
+          saveSettings={aiConfig.saveSettings}
+        />
+        {translationRequest && (
+          <TranslationView
+            open
+            onOpenChange={(open) => { if (!open) setTranslationRequest(null); }}
+            text={translationRequest.text}
+            title={translationRequest.title}
+            models={aiConfig.models}
+            settings={aiConfig.settings}
+            activeModel={aiConfig.activeModel}
+            saveSettings={aiConfig.saveSettings}
+            onApply={translationRequest.onApply}
+          />
+        )}
         
         <main className="flex-1 overflow-auto relative">
           {/* Header with sidebar trigger */}
@@ -920,6 +965,18 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                               type="button"
                               variant="outline"
                               size="sm"
+                              onClick={() => openTranslation(applyWordReplacements(originalText, wordReplacements), 'Translate chapter with glossary applied')}
+                              disabled={!originalText || isOffline}
+                              className="h-8 px-2 text-xs gap-1.5"
+                              aria-label="Translate chapter with glossary applied"
+                            >
+                              <Languages className="h-3.5 w-3.5" />
+                              Translate
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
                               onClick={pasteFromClipboard}
                               className="h-8 px-2 text-xs gap-1.5"
                             >
@@ -1026,6 +1083,15 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                         <Copy className="mr-2 h-4 w-4" />
                         Copy All Cards
                       </Button>
+                      <Button
+                        onClick={() => openTranslation(separatedCards.join('\n\n'), 'Translate all cards as one reading block')}
+                        variant="outline"
+                        size="sm"
+                        className="shrink-0"
+                      >
+                        <Languages className="mr-2 h-4 w-4" />
+                        Translate all
+                      </Button>
                     </div>
                   </CardHeader>
                   <CardContent className="p-4 sm:p-6">
@@ -1051,6 +1117,15 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                                   <Share2 className="h-3 w-3" />
                                 </Button>
                               )}
+                              <Button
+                                onClick={() => openTranslation(separatedCards[mobileCardIndex] ?? '', `Translate card ${mobileCardIndex + 1}`, (translation) => setSeparatedCards((cards) => cards.map((card, index) => index === mobileCardIndex ? translation : card)))}
+                                variant="outline"
+                                size="sm"
+                                aria-label="Translate card"
+                              >
+                                <Languages className="mr-1 h-3 w-3" />
+                                Translate
+                              </Button>
                               <Button
                                 onClick={() => copyToClipboard(separatedCards[mobileCardIndex] ?? '', mobileCardIndex)}
                                 variant="outline"
@@ -1166,6 +1241,15 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                                  </div>
                                  Card {index + 1}
                                </CardTitle>
+                               <Button
+                                 onClick={() => openTranslation(card, `Translate card ${index + 1}`, (translation) => setSeparatedCards((cards) => cards.map((item, itemIndex) => itemIndex === index ? translation : item)))}
+                                 variant="outline"
+                                 size="sm"
+                                 className="group-hover:border-primary/50 group-hover:text-primary transition-all duration-200 shadow-sm hover:shadow-md"
+                               >
+                                 <Languages className="mr-1 h-3 w-3" />
+                                 Translate
+                               </Button>
                                <Button
                                  onClick={() => copyToClipboard(card, index)}
                                  variant="outline"
