@@ -339,6 +339,8 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
       }
       if (Array.isArray(parsed.separatedCards))
         setSeparatedCards(parsed.separatedCards);
+      if (Array.isArray(parsed.translatedCards))
+        setTranslatedCards(parsed.translatedCards);
     } catch {
       // ignore malformed cache
     }
@@ -355,12 +357,20 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
           cardCount,
           separationMode,
           separatedCards,
+          translatedCards,
         }),
       );
     } catch {
       // storage full or unavailable
     }
-  }, [originalText, paragraphCount, cardCount, separationMode, separatedCards]);
+  }, [
+    originalText,
+    paragraphCount,
+    cardCount,
+    separationMode,
+    separatedCards,
+    translatedCards,
+  ]);
 
   useEffect(() => {
     if (user && !isOffline) {
