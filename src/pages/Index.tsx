@@ -407,6 +407,13 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
           ? (data.separated_cards as string[])
           : [];
         setSeparatedCards(cards);
+        const translations = Array.isArray(data.translated_cards)
+          ? (data.translated_cards as (string | null)[]).map((t) =>
+              typeof t === "string" ? t : null,
+            )
+          : [];
+        setTranslatedCards(translations);
+        setShowOriginalIndexes([]);
         setCurrentSessionId(data.id);
       }
     } catch (error) {
