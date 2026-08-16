@@ -42,7 +42,7 @@ interface TranslationViewProps {
   onApply?: (translation: string) => void;
 }
 
-const SUPABASE_URL = "https://okjetbwkeozsnjkwhqix.supabase.co";
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
 const TranslationView = ({
   open,
