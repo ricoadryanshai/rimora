@@ -1,0 +1,1 @@
+ALTER TABLE public.chapter_sessions ADD COLUMN IF NOT EXISTS translated_cards jsonb;

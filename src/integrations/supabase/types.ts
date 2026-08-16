@@ -157,6 +157,7 @@ export type Database = {
           paragraph_count: number
           separated_cards: Json | null
           separation_mode: string | null
+          translated_cards: Json | null
           updated_at: string
           user_id: string
         }
@@ -168,6 +169,7 @@ export type Database = {
           paragraph_count?: number
           separated_cards?: Json | null
           separation_mode?: string | null
+          translated_cards?: Json | null
           updated_at?: string
           user_id: string
         }
@@ -179,6 +181,7 @@ export type Database = {
           paragraph_count?: number
           separated_cards?: Json | null
           separation_mode?: string | null
+          translated_cards?: Json | null
           updated_at?: string
           user_id?: string
         }
