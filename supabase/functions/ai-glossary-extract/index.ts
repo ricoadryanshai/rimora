@@ -76,24 +76,36 @@ const readProviderContent = async (response: Response): Promise<string> => {
   let buffer = "";
   let content = "";
 
+  const consumeEvents = (events: string[]) => {
+    for (const event of events) {
+      const data = event
+        .split("\n")
+        .find((line) => line.trimStart().startsWith("data:"))
+        ?.replace(/^\s*data:\s?/, "")
+        .trim();
+      if (!data || data === "[DONE]") continue;
+      try {
+        const chunk = JSON.parse(data);
+        const delta = chunk.choices?.[0]?.delta?.content;
+        const message = chunk.choices?.[0]?.message?.content;
+        if (typeof delta === "string") content += delta;
+        else if (typeof message === "string") content += message;
+      } catch {
+        // Ignore provider comments or non-JSON SSE frames.
+      }
+    }
+  };
+
   while (true) {
     const { value, done } = await reader.read();
     if (done) break;
     buffer += decoder.decode(value, { stream: true });
     const events = buffer.split("\n\n");
     buffer = events.pop() ?? "";
-    for (const event of events) {
-      const data = event
-        .split("\n")
-        .find((line) => line.startsWith("data:"))
-        ?.slice(5)
-        .trim();
-      if (!data || data === "[DONE]") continue;
-      const chunk = JSON.parse(data);
-      const delta = chunk.choices?.[0]?.delta?.content;
-      if (typeof delta === "string") content += delta;
-    }
+    consumeEvents(events);
   }
+
+  consumeEvents(buffer ? [buffer] : []);
 
   return content;
 };
@@ -181,7 +193,10 @@ Deno.serve(async (req) => {
       try {
         const parsed = JSON.parse(detail);
         providerMessage =
-          parsed?.error?.message ?? parsed?.error ?? parsed?.message ?? providerMessage;
+          parsed?.error?.message ??
+          parsed?.error ??
+          parsed?.message ??
+          providerMessage;
       } catch {
         // Keep the raw provider response when it is not JSON.
       }
@@ -194,7 +209,7 @@ Deno.serve(async (req) => {
     }
 
     const content = await readProviderContent(upstream);
-    if (typeof content !== "string")
+    if (!content.trim())
       return json({ error: "AI returned no glossary content" }, 502);
     return json({ entries: parseEntries(content) });
   } catch (error) {
