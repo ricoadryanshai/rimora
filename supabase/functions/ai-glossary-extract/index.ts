@@ -141,9 +141,17 @@ Deno.serve(async (req) => {
 
     if (!upstream.ok) {
       const detail = await upstream.text().catch(() => "");
+      let providerMessage = detail.slice(0, 300);
+      try {
+        const parsed = JSON.parse(detail);
+        providerMessage =
+          parsed?.error?.message ?? parsed?.error ?? parsed?.message ?? providerMessage;
+      } catch {
+        // Keep the raw provider response when it is not JSON.
+      }
       return json(
         {
-          error: `Provider error (${upstream.status}): ${detail.slice(0, 300)}`,
+          error: `Provider error (${upstream.status}): ${providerMessage}`,
         },
         upstream.status === 429 ? 429 : 502,
       );

@@ -163,12 +163,26 @@ const UrlImport: React.FC<UrlImportProps> = ({
             : "The chapter text was imported without new glossary terms.",
         });
       } catch (error) {
+        let description =
+          error instanceof Error
+            ? error.message
+            : "The chapter text was imported, but glossary extraction failed.";
+
+        if (error && typeof error === "object" && "context" in error) {
+          const response = (error as { context?: unknown }).context;
+          if (response instanceof Response) {
+            try {
+              const body = await response.clone().json();
+              if (typeof body?.error === "string") description = body.error;
+            } catch {
+              // Keep the original invoke error when the response is not JSON.
+            }
+          }
+        }
+
         toast({
           title: "Glossary Extraction Failed",
-          description:
-            error instanceof Error
-              ? error.message
-              : "The chapter text was imported, but glossary extraction failed.",
+          description,
           variant: "destructive",
         });
       } finally {
