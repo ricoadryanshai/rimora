@@ -443,6 +443,7 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
 
     try {
       const cardsData = cardsToSave || separatedCards;
+      const translationsData = translationsToSave ?? translatedCards;
 
       const sessionData = {
         user_id: user.id,
@@ -451,6 +452,7 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
         card_count: cardCount,
         separation_mode: separationMode,
         separated_cards: cardsData,
+        translated_cards: translationsData,
         updated_at: new Date().toISOString(),
       };
 
