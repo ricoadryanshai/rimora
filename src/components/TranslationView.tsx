@@ -268,11 +268,12 @@ const TranslationView = ({
           </div>
 
           {readingArea}
-          {onApply && translation && !streaming && (
+          {onApply && (
             <Button
               variant="outline"
+              disabled={!translation.trim() || streaming || applied}
               onClick={() => {
-                onApply(translation);
+                onApply(translation.trim());
                 setApplied(true);
               }}
               className="min-h-[44px]"

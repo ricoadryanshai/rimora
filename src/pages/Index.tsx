@@ -1361,6 +1361,17 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                           openTranslation(
                             separatedCards.join("\n\n"),
                             "Translate all cards as one reading block",
+                            (translation) => {
+                              const translatedParts = translation.split(/\n\s*\n/);
+                              const nextTranslations = separatedCards.map(
+                                (_, index) =>
+                                  translatedParts[index]?.trim() ||
+                                  translatedCards[index] ||
+                                  null,
+                              );
+                              setTranslatedCards(nextTranslations);
+                              void saveToDatabase(separatedCards, nextTranslations);
+                            },
                           )
                         }
                         variant="outline"
