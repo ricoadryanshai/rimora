@@ -1162,28 +1162,6 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                               type="button"
                               variant="outline"
                               size="sm"
-                              onClick={() =>
-                                openTranslation(
-                                  applyWordReplacements(
-                                    originalText,
-                                    wordReplacements,
-                                  ),
-                                  "Translate chapter with glossary applied",
-                                )
-                              }
-                              disabled={!originalText || isOffline}
-                              className="h-10 min-w-10 px-2 text-xs gap-1.5 sm:h-8 sm:min-w-0 sm:px-2"
-                              aria-label="Translate chapter with glossary applied"
-                            >
-                              <Languages className="h-3.5 w-3.5" />
-                              <span className="hidden sm:inline">
-                                Translate
-                              </span>
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
                               onClick={pasteFromClipboard}
                               className="h-10 min-w-10 px-2 text-xs gap-1.5 sm:h-8 sm:min-w-0 sm:px-2"
                               aria-label="Paste from clipboard"
