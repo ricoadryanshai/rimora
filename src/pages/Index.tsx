@@ -562,6 +562,9 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
     }
 
     setSeparatedCards(cards);
+    const freshTranslations = cards.map(() => null);
+    setTranslatedCards(freshTranslations);
+    setShowOriginalIndexes([]);
     setMobileCardIndex(0);
 
     // Auto-scroll to results after a brief delay
@@ -573,7 +576,7 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
     }, 100);
 
     if (user) {
-      await saveToDatabase(cards);
+      await saveToDatabase(cards, freshTranslations);
     }
 
     const replacementCount = wordReplacements.length;
