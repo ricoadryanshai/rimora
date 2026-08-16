@@ -1,10 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import { Globe, Loader2, Check, X, ArrowRight, ClipboardPaste, Sparkles } from "lucide-react";
+import {
+  Globe,
+  Loader2,
+  Check,
+  X,
+  ArrowRight,
+  ClipboardPaste,
+  Sparkles,
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useOnline } from "@/hooks/use-online";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,69 +20,96 @@ import { supabase } from "@/integrations/supabase/client";
 interface UrlImportProps {
   onContentReady: (content: string) => void;
   modelRowId?: string | null;
-  onGlossaryEntries?: (entries: { original_word: string; replacement_word: string }[]) => void;
+  onGlossaryEntries?: (
+    entries: { original_word: string; replacement_word: string }[],
+  ) => void;
 }
 
-const UrlImport: React.FC<UrlImportProps> = ({ onContentReady, modelRowId, onGlossaryEntries }) => {
-  const [url, setUrl] = useState('');
+const UrlImport: React.FC<UrlImportProps> = ({
+  onContentReady,
+  modelRowId,
+  onGlossaryEntries,
+}) => {
+  const [url, setUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [extractedContent, setExtractedContent] = useState('');
-  const [pageTitle, setPageTitle] = useState('');
-  const [step, setStep] = useState<'input' | 'preview'>('input');
+  const [extractedContent, setExtractedContent] = useState("");
+  const [pageTitle, setPageTitle] = useState("");
+  const [step, setStep] = useState<"input" | "preview">("input");
   const [isExtractingGlossary, setIsExtractingGlossary] = useState(false);
   const { toast } = useToast();
   const isOnline = useOnline();
 
   const handleFetch = async () => {
     if (!isOnline) {
-      toast({ title: "You're offline", description: "URL import needs an internet connection.", variant: "destructive" });
+      toast({
+        title: "You're offline",
+        description: "URL import needs an internet connection.",
+        variant: "destructive",
+      });
       return;
     }
     if (!url.trim()) {
-      toast({ title: "URL Required", description: "Please enter a webpage URL.", variant: "destructive" });
+      toast({
+        title: "URL Required",
+        description: "Please enter a webpage URL.",
+        variant: "destructive",
+      });
       return;
     }
 
-
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('firecrawl-scrape', {
-        body: { url: url.trim() },
-      });
+      const { data, error } = await supabase.functions.invoke(
+        "firecrawl-scrape",
+        {
+          body: { url: url.trim() },
+        },
+      );
 
       if (error) throw new Error(error.message);
-      if (!data?.success) throw new Error(data?.error || 'Failed to extract content');
+      if (!data?.success)
+        throw new Error(data?.error || "Failed to extract content");
 
-      const markdown = data.markdown || '';
+      const markdown = data.markdown || "";
       if (!markdown.trim()) {
-        toast({ title: "No Content", description: "No readable text was found on this page.", variant: "destructive" });
+        toast({
+          title: "No Content",
+          description: "No readable text was found on this page.",
+          variant: "destructive",
+        });
         return;
       }
 
       // Convert markdown to plain text (remove markdown syntax)
       const plainText = markdown
-        .replace(/^#{1,6}\s+/gm, '')        // headers
-        .replace(/\*\*(.+?)\*\*/g, '$1')     // bold
-        .replace(/\*(.+?)\*/g, '$1')         // italic
-        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // links
-        .replace(/!\[([^\]]*)\]\([^)]+\)/g, '') // images
-        .replace(/^[-*+]\s+/gm, '')          // list bullets
-        .replace(/^\d+\.\s+/gm, '')          // numbered lists
-        .replace(/^>\s+/gm, '')              // blockquotes
-        .replace(/`{1,3}[^`]*`{1,3}/g, '')  // code
-        .replace(/^---+$/gm, '')             // horizontal rules
-        .replace(/\n{3,}/g, '\n\n')          // excessive newlines
+        .replace(/^#{1,6}\s+/gm, "") // headers
+        .replace(/\*\*(.+?)\*\*/g, "$1") // bold
+        .replace(/\*(.+?)\*/g, "$1") // italic
+        .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1") // links
+        .replace(/!\[([^\]]*)\]\([^)]+\)/g, "") // images
+        .replace(/^[-*+]\s+/gm, "") // list bullets
+        .replace(/^\d+\.\s+/gm, "") // numbered lists
+        .replace(/^>\s+/gm, "") // blockquotes
+        .replace(/`{1,3}[^`]*`{1,3}/g, "") // code
+        .replace(/^---+$/gm, "") // horizontal rules
+        .replace(/\n{3,}/g, "\n\n") // excessive newlines
         .trim();
 
       setExtractedContent(plainText);
-      setPageTitle(data.title || '');
-      setStep('preview');
-      toast({ title: "Content Extracted!", description: `Successfully extracted text from the webpage.` });
+      setPageTitle(data.title || "");
+      setStep("preview");
+      toast({
+        title: "Content Extracted!",
+        description: `Successfully extracted text from the webpage.`,
+      });
     } catch (error) {
-      console.error('URL import error:', error);
+      console.error("URL import error:", error);
       toast({
         title: "Extraction Failed",
-        description: error instanceof Error ? error.message : "Could not extract content from this URL.",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Could not extract content from this URL.",
         variant: "destructive",
       });
     } finally {
@@ -84,11 +119,18 @@ const UrlImport: React.FC<UrlImportProps> = ({ onContentReady, modelRowId, onGlo
 
   const handleInsert = async () => {
     if (!extractedContent.trim()) {
-      toast({ title: "No Content", description: "There is no content to insert.", variant: "destructive" });
+      toast({
+        title: "No Content",
+        description: "There is no content to insert.",
+        variant: "destructive",
+      });
       return;
     }
     onContentReady(extractedContent);
-    toast({ title: "Content Inserted!", description: "The extracted text has been added to the chapter input." });
+    toast({
+      title: "Content Inserted!",
+      description: "The extracted text has been added to the chapter input.",
+    });
 
     if (!modelRowId || !onGlossaryEntries) {
       toast({
@@ -103,14 +145,19 @@ const UrlImport: React.FC<UrlImportProps> = ({ onContentReady, modelRowId, onGlo
     } else {
       setIsExtractingGlossary(true);
       try {
-        const { data, error } = await supabase.functions.invoke('ai-glossary-extract', {
-          body: { text: extractedContent, modelRowId },
-        });
+        const { data, error } = await supabase.functions.invoke(
+          "ai-glossary-extract",
+          {
+            body: { text: extractedContent, modelRowId },
+          },
+        );
         if (error) throw new Error(error.message);
         const entries = Array.isArray(data?.entries) ? data.entries : [];
         onGlossaryEntries(entries);
         toast({
-          title: entries.length ? "Glossary Extracted" : "No Glossary Terms Found",
+          title: entries.length
+            ? "Glossary Extracted"
+            : "No Glossary Terms Found",
           description: entries.length
             ? `${entries.length} terms were sent to Glossary Entries. Existing terms will be skipped.`
             : "The chapter text was imported without new glossary terms.",
@@ -118,7 +165,10 @@ const UrlImport: React.FC<UrlImportProps> = ({ onContentReady, modelRowId, onGlo
       } catch (error) {
         toast({
           title: "Glossary Extraction Failed",
-          description: error instanceof Error ? error.message : "The chapter text was imported, but glossary extraction failed.",
+          description:
+            error instanceof Error
+              ? error.message
+              : "The chapter text was imported, but glossary extraction failed.",
           variant: "destructive",
         });
       } finally {
@@ -127,27 +177,34 @@ const UrlImport: React.FC<UrlImportProps> = ({ onContentReady, modelRowId, onGlo
     }
 
     // Reset state
-    setUrl('');
-    setExtractedContent('');
-    setPageTitle('');
-    setStep('input');
+    setUrl("");
+    setExtractedContent("");
+    setPageTitle("");
+    setStep("input");
   };
 
   const handleCancel = () => {
-    setExtractedContent('');
-    setPageTitle('');
-    setStep('input');
+    setExtractedContent("");
+    setPageTitle("");
+    setStep("input");
   };
 
   const pasteUrlFromClipboard = async () => {
     try {
       if (!navigator.clipboard?.readText) {
-        toast({ title: "Clipboard not available", description: "Your browser doesn't allow clipboard access.", variant: "destructive" });
+        toast({
+          title: "Clipboard not available",
+          description: "Your browser doesn't allow clipboard access.",
+          variant: "destructive",
+        });
         return;
       }
       const text = (await navigator.clipboard.readText()).trim();
       if (!text) {
-        toast({ title: "Clipboard is empty", description: "Copy a URL first, then tap to paste." });
+        toast({
+          title: "Clipboard is empty",
+          description: "Copy a URL first, then tap to paste.",
+        });
         return;
       }
       setUrl(text);
@@ -155,14 +212,21 @@ const UrlImport: React.FC<UrlImportProps> = ({ onContentReady, modelRowId, onGlo
       const looksLikeUrl = /^https?:\/\//i.test(text);
       toast({
         title: looksLikeUrl ? "URL pasted" : "Pasted from clipboard",
-        description: looksLikeUrl ? "Tap Extract to continue." : "This doesn't look like a URL — please verify.",
+        description: looksLikeUrl
+          ? "Tap Extract to continue."
+          : "This doesn't look like a URL — please verify.",
       });
     } catch {
-      toast({ title: "Couldn't read clipboard", description: "Permission denied. Long-press the field and choose Paste instead.", variant: "destructive" });
+      toast({
+        title: "Couldn't read clipboard",
+        description:
+          "Permission denied. Long-press the field and choose Paste instead.",
+        variant: "destructive",
+      });
     }
   };
 
-  if (step === 'preview') {
+  if (step === "preview") {
     return (
       <div className="space-y-4">
         {pageTitle && (
@@ -174,7 +238,8 @@ const UrlImport: React.FC<UrlImportProps> = ({ onContentReady, modelRowId, onGlo
           Review & Edit Extracted Content
         </Label>
         <p className="text-xs text-muted-foreground">
-          Review the extracted text below. You can edit or remove any unwanted sections before inserting.
+          Review the extracted text below. You can edit or remove any unwanted
+          sections before inserting.
         </p>
         <Textarea
           value={extractedContent}
@@ -183,11 +248,27 @@ const UrlImport: React.FC<UrlImportProps> = ({ onContentReady, modelRowId, onGlo
           placeholder="Extracted content will appear here..."
         />
         <div className="flex flex-col sm:flex-row gap-3">
-          <Button onClick={handleInsert} disabled={isExtractingGlossary} size="lg" className="w-full sm:flex-1 py-3 sm:py-4 text-base sm:text-lg font-semibold">
-            {isExtractingGlossary ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Check className="mr-2 h-4 w-4" />}
-            {isExtractingGlossary ? "Extracting Glossary..." : "Insert into Chapter Text"}
+          <Button
+            onClick={handleInsert}
+            disabled={isExtractingGlossary}
+            size="lg"
+            className="w-full sm:flex-1 py-3 sm:py-4 text-base sm:text-lg font-semibold"
+          >
+            {isExtractingGlossary ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Check className="mr-2 h-4 w-4" />
+            )}
+            {isExtractingGlossary
+              ? "Extracting Glossary..."
+              : "Insert into Chapter Text"}
           </Button>
-          <Button onClick={handleCancel} variant="outline" size="lg" className="w-full sm:w-auto py-3 sm:py-4 text-base sm:text-lg font-semibold">
+          <Button
+            onClick={handleCancel}
+            variant="outline"
+            size="lg"
+            className="w-full sm:w-auto py-3 sm:py-4 text-base sm:text-lg font-semibold"
+          >
             <X className="mr-2 h-4 w-4" />
             Cancel
           </Button>
@@ -215,7 +296,9 @@ const UrlImport: React.FC<UrlImportProps> = ({ onContentReady, modelRowId, onGlo
         </Button>
       </div>
       <p className="text-xs text-muted-foreground">
-        Paste a webpage URL to automatically extract the main readable text. Perfect for iPhone users who can't easily select and copy text from web pages.
+        Paste a webpage URL to automatically extract the main readable text.
+        Perfect for iPhone users who can't easily select and copy text from web
+        pages.
       </p>
       {!isOnline && (
         <p className="text-xs text-destructive">
@@ -230,19 +313,22 @@ const UrlImport: React.FC<UrlImportProps> = ({ onContentReady, modelRowId, onGlo
             onChange={(e) => setUrl(e.target.value)}
             placeholder="https://example.com/chapter-1"
             className="pl-10"
-            onKeyDown={(e) => e.key === 'Enter' && handleFetch()}
+            onKeyDown={(e) => e.key === "Enter" && handleFetch()}
             disabled={isLoading || !isOnline}
           />
         </div>
-        <Button onClick={handleFetch} disabled={isLoading || !url.trim() || !isOnline} className="w-full sm:w-auto">
+        <Button
+          onClick={handleFetch}
+          disabled={isLoading || !url.trim() || !isOnline}
+          className="w-full sm:w-auto"
+        >
           {isLoading ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           ) : (
             <ArrowRight className="mr-2 h-4 w-4" />
           )}
-          {isLoading ? 'Extracting...' : 'Extract'}
+          {isLoading ? "Extracting..." : "Extract"}
         </Button>
-
       </div>
     </div>
   );

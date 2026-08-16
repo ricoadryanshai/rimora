@@ -1,21 +1,60 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  useRef,
+} from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious, PaginationEllipsis } from "@/components/ui/pagination";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+  PaginationEllipsis,
+} from "@/components/ui/pagination";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Search, BookText, Database, Shield, AlertTriangle } from "lucide-react";
+import {
+  Plus,
+  Trash2,
+  Search,
+  BookText,
+  Database,
+  Shield,
+  AlertTriangle,
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import CSVManager from "./CSVManager";
 import DragDropUpload from "./DragDropUpload";
-import { listSavedGlossaries, createSavedGlossary, deleteSavedGlossary as deleteSavedGlossaryDb } from "@/lib/glossaries";
-import { validateInput, wordReplacementSchema, glossaryNameSchema, ValidationError, RateLimiter } from "@/lib/validation";
+import {
+  listSavedGlossaries,
+  createSavedGlossary,
+  deleteSavedGlossary as deleteSavedGlossaryDb,
+} from "@/lib/glossaries";
+import {
+  validateInput,
+  wordReplacementSchema,
+  glossaryNameSchema,
+  ValidationError,
+  RateLimiter,
+} from "@/lib/validation";
 import { handleError, handleAsync, withRetry } from "@/lib/error-handler";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -49,26 +88,32 @@ interface SavedGlossary {
 interface WordReplacementsProps {
   sessionId: string | null;
   onReplacementsChange: (replacements: WordReplacement[]) => void;
-  pendingImport?: Omit<WordReplacement, 'id'>[];
+  pendingImport?: Omit<WordReplacement, "id">[];
   onPendingImportHandled?: () => void;
 }
 
-const fetchSessionReplacements = async (sessionId: string): Promise<WordReplacement[]> => {
+const fetchSessionReplacements = async (
+  sessionId: string,
+): Promise<WordReplacement[]> => {
   const replacements: WordReplacement[] = [];
 
-  for (let start = 0; start < MAX_GLOSSARY_ENTRIES; start += DATABASE_PAGE_SIZE) {
+  for (
+    let start = 0;
+    start < MAX_GLOSSARY_ENTRIES;
+    start += DATABASE_PAGE_SIZE
+  ) {
     const { data, error } = await supabase
-      .from('word_replacements')
-      .select('id, original_word, replacement_word')
-      .eq('session_id', sessionId)
-      .order('created_at', { ascending: true })
-      .order('id', { ascending: true })
+      .from("word_replacements")
+      .select("id, original_word, replacement_word")
+      .eq("session_id", sessionId)
+      .order("created_at", { ascending: true })
+      .order("id", { ascending: true })
       .range(start, start + DATABASE_PAGE_SIZE - 1);
 
     if (error) throw error;
 
-    const page = (data || []).filter((item) =>
-      item.id && item.original_word && item.replacement_word
+    const page = (data || []).filter(
+      (item) => item.id && item.original_word && item.replacement_word,
     ) as WordReplacement[];
 
     replacements.push(...page);
@@ -79,21 +124,31 @@ const fetchSessionReplacements = async (sessionId: string): Promise<WordReplacem
   return replacements;
 };
 
-const fetchSessionImportState = async (sessionId: string, normalizedWords: string[]) => {
+const fetchSessionImportState = async (
+  sessionId: string,
+  normalizedWords: string[],
+) => {
   const existingWords = new Set<string>();
   const { count, error: countError } = await supabase
-    .from('word_replacements')
-    .select('id', { count: 'exact', head: true })
-    .eq('session_id', sessionId);
+    .from("word_replacements")
+    .select("id", { count: "exact", head: true })
+    .eq("session_id", sessionId);
 
   if (countError) throw countError;
 
-  for (let start = 0; start < normalizedWords.length; start += IMPORT_BATCH_SIZE) {
+  for (
+    let start = 0;
+    start < normalizedWords.length;
+    start += IMPORT_BATCH_SIZE
+  ) {
     const { data, error } = await supabase
-      .from('word_replacements')
-      .select('normalized_original_word')
-      .eq('session_id', sessionId)
-      .in('normalized_original_word', normalizedWords.slice(start, start + IMPORT_BATCH_SIZE));
+      .from("word_replacements")
+      .select("normalized_original_word")
+      .eq("session_id", sessionId)
+      .in(
+        "normalized_original_word",
+        normalizedWords.slice(start, start + IMPORT_BATCH_SIZE),
+      );
 
     if (error) throw error;
 
@@ -108,31 +163,40 @@ const fetchSessionImportState = async (sessionId: string, normalizedWords: strin
   };
 };
 
-const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplacementsChange, pendingImport, onPendingImportHandled }) => {
+const WordReplacements: React.FC<WordReplacementsProps> = ({
+  sessionId,
+  onReplacementsChange,
+  pendingImport,
+  onPendingImportHandled,
+}) => {
   const [replacements, setReplacements] = useState<WordReplacement[]>([]);
-  const [newOriginal, setNewOriginal] = useState('');
-  const [newReplacement, setNewReplacement] = useState('');
+  const [newOriginal, setNewOriginal] = useState("");
+  const [newReplacement, setNewReplacement] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [itemsPerPage] = useState(10);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [savedGlossaries, setSavedGlossaries] = useState<SavedGlossary[]>([]);
   const [loadingSavedGlossaries, setLoadingSavedGlossaries] = useState(false);
-  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [validationErrors, setValidationErrors] = useState<
+    Record<string, string>
+  >({});
   const [showAllGlossaries, setShowAllGlossaries] = useState(false);
   const [showAllMobileEntries, setShowAllMobileEntries] = useState(false);
   const saveGlossaryRef = useRef<() => void>(() => undefined);
   const addReplacementRef = useRef<() => void>(() => undefined);
   const loadReplacementsRef = useRef<() => void>(() => undefined);
   const loadSavedGlossariesRef = useRef<() => void>(() => undefined);
-  
+
   const { toast } = useToast();
   const { userRole, user } = useAuth();
 
   useEffect(() => {
     if (!pendingImport?.length) return;
-    void handleImportReplacements(pendingImport).finally(() => onPendingImportHandled?.());
+    void handleImportReplacements(pendingImport).finally(() =>
+      onPendingImportHandled?.(),
+    );
   }, [pendingImport]);
 
   // Memoized sort function for performance
@@ -146,33 +210,46 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
 
   // Memoized filtered replacements
   const filteredReplacements = useMemo(() => {
-    return replacements.filter(replacement =>
-      replacement.original_word.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      replacement.replacement_word.toLowerCase().includes(searchTerm.toLowerCase())
+    return replacements.filter(
+      (replacement) =>
+        replacement.original_word
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
+        replacement.replacement_word
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase()),
     );
   }, [replacements, searchTerm]);
 
   // Pagination hook for better performance with large datasets
-  const pagination = usePagination(filteredReplacements, { pageSize: itemsPerPage });
+  const pagination = usePagination(filteredReplacements, {
+    pageSize: itemsPerPage,
+  });
 
   // Keyboard shortcuts - simplified version
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.ctrlKey && e.key === 's') {
+      if (e.ctrlKey && e.key === "s") {
         e.preventDefault();
         saveGlossaryRef.current();
       }
-      if (e.ctrlKey && e.key === 'n') {
+      if (e.ctrlKey && e.key === "n") {
         e.preventDefault();
         addReplacementRef.current();
       }
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
   // Replace existing pagination logic with optimized version
-  const { currentPage, totalPages, currentData: currentReplacements, goToFirst, goToPage } = pagination;
+  const {
+    currentPage,
+    totalPages,
+    currentData: currentReplacements,
+    goToFirst,
+    goToPage,
+  } = pagination;
 
   // Reset pagination and selection on search/data change
   useEffect(() => {
@@ -210,13 +287,13 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
   // Enhanced load saved glossaries with error handling
   const loadSavedGlossaries = handleAsync(async () => {
     if (!user) return;
-    
+
     setLoadingSavedGlossaries(true);
     try {
       const list = await withRetry(() => listSavedGlossaries());
       setSavedGlossaries(list as unknown as SavedGlossary[]);
     } catch (error) {
-      handleError(error, 'loadSavedGlossaries');
+      handleError(error, "loadSavedGlossaries");
     } finally {
       setLoadingSavedGlossaries(false);
     }
@@ -247,18 +324,25 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
 
     try {
       const validatedName = validateInput(glossaryNameSchema, glossaryName);
-      
+
       await withRetry(async () => {
-        const inserted = await createSavedGlossary(user.id, validatedName, replacements);
-        setSavedGlossaries((prev) => [inserted as unknown as SavedGlossary, ...prev]);
+        const inserted = await createSavedGlossary(
+          user.id,
+          validatedName,
+          replacements,
+        );
+        setSavedGlossaries((prev) => [
+          inserted as unknown as SavedGlossary,
+          ...prev,
+        ]);
       });
-      
+
       toast({
         title: "Glossary Saved",
         description: `"${validatedName}" has been saved with ${replacements.length} entries.`,
       });
     } catch (error) {
-      handleError(error, 'saveGlossary');
+      handleError(error, "saveGlossary");
     }
   });
 
@@ -266,7 +350,7 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
   const loadGlossary = handleAsync(async (glossaryData: WordReplacement[]) => {
     const sortedData = sortReplacements(glossaryData);
     setReplacements(sortedData);
-    
+
     // If we have a session, save the loaded glossary entries to the database
     if (sessionId) {
       setIsSaving(true);
@@ -274,32 +358,32 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
         await withRetry(async () => {
           // First clear existing replacements for this session
           const { error: deleteError } = await supabase
-            .from('word_replacements')
+            .from("word_replacements")
             .delete()
-            .eq('session_id', sessionId);
-          
+            .eq("session_id", sessionId);
+
           if (deleteError) throw deleteError;
-          
+
           // Then insert the new glossary entries
           const { error: insertError } = await supabase
-            .from('word_replacements')
+            .from("word_replacements")
             .insert(
-              sortedData.map(r => ({
+              sortedData.map((r) => ({
                 session_id: sessionId,
                 original_word: r.original_word,
                 replacement_word: r.replacement_word,
-              }))
+              })),
             );
-          
+
           if (insertError) throw insertError;
         });
-        
+
         toast({
           title: "Glossary Loaded & Saved",
           description: `Loaded ${glossaryData.length} glossary entries and saved to database.`,
         });
       } catch (error) {
-        handleError(error, 'loadGlossary');
+        handleError(error, "loadGlossary");
         toast({
           title: "Glossary Loaded",
           description: `Loaded ${glossaryData.length} glossary entries (not saved to database).`,
@@ -317,18 +401,20 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
   });
 
   // Enhanced delete glossary with error handling
-  const deleteGlossary = handleAsync(async (id: string, glossaryName: string) => {
-    try {
-      await withRetry(() => deleteSavedGlossaryDb(id));
-      setSavedGlossaries((prev) => prev.filter((g) => g.id !== id));
-      toast({
-        title: "Glossary Deleted",
-        description: `"${glossaryName}" has been deleted.`,
-      });
-    } catch (error) {
-      handleError(error, 'deleteGlossary');
-    }
-  });
+  const deleteGlossary = handleAsync(
+    async (id: string, glossaryName: string) => {
+      try {
+        await withRetry(() => deleteSavedGlossaryDb(id));
+        setSavedGlossaries((prev) => prev.filter((g) => g.id !== id));
+        toast({
+          title: "Glossary Deleted",
+          description: `"${glossaryName}" has been deleted.`,
+        });
+      } catch (error) {
+        handleError(error, "deleteGlossary");
+      }
+    },
+  );
 
   // Enhanced load replacements with error handling
   const loadReplacements = handleAsync(async () => {
@@ -340,7 +426,7 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
       const sortedData = sortReplacements(loadedReplacements);
       setReplacements(sortedData);
     } catch (error) {
-      handleError(error, 'loadReplacements');
+      handleError(error, "loadReplacements");
     } finally {
       setIsLoading(false);
     }
@@ -352,7 +438,7 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
     setValidationErrors({});
 
     // Rate limiting check
-    if (!rateLimiter.isAllowed(user?.id || 'anonymous')) {
+    if (!rateLimiter.isAllowed(user?.id || "anonymous")) {
       toast({
         title: "Too Many Requests",
         description: "Please wait a moment before adding more entries.",
@@ -370,11 +456,16 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
 
       // Check for duplicates
       const isDuplicate = replacements.some(
-        (r) => r.original_word.toLowerCase() === validatedData.original_word.toLowerCase()
+        (r) =>
+          r.original_word.toLowerCase() ===
+          validatedData.original_word.toLowerCase(),
       );
 
       if (isDuplicate) {
-        throw new ValidationError("This original word already exists in your glossary", 'original_word');
+        throw new ValidationError(
+          "This original word already exists in your glossary",
+          "original_word",
+        );
       }
 
       // Check reasonable limits
@@ -389,10 +480,13 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
       };
 
       if (!sessionId) {
-        const updatedReplacements = sortReplacements([...replacements, newRepl]);
+        const updatedReplacements = sortReplacements([
+          ...replacements,
+          newRepl,
+        ]);
         setReplacements(updatedReplacements);
-        setNewOriginal('');
-        setNewReplacement('');
+        setNewOriginal("");
+        setNewReplacement("");
         toast({
           title: "Glossary Entry Added",
           description: `"${newRepl.original_word}" will be replaced with "${newRepl.replacement_word}"`,
@@ -403,7 +497,7 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
       setIsSaving(true);
       const result = await withRetry(async () => {
         const { data, error } = await supabase
-          .from('word_replacements')
+          .from("word_replacements")
           .insert({
             session_id: sessionId,
             original_word: newRepl.original_word,
@@ -418,8 +512,8 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
 
       const updatedReplacements = sortReplacements([...replacements, result]);
       setReplacements(updatedReplacements);
-      setNewOriginal('');
-      setNewReplacement('');
+      setNewOriginal("");
+      setNewReplacement("");
 
       toast({
         title: "Glossary Entry Added",
@@ -429,7 +523,7 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
       if (error instanceof ValidationError && error.field) {
         setValidationErrors({ [error.field]: error.message });
       }
-      handleError(error, 'addReplacement');
+      handleError(error, "addReplacement");
     } finally {
       setIsSaving(false);
     }
@@ -438,27 +532,31 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
   // Enhanced remove replacement with error handling
   const removeReplacement = handleAsync(async (id: string) => {
     if (!sessionId) {
-      setReplacements((currentReplacements) => currentReplacements.filter(r => r.id !== id));
+      setReplacements((currentReplacements) =>
+        currentReplacements.filter((r) => r.id !== id),
+      );
       return;
     }
 
     try {
       await withRetry(async () => {
         const { error } = await supabase
-          .from('word_replacements')
+          .from("word_replacements")
           .delete()
-          .eq('id', id);
+          .eq("id", id);
 
         if (error) throw error;
       });
 
-      setReplacements((currentReplacements) => currentReplacements.filter(r => r.id !== id));
+      setReplacements((currentReplacements) =>
+        currentReplacements.filter((r) => r.id !== id),
+      );
       toast({
         title: "Glossary Entry Removed",
         description: "The glossary entry has been deleted.",
       });
     } catch (error) {
-      handleError(error, 'removeReplacement');
+      handleError(error, "removeReplacement");
     }
   });
 
@@ -469,7 +567,9 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
     const selectedIds = new Set(selectedItems);
 
     if (!sessionId) {
-      setReplacements((currentReplacements) => currentReplacements.filter(r => !selectedIds.has(r.id)));
+      setReplacements((currentReplacements) =>
+        currentReplacements.filter((r) => !selectedIds.has(r.id)),
+      );
       setSelectedItems(new Set());
       return;
     }
@@ -478,14 +578,16 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
     try {
       await withRetry(async () => {
         const { error } = await supabase
-          .from('word_replacements')
+          .from("word_replacements")
           .delete()
-          .in('id', Array.from(selectedIds));
+          .in("id", Array.from(selectedIds));
 
         if (error) throw error;
       });
 
-      setReplacements((currentReplacements) => currentReplacements.filter(r => !selectedIds.has(r.id)));
+      setReplacements((currentReplacements) =>
+        currentReplacements.filter((r) => !selectedIds.has(r.id)),
+      );
       setSelectedItems(new Set());
 
       toast({
@@ -493,7 +595,7 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
         description: `${selectedIds.size} glossary entries have been deleted.`,
       });
     } catch (error) {
-      handleError(error, 'removeSelectedReplacements');
+      handleError(error, "removeSelectedReplacements");
     } finally {
       setIsSaving(false);
     }
@@ -504,13 +606,16 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
   loadReplacementsRef.current = loadReplacements;
   loadSavedGlossariesRef.current = loadSavedGlossaries;
 
-  const addReplacementOnEnter = useCallback((event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key !== 'Enter' || event.nativeEvent.isComposing) return;
-    event.preventDefault();
+  const addReplacementOnEnter = useCallback(
+    (event: React.KeyboardEvent<HTMLInputElement>) => {
+      if (event.key !== "Enter" || event.nativeEvent.isComposing) return;
+      event.preventDefault();
 
-    if (isSaving || !newOriginal.trim() || !newReplacement.trim()) return;
-    addReplacement();
-  }, [addReplacement, isSaving, newOriginal, newReplacement]);
+      if (isSaving || !newOriginal.trim() || !newReplacement.trim()) return;
+      addReplacement();
+    },
+    [addReplacement, isSaving, newOriginal, newReplacement],
+  );
 
   // Show loading skeleton while data is being fetched
   if (isLoading) {
@@ -518,7 +623,9 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
   }
 
   // Enhanced import with validation
-  const handleImportReplacements = async (importedReplacements: Omit<WordReplacement, 'id'>[]): Promise<void> => {
+  const handleImportReplacements = async (
+    importedReplacements: Omit<WordReplacement, "id">[],
+  ): Promise<void> => {
     const persistedReplacements: WordReplacement[] = [];
 
     try {
@@ -527,26 +634,39 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
         try {
           return validateInput(wordReplacementSchema, r);
         } catch (error) {
-          throw new ValidationError(`Row ${index + 1}: ${error instanceof ValidationError ? error.message : 'Invalid data'}`);
+          throw new ValidationError(
+            `Row ${index + 1}: ${error instanceof ValidationError ? error.message : "Invalid data"}`,
+          );
         }
       });
 
       const importedWords = new Set<string>();
-      const distinctReplacements = validatedReplacements.filter((replacement) => {
-        const normalizedWord = normalizeOriginalWord(replacement.original_word);
-        if (importedWords.has(normalizedWord)) return false;
-        importedWords.add(normalizedWord);
-        return true;
-      });
+      const distinctReplacements = validatedReplacements.filter(
+        (replacement) => {
+          const normalizedWord = normalizeOriginalWord(
+            replacement.original_word,
+          );
+          if (importedWords.has(normalizedWord)) return false;
+          importedWords.add(normalizedWord);
+          return true;
+        },
+      );
       const sessionImportState = sessionId
         ? await fetchSessionImportState(sessionId, Array.from(importedWords))
         : null;
-      const existingWords = sessionImportState?.existingWords
-        || new Set(replacements.map((replacement) => normalizeOriginalWord(replacement.original_word)));
+      const existingWords =
+        sessionImportState?.existingWords ||
+        new Set(
+          replacements.map((replacement) =>
+            normalizeOriginalWord(replacement.original_word),
+          ),
+        );
       const uniqueReplacements = distinctReplacements.filter(
-        (replacement) => !existingWords.has(normalizeOriginalWord(replacement.original_word))
+        (replacement) =>
+          !existingWords.has(normalizeOriginalWord(replacement.original_word)),
       );
-      const locallySkippedCount = validatedReplacements.length - uniqueReplacements.length;
+      const locallySkippedCount =
+        validatedReplacements.length - uniqueReplacements.length;
 
       if (uniqueReplacements.length == 0) {
         toast({
@@ -557,42 +677,57 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
       }
 
       // Check total limit
-      const totalEntries = sessionImportState ? sessionImportState.totalEntries : replacements.length;
+      const totalEntries = sessionImportState
+        ? sessionImportState.totalEntries
+        : replacements.length;
 
       if (totalEntries + uniqueReplacements.length > MAX_GLOSSARY_ENTRIES) {
-        throw new ValidationError("Import would exceed maximum of 10,000 glossary entries");
+        throw new ValidationError(
+          "Import would exceed maximum of 10,000 glossary entries",
+        );
       }
 
       if (!sessionId) {
-        const newReplacements: WordReplacement[] = uniqueReplacements.map((r, index) => ({
-          id: Date.now().toString() + index.toString(),
-          original_word: r.original_word,
-          replacement_word: r.replacement_word,
-        }));
-        setReplacements((currentReplacements) => sortReplacements([...currentReplacements, ...newReplacements]));
+        const newReplacements: WordReplacement[] = uniqueReplacements.map(
+          (r, index) => ({
+            id: Date.now().toString() + index.toString(),
+            original_word: r.original_word,
+            replacement_word: r.replacement_word,
+          }),
+        );
+        setReplacements((currentReplacements) =>
+          sortReplacements([...currentReplacements, ...newReplacements]),
+        );
         toast({
           title: "Import Successful",
-          description: `Added ${newReplacements.length} glossary entries.${locallySkippedCount > 0 ? ` Skipped ${locallySkippedCount} existing entries.` : ''}`,
+          description: `Added ${newReplacements.length} glossary entries.${locallySkippedCount > 0 ? ` Skipped ${locallySkippedCount} existing entries.` : ""}`,
         });
         return;
       }
 
       setIsSaving(true);
-      for (let index = 0; index < uniqueReplacements.length; index += IMPORT_BATCH_SIZE) {
-        const batch = uniqueReplacements.slice(index, index + IMPORT_BATCH_SIZE);
+      for (
+        let index = 0;
+        index < uniqueReplacements.length;
+        index += IMPORT_BATCH_SIZE
+      ) {
+        const batch = uniqueReplacements.slice(
+          index,
+          index + IMPORT_BATCH_SIZE,
+        );
         const insertedRows = await withRetry(async () => {
           const { data, error } = await supabase
-            .from('word_replacements')
+            .from("word_replacements")
             .upsert(
-              batch.map(r => ({
+              batch.map((r) => ({
                 session_id: sessionId,
                 original_word: r.original_word,
                 replacement_word: r.replacement_word,
               })),
               {
-                onConflict: 'session_id,normalized_original_word',
+                onConflict: "session_id,normalized_original_word",
                 ignoreDuplicates: true,
-              }
+              },
             )
             .select();
 
@@ -603,16 +738,21 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
         persistedReplacements.push(...insertedRows);
       }
 
-      setReplacements((currentReplacements) => sortReplacements([...currentReplacements, ...persistedReplacements]));
-      const skippedCount = validatedReplacements.length - persistedReplacements.length;
-      
+      setReplacements((currentReplacements) =>
+        sortReplacements([...currentReplacements, ...persistedReplacements]),
+      );
+      const skippedCount =
+        validatedReplacements.length - persistedReplacements.length;
+
       toast({
         title: "Import Successful",
-        description: `Added ${persistedReplacements.length} glossary entries.${skippedCount > 0 ? ` Skipped ${skippedCount} existing entries.` : ''}`,
+        description: `Added ${persistedReplacements.length} glossary entries.${skippedCount > 0 ? ` Skipped ${skippedCount} existing entries.` : ""}`,
       });
     } catch (error) {
       if (persistedReplacements.length > 0) {
-        setReplacements((currentReplacements) => sortReplacements([...currentReplacements, ...persistedReplacements]));
+        setReplacements((currentReplacements) =>
+          sortReplacements([...currentReplacements, ...persistedReplacements]),
+        );
         toast({
           title: "Import Partially Completed",
           description: `Saved ${persistedReplacements.length} glossary entries before the import stopped. Please retry the remaining entries.`,
@@ -621,7 +761,7 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
         return;
       }
 
-      handleError(error, 'handleImportReplacements');
+      handleError(error, "handleImportReplacements");
     } finally {
       setIsSaving(false);
     }
@@ -635,7 +775,11 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
 
     range.push(1);
 
-    for (let i = Math.max(2, currentPage - delta); i <= Math.min(totalPages - 1, currentPage + delta); i++) {
+    for (
+      let i = Math.max(2, currentPage - delta);
+      i <= Math.min(totalPages - 1, currentPage + delta);
+      i++
+    ) {
       range.push(i);
     }
 
@@ -648,7 +792,7 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
     let prev = 0;
     for (const page of uniqueRange) {
       if (page - prev > 1) {
-        rangeWithDots.push('...');
+        rangeWithDots.push("...");
       }
       rangeWithDots.push(page);
       prev = page;
@@ -664,7 +808,7 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      const allFilteredIds = new Set(filteredReplacements.map(r => r.id));
+      const allFilteredIds = new Set(filteredReplacements.map((r) => r.id));
       setSelectedItems(allFilteredIds);
     } else {
       setSelectedItems(new Set());
@@ -672,7 +816,7 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
   };
 
   const handleSelectItem = (id: string, checked: boolean) => {
-    setSelectedItems(prev => {
+    setSelectedItems((prev) => {
       const newSet = new Set(prev);
       if (checked) {
         newSet.add(id);
@@ -683,43 +827,51 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
     });
   };
 
-  const isAllFilteredSelected = filteredReplacements.length > 0 && 
-    filteredReplacements.every(r => selectedItems.has(r.id));
-  const isSomeFilteredSelected = filteredReplacements.some(r => selectedItems.has(r.id));
+  const isAllFilteredSelected =
+    filteredReplacements.length > 0 &&
+    filteredReplacements.every((r) => selectedItems.has(r.id));
+  const isSomeFilteredSelected = filteredReplacements.some((r) =>
+    selectedItems.has(r.id),
+  );
 
   const canUseFeature = () => {
     if (!user) return false;
-    if (userRole === 'super_user') return true;
-    return userRole === 'user';
+    if (userRole === "super_user") return true;
+    return userRole === "user";
   };
 
   return (
-    <ErrorBoundary fallback={
-      <Card className="w-full max-w-4xl mx-auto">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-destructive">
-            <AlertTriangle size={20} />
-            Error Loading Word Replacements
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Alert variant="destructive">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>
-              Something went wrong while loading the word replacements component. Please try refreshing the page.
-            </AlertDescription>
-          </Alert>
-        </CardContent>
-      </Card>
-    }>
+    <ErrorBoundary
+      fallback={
+        <Card className="w-full max-w-4xl mx-auto">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle size={20} />
+              Error Loading Word Replacements
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                Something went wrong while loading the word replacements
+                component. Please try refreshing the page.
+              </AlertDescription>
+            </Alert>
+          </CardContent>
+        </Card>
+      }
+    >
       <div className="space-y-8">
-        <ErrorBoundary fallback={
-          <Alert variant="destructive">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>Failed to load CSV manager</AlertDescription>
-          </Alert>
-        }>
-          <CSVManager 
+        <ErrorBoundary
+          fallback={
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>Failed to load CSV manager</AlertDescription>
+            </Alert>
+          }
+        >
+          <CSVManager
             replacements={replacements}
             onImport={handleImportReplacements}
             userRole={userRole}
@@ -735,7 +887,10 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
               </div>
               Glossary Library
               {savedGlossaries.length > 0 && (
-                <Badge variant="secondary" className="ml-2 bg-accent/10 text-accent border-accent/20 hover:bg-accent/20 transition-smooth">
+                <Badge
+                  variant="secondary"
+                  className="ml-2 bg-accent/10 text-accent border-accent/20 hover:bg-accent/20 transition-smooth"
+                >
                   {savedGlossaries.length} saved
                 </Badge>
               )}
@@ -747,13 +902,15 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
                 onClick={saveGlossary}
                 variant="outline"
                 size="sm"
-                disabled={isSaving || !canUseFeature() || replacements.length === 0}
+                disabled={
+                  isSaving || !canUseFeature() || replacements.length === 0
+                }
                 className="border-accent/30 text-accent hover:bg-accent/10 hover:border-accent/50 transition-smooth shadow-accent/20 hover:shadow-accent"
               >
                 <Database className="mr-2 h-4 w-4" />
                 Save Current Glossary
               </Button>
-              
+
               {loadingSavedGlossaries ? (
                 <div className="flex gap-2">
                   {[1, 2, 3].map((i) => (
@@ -763,7 +920,9 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
               ) : (
                 (() => {
                   const mobileLimit = 3;
-                  const visibleGlossaries = showAllGlossaries ? savedGlossaries : savedGlossaries.slice(0, mobileLimit);
+                  const visibleGlossaries = showAllGlossaries
+                    ? savedGlossaries
+                    : savedGlossaries.slice(0, mobileLimit);
                   const hasMore = savedGlossaries.length > mobileLimit;
 
                   return (
@@ -771,28 +930,62 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
                       {/* Mobile: limited list */}
                       <div className="sm:hidden w-full space-y-2">
                         {visibleGlossaries.map((glossary) => (
-                          <div key={glossary.id} className="flex items-center gap-2 w-full bg-muted/30 border border-muted rounded-lg p-2 transition-smooth hover:bg-muted/50">
-                            <span className="text-sm font-medium text-foreground truncate flex-1 min-w-0" title={glossary.name}>
+                          <div
+                            key={glossary.id}
+                            className="flex items-center gap-2 w-full bg-muted/30 border border-muted rounded-lg p-2 transition-smooth hover:bg-muted/50"
+                          >
+                            <span
+                              className="text-sm font-medium text-foreground truncate flex-1 min-w-0"
+                              title={glossary.name}
+                            >
                               {glossary.name}
                             </span>
-                            <Badge variant="secondary" className="text-xs px-2 py-0.5 bg-primary/10 text-primary border-primary/20 shrink-0">
+                            <Badge
+                              variant="secondary"
+                              className="text-xs px-2 py-0.5 bg-primary/10 text-primary border-primary/20 shrink-0"
+                            >
                               {glossary.glossary_data?.length ?? 0}
                             </Badge>
-                            <Button onClick={() => loadGlossary(glossary.glossary_data)} size="sm" variant="ghost" disabled={isSaving} className="min-h-[44px] min-w-[44px] p-0 text-primary hover:bg-primary/10 transition-smooth shrink-0">
+                            <Button
+                              onClick={() =>
+                                loadGlossary(glossary.glossary_data)
+                              }
+                              size="sm"
+                              variant="ghost"
+                              disabled={isSaving}
+                              className="min-h-[44px] min-w-[44px] p-0 text-primary hover:bg-primary/10 transition-smooth shrink-0"
+                            >
                               <BookText className="h-4 w-4" />
                             </Button>
-                            <Button onClick={() => deleteGlossary(glossary.id, glossary.name)} size="sm" variant="ghost" className="min-h-[44px] min-w-[44px] p-0 text-destructive hover:bg-destructive/10 transition-smooth shrink-0">
+                            <Button
+                              onClick={() =>
+                                deleteGlossary(glossary.id, glossary.name)
+                              }
+                              size="sm"
+                              variant="ghost"
+                              className="min-h-[44px] min-w-[44px] p-0 text-destructive hover:bg-destructive/10 transition-smooth shrink-0"
+                            >
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
                         ))}
                         {hasMore && !showAllGlossaries && (
-                          <Button variant="ghost" size="sm" className="w-full text-primary" onClick={() => setShowAllGlossaries(true)}>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="w-full text-primary"
+                            onClick={() => setShowAllGlossaries(true)}
+                          >
                             View All ({savedGlossaries.length})
                           </Button>
                         )}
                         {hasMore && showAllGlossaries && (
-                          <Button variant="ghost" size="sm" className="w-full text-muted-foreground" onClick={() => setShowAllGlossaries(false)}>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="w-full text-muted-foreground"
+                            onClick={() => setShowAllGlossaries(false)}
+                          >
                             Show Less
                           </Button>
                         )}
@@ -801,17 +994,41 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
                       {/* Desktop: full list */}
                       <div className="hidden sm:contents">
                         {savedGlossaries.map((glossary) => (
-                          <div key={glossary.id} className="flex items-center gap-2 w-full bg-muted/30 border border-muted rounded-lg p-2 transition-smooth hover:bg-muted/50">
-                            <span className="text-sm font-medium text-foreground truncate flex-1 min-w-0" title={glossary.name}>
+                          <div
+                            key={glossary.id}
+                            className="flex items-center gap-2 w-full bg-muted/30 border border-muted rounded-lg p-2 transition-smooth hover:bg-muted/50"
+                          >
+                            <span
+                              className="text-sm font-medium text-foreground truncate flex-1 min-w-0"
+                              title={glossary.name}
+                            >
                               {glossary.name}
                             </span>
-                            <Badge variant="secondary" className="text-xs px-2 py-0.5 bg-primary/10 text-primary border-primary/20 shrink-0">
+                            <Badge
+                              variant="secondary"
+                              className="text-xs px-2 py-0.5 bg-primary/10 text-primary border-primary/20 shrink-0"
+                            >
                               {glossary.glossary_data?.length ?? 0}
                             </Badge>
-                            <Button onClick={() => loadGlossary(glossary.glossary_data)} size="sm" variant="ghost" disabled={isSaving} className="h-6 w-6 min-h-0 min-w-0 p-0 text-primary hover:bg-primary/10 transition-smooth shrink-0">
+                            <Button
+                              onClick={() =>
+                                loadGlossary(glossary.glossary_data)
+                              }
+                              size="sm"
+                              variant="ghost"
+                              disabled={isSaving}
+                              className="h-6 w-6 min-h-0 min-w-0 p-0 text-primary hover:bg-primary/10 transition-smooth shrink-0"
+                            >
                               <BookText className="h-3 w-3" />
                             </Button>
-                            <Button onClick={() => deleteGlossary(glossary.id, glossary.name)} size="sm" variant="ghost" className="h-6 w-6 min-h-0 min-w-0 p-0 text-destructive hover:bg-destructive/10 transition-smooth shrink-0">
+                            <Button
+                              onClick={() =>
+                                deleteGlossary(glossary.id, glossary.name)
+                              }
+                              size="sm"
+                              variant="ghost"
+                              className="h-6 w-6 min-h-0 min-w-0 p-0 text-destructive hover:bg-destructive/10 transition-smooth shrink-0"
+                            >
                               <Trash2 className="h-3 w-3" />
                             </Button>
                           </div>
@@ -822,13 +1039,12 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
                 })()
               )}
             </div>
-            
+
             {savedGlossaries.length === 0 && !loadingSavedGlossaries && (
               <p className="text-sm text-muted-foreground italic">
-                {canUseFeature() 
+                {canUseFeature()
                   ? "No saved glossaries yet. Create and save your first glossary to reuse across sessions."
-                  : "Please sign in to save and load glossaries."
-                }
+                  : "Please sign in to save and load glossaries."}
               </p>
             )}
           </CardContent>
@@ -842,7 +1058,10 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
               </div>
               Text Glossary
               {replacements.length > 0 && (
-                <Badge variant="secondary" className="ml-2 bg-primary/10 text-primary border-primary/20 hover:bg-primary/20 transition-smooth">
+                <Badge
+                  variant="secondary"
+                  className="ml-2 bg-primary/10 text-primary border-primary/20 hover:bg-primary/20 transition-smooth"
+                >
                   {replacements.length} entries (sorted by length)
                 </Badge>
               )}
@@ -855,20 +1074,23 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
                 Add New Glossary Entry
                 <Shield className="h-4 w-4 text-muted-foreground" />
               </h3>
-              
+
               {/* Show validation errors */}
               {Object.keys(validationErrors).length > 0 && (
                 <Alert variant="destructive" className="mb-4">
                   <AlertTriangle className="h-4 w-4" />
                   <AlertDescription>
-                    {Object.values(validationErrors).join(', ')}
+                    {Object.values(validationErrors).join(", ")}
                   </AlertDescription>
                 </Alert>
               )}
-              
+
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="originalWord" className="text-sm font-semibold text-foreground">
+                  <Label
+                    htmlFor="originalWord"
+                    className="text-sm font-semibold text-foreground"
+                  >
                     Original Term
                   </Label>
                   <Input
@@ -879,7 +1101,7 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
                     onChange={(e) => {
                       setNewOriginal(e.target.value);
                       if (validationErrors.original_word) {
-                        setValidationErrors(prev => {
+                        setValidationErrors((prev) => {
                           const { original_word, ...rest } = prev;
                           return rest;
                         });
@@ -887,16 +1109,21 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
                     }}
                     className={cn(
                       "border-border focus:border-primary focus:ring-primary transition-smooth hover:border-ring",
-                      validationErrors.original_word && "border-destructive"
+                      validationErrors.original_word && "border-destructive",
                     )}
                     maxLength={500}
                   />
                   {validationErrors.original_word && (
-                    <p className="text-xs text-destructive">{validationErrors.original_word}</p>
+                    <p className="text-xs text-destructive">
+                      {validationErrors.original_word}
+                    </p>
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="replacementWord" className="text-sm font-semibold text-foreground">
+                  <Label
+                    htmlFor="replacementWord"
+                    className="text-sm font-semibold text-foreground"
+                  >
                     Preferred Term
                   </Label>
                   <Input
@@ -907,7 +1134,7 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
                     onChange={(e) => {
                       setNewReplacement(e.target.value);
                       if (validationErrors.replacement_word) {
-                        setValidationErrors(prev => {
+                        setValidationErrors((prev) => {
                           const { replacement_word, ...rest } = prev;
                           return rest;
                         });
@@ -915,23 +1142,27 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
                     }}
                     className={cn(
                       "border-border focus:border-primary focus:ring-primary transition-smooth hover:border-ring",
-                      validationErrors.replacement_word && "border-destructive"
+                      validationErrors.replacement_word && "border-destructive",
                     )}
                     maxLength={500}
                   />
                   {validationErrors.replacement_word && (
-                    <p className="text-xs text-destructive">{validationErrors.replacement_word}</p>
+                    <p className="text-xs text-destructive">
+                      {validationErrors.replacement_word}
+                    </p>
                   )}
                 </div>
                 <div className="flex items-end md:items-end">
                   <Button
                     onClick={addReplacement}
-                    disabled={isSaving || !newOriginal.trim() || !newReplacement.trim()}
+                    disabled={
+                      isSaving || !newOriginal.trim() || !newReplacement.trim()
+                    }
                     size="lg"
                     className="w-full min-h-[44px] bg-primary hover:bg-primary/90 text-primary-foreground transition-smooth disabled:opacity-50 shadow-elegant hover:shadow-glow"
                   >
                     <Plus className="mr-2 h-4 w-4" />
-                    {isSaving ? 'Adding...' : 'Add Entry'}
+                    {isSaving ? "Adding..." : "Add Entry"}
                   </Button>
                 </div>
               </div>
@@ -948,12 +1179,16 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
                     className="pl-10 border-border focus:border-primary focus:ring-primary bg-card hover:border-ring transition-smooth"
                   />
                 </div>
-                
+
                 <div className="flex items-center gap-4">
                   {selectedItems.size > 0 && (
                     <div className="flex items-center gap-3">
-                      <Badge variant="outline" className="px-3 py-1 bg-card text-foreground border-border hover:bg-muted/50 transition-smooth">
-                        {selectedItems.size}/{filteredReplacements.length} selected
+                      <Badge
+                        variant="outline"
+                        className="px-3 py-1 bg-card text-foreground border-border hover:bg-muted/50 transition-smooth"
+                      >
+                        {selectedItems.size}/{filteredReplacements.length}{" "}
+                        selected
                       </Badge>
                       <Button
                         onClick={removeSelectedReplacements}
@@ -994,7 +1229,7 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
                     )}
                   </div>
                 </div>
-                
+
                 {/* Mobile: card layout */}
                 <div className="sm:hidden space-y-3">
                   <div className="flex items-center gap-2 mb-2">
@@ -1003,47 +1238,71 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
                       onCheckedChange={handleSelectAll}
                       className={cn(
                         "data-[state=indeterminate]:bg-primary data-[state=indeterminate]:text-primary-foreground",
-                        isSomeFilteredSelected && !isAllFilteredSelected && "data-[state=indeterminate]"
+                        isSomeFilteredSelected &&
+                          !isAllFilteredSelected &&
+                          "data-[state=indeterminate]",
                       )}
                     />
-                    <span className="text-sm text-muted-foreground">Select all</span>
+                    <span className="text-sm text-muted-foreground">
+                      Select all
+                    </span>
                     {selectedItems.size > 0 && (
-                      <Badge variant="secondary" className="text-xs px-2 py-0.5 bg-primary/10 text-primary border-primary/20">
+                      <Badge
+                        variant="secondary"
+                        className="text-xs px-2 py-0.5 bg-primary/10 text-primary border-primary/20"
+                      >
                         {selectedItems.size}
                       </Badge>
                     )}
                   </div>
                   {(() => {
                     const mobileEntryLimit = 5;
-                    const visibleEntries = showAllMobileEntries ? currentReplacements : currentReplacements.slice(0, mobileEntryLimit);
-                    const hasMoreEntries = currentReplacements.length > mobileEntryLimit;
+                    const visibleEntries = showAllMobileEntries
+                      ? currentReplacements
+                      : currentReplacements.slice(0, mobileEntryLimit);
+                    const hasMoreEntries =
+                      currentReplacements.length > mobileEntryLimit;
 
                     return (
                       <>
                         {visibleEntries.map((replacement) => (
-                          <div key={replacement.id} className="border rounded-lg bg-card p-4 space-y-3 shadow-sm">
+                          <div
+                            key={replacement.id}
+                            className="border rounded-lg bg-card p-4 space-y-3 shadow-sm"
+                          >
                             <div className="flex items-start justify-between gap-2">
                               <Checkbox
                                 checked={selectedItems.has(replacement.id)}
-                                onCheckedChange={(checked) => handleSelectItem(replacement.id, checked as boolean)}
+                                onCheckedChange={(checked) =>
+                                  handleSelectItem(
+                                    replacement.id,
+                                    checked as boolean,
+                                  )
+                                }
                                 className="mt-1"
                               />
                               <div className="flex-1 min-w-0 space-y-2">
                                 <div>
-                                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Original</span>
+                                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                                    Original
+                                  </span>
                                   <code className="block mt-1 bg-destructive/10 text-destructive px-3 py-1.5 rounded-md text-sm font-mono border border-destructive/20 break-words">
                                     {replacement.original_word}
                                   </code>
                                 </div>
                                 <div>
-                                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Preferred</span>
+                                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                                    Preferred
+                                  </span>
                                   <code className="block mt-1 bg-muted/50 text-foreground px-3 py-1.5 rounded-md text-sm font-mono border border-border break-words">
                                     {replacement.replacement_word}
                                   </code>
                                 </div>
                               </div>
                               <Button
-                                onClick={() => removeReplacement(replacement.id)}
+                                onClick={() =>
+                                  removeReplacement(replacement.id)
+                                }
                                 variant="ghost"
                                 size="sm"
                                 className="min-h-[44px] min-w-[44px] text-destructive hover:text-destructive hover:bg-destructive/10 shrink-0"
@@ -1054,12 +1313,22 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
                           </div>
                         ))}
                         {hasMoreEntries && !showAllMobileEntries && (
-                          <Button variant="ghost" size="sm" className="w-full text-primary" onClick={() => setShowAllMobileEntries(true)}>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="w-full text-primary"
+                            onClick={() => setShowAllMobileEntries(true)}
+                          >
                             View All ({currentReplacements.length} entries)
                           </Button>
                         )}
                         {hasMoreEntries && showAllMobileEntries && (
-                          <Button variant="ghost" size="sm" className="w-full text-muted-foreground" onClick={() => setShowAllMobileEntries(false)}>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="w-full text-muted-foreground"
+                            onClick={() => setShowAllMobileEntries(false)}
+                          >
                             Show Less
                           </Button>
                         )}
@@ -1081,28 +1350,47 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
                                 onCheckedChange={handleSelectAll}
                                 className={cn(
                                   "data-[state=indeterminate]:bg-primary data-[state=indeterminate]:text-primary-foreground",
-                                  isSomeFilteredSelected && !isAllFilteredSelected && "data-[state=indeterminate]"
+                                  isSomeFilteredSelected &&
+                                    !isAllFilteredSelected &&
+                                    "data-[state=indeterminate]",
                                 )}
                               />
                               {selectedItems.size > 0 && (
-                                <Badge variant="secondary" className="text-xs px-2 py-0.5 bg-primary/10 text-primary border-primary/20">
+                                <Badge
+                                  variant="secondary"
+                                  className="text-xs px-2 py-0.5 bg-primary/10 text-primary border-primary/20"
+                                >
                                   {selectedItems.size}
                                 </Badge>
                               )}
                             </div>
                           </TableHead>
-                          <TableHead className="min-w-[150px] font-semibold text-foreground">Original Term</TableHead>
-                          <TableHead className="min-w-[150px] font-semibold text-foreground">Preferred Term</TableHead>
-                          <TableHead className="w-24 text-center font-semibold text-foreground">Actions</TableHead>
+                          <TableHead className="min-w-[150px] font-semibold text-foreground">
+                            Original Term
+                          </TableHead>
+                          <TableHead className="min-w-[150px] font-semibold text-foreground">
+                            Preferred Term
+                          </TableHead>
+                          <TableHead className="w-24 text-center font-semibold text-foreground">
+                            Actions
+                          </TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {currentReplacements.map((replacement) => (
-                          <TableRow key={replacement.id} className="hover:bg-muted/30 transition-smooth">
+                          <TableRow
+                            key={replacement.id}
+                            className="hover:bg-muted/30 transition-smooth"
+                          >
                             <TableCell className="p-4">
                               <Checkbox
                                 checked={selectedItems.has(replacement.id)}
-                                onCheckedChange={(checked) => handleSelectItem(replacement.id, checked as boolean)}
+                                onCheckedChange={(checked) =>
+                                  handleSelectItem(
+                                    replacement.id,
+                                    checked as boolean,
+                                  )
+                                }
                               />
                             </TableCell>
                             <TableCell className="font-medium break-words p-4">
@@ -1110,7 +1398,10 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
                                 <code className="bg-destructive/10 text-destructive px-3 py-1 rounded-md text-sm font-mono border border-destructive/20">
                                   {replacement.original_word}
                                 </code>
-                                <Badge variant="outline" className="text-xs px-2 py-0.5 bg-muted text-muted-foreground">
+                                <Badge
+                                  variant="outline"
+                                  className="text-xs px-2 py-0.5 bg-muted text-muted-foreground"
+                                >
                                   {replacement.original_word.length} chars
                                 </Badge>
                               </div>
@@ -1122,7 +1413,9 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
                             </TableCell>
                             <TableCell className="text-center p-4">
                               <Button
-                                onClick={() => removeReplacement(replacement.id)}
+                                onClick={() =>
+                                  removeReplacement(replacement.id)
+                                }
                                 variant="ghost"
                                 size="sm"
                                 className="text-destructive hover:text-destructive hover:bg-destructive/10 transition-smooth"
@@ -1136,24 +1429,27 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
                     </Table>
                   </div>
                 </div>
-                
+
                 {totalPages > 1 && (
                   <div className="flex justify-center">
                     <Pagination>
                       <PaginationContent className="flex flex-wrap justify-center gap-1">
                         <PaginationItem>
-                          <PaginationPrevious 
-                            onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
+                          <PaginationPrevious
+                            onClick={() =>
+                              handlePageChange(Math.max(1, currentPage - 1))
+                            }
                             className={cn(
                               "cursor-pointer text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2 transition-all duration-200 hover:shadow-sm",
-                              currentPage === 1 && "pointer-events-none opacity-50"
+                              currentPage === 1 &&
+                                "pointer-events-none opacity-50",
                             )}
                           />
                         </PaginationItem>
-                        
+
                         {getVisiblePages().map((page, index) => (
                           <PaginationItem key={index}>
-                            {page === '...' ? (
+                            {page === "..." ? (
                               <PaginationEllipsis className="h-8 w-8 sm:h-9 sm:w-9" />
                             ) : (
                               <PaginationLink
@@ -1166,13 +1462,18 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
                             )}
                           </PaginationItem>
                         ))}
-                        
+
                         <PaginationItem>
-                          <PaginationNext 
-                            onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
+                          <PaginationNext
+                            onClick={() =>
+                              handlePageChange(
+                                Math.min(totalPages, currentPage + 1),
+                              )
+                            }
                             className={cn(
                               "cursor-pointer text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2 transition-all duration-200 hover:shadow-sm",
-                              currentPage === totalPages && "pointer-events-none opacity-50"
+                              currentPage === totalPages &&
+                                "pointer-events-none opacity-50",
                             )}
                           />
                         </PaginationItem>
@@ -1184,8 +1485,12 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
             ) : replacements.length > 0 ? (
               <div className="text-center py-12 bg-muted/30 rounded-lg border-2 border-dashed border-border hover:border-ring transition-smooth">
                 <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-foreground mb-2">No matches found</h3>
-                <p className="text-muted-foreground">Try adjusting your search terms</p>
+                <h3 className="text-lg font-medium text-foreground mb-2">
+                  No matches found
+                </h3>
+                <p className="text-muted-foreground">
+                  Try adjusting your search terms
+                </p>
               </div>
             ) : (
               <div className="bg-muted/30 rounded-lg p-6 border border-border">
@@ -1193,19 +1498,26 @@ const WordReplacements: React.FC<WordReplacementsProps> = ({ sessionId, onReplac
                   <div className="bg-primary/10 p-3 sm:p-4 rounded-full w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-4 flex items-center justify-center shadow-elegant">
                     <BookText className="h-8 w-8 text-primary" />
                   </div>
-                  <h3 className="text-lg font-medium text-foreground mb-2">No glossary entries yet</h3>
+                  <h3 className="text-lg font-medium text-foreground mb-2">
+                    No glossary entries yet
+                  </h3>
                   <p className="text-muted-foreground mb-4 max-w-md mx-auto">
-                    Add glossary entries above or import from a CSV or Excel file below
+                    Add glossary entries above or import from a CSV or Excel
+                    file below
                   </p>
                 </div>
-                
-                <ErrorBoundary fallback={
-                  <Alert>
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertDescription>Failed to load drag and drop uploader</AlertDescription>
-                  </Alert>
-                }>
-                  <DragDropUpload 
+
+                <ErrorBoundary
+                  fallback={
+                    <Alert>
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertDescription>
+                        Failed to load drag and drop uploader
+                      </AlertDescription>
+                    </Alert>
+                  }
+                >
+                  <DragDropUpload
                     onImport={handleImportReplacements}
                     canUseFeature={canUseFeature()}
                     user={user}
