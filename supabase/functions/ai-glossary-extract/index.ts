@@ -63,6 +63,41 @@ const parseEntries = (content: string): GlossaryEntry[] => {
     .slice(0, MAX_ENTRIES);
 };
 
+const readProviderContent = async (response: Response): Promise<string> => {
+  const contentType = response.headers.get("content-type") ?? "";
+  if (!contentType.includes("text/event-stream")) {
+    const payload = await response.json();
+    return payload.choices?.[0]?.message?.content ?? "";
+  }
+
+  if (!response.body) return "";
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let content = "";
+
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const events = buffer.split("\n\n");
+    buffer = events.pop() ?? "";
+    for (const event of events) {
+      const data = event
+        .split("\n")
+        .find((line) => line.startsWith("data:"))
+        ?.slice(5)
+        .trim();
+      if (!data || data === "[DONE]") continue;
+      const chunk = JSON.parse(data);
+      const delta = chunk.choices?.[0]?.delta?.content;
+      if (typeof delta === "string") content += delta;
+    }
+  }
+
+  return content;
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS")
     return new Response("ok", { headers: corsHeaders });
@@ -127,6 +162,7 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         model: model.model_id,
+        stream: true,
         temperature: 0,
         messages: [
           {
@@ -157,8 +193,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const response = await upstream.json();
-    const content = response.choices?.[0]?.message?.content;
+    const content = await readProviderContent(upstream);
     if (typeof content !== "string")
       return json({ error: "AI returned no glossary content" }, 502);
     return json({ entries: parseEntries(content) });
