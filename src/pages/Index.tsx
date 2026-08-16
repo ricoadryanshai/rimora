@@ -70,6 +70,8 @@ const Index = () => {
     "paragraph",
   );
   const [separatedCards, setSeparatedCards] = useState<string[]>([]);
+  const [translatedCards, setTranslatedCards] = useState<(string | null)[]>([]);
+  const [showOriginalIndexes, setShowOriginalIndexes] = useState<number[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [wordReplacements, setWordReplacements] = useState<any[]>([]);
   const [currentSection, setCurrentSection] =
