@@ -34,6 +34,8 @@ import {
   WifiOff,
   ClipboardPaste,
   Languages,
+  Maximize2,
+  X,
 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 const UrlImport = lazy(() => import("@/components/UrlImport"));
@@ -78,6 +80,8 @@ const Index = () => {
     useState<string>("input-settings");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [mobileCardIndex, setMobileCardIndex] = useState(0);
+  const [fullscreenCardIndex, setFullscreenCardIndex] = useState<number | null>(null);
+  const [fullscreenAllCards, setFullscreenAllCards] = useState(false);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [copiedOriginal, setCopiedOriginal] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
@@ -686,6 +690,11 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
         ? current.filter((item) => item !== index)
         : [...current, index],
     );
+  };
+
+  const closeFullscreenReader = () => {
+    setFullscreenCardIndex(null);
+    setFullscreenAllCards(false);
   };
 
   const openTranslation = (
@@ -1361,6 +1370,16 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                         <Languages className="mr-2 h-4 w-4" />
                         Translate all
                       </Button>
+                      <Button
+                        onClick={() => setFullscreenAllCards(true)}
+                        variant="outline"
+                        size="sm"
+                        className="shrink-0"
+                        aria-label="Read all cards fullscreen"
+                      >
+                        <Maximize2 className="mr-2 h-4 w-4" />
+                        Read all fullscreen
+                      </Button>
                     </div>
                   </CardHeader>
                   <CardContent className="p-4 sm:p-6">
@@ -1386,17 +1405,20 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                                 <Button
                                   onClick={() =>
                                     shareCard(
-                                      separatedCards[mobileCardIndex] ?? "",
+                                      getDisplayedCard(mobileCardIndex),
                                       mobileCardIndex,
                                     )
                                   }
-                                  variant="outline"
-                                  size="sm"
+                                  variant="ghost"
+                                  size="icon"
                                   aria-label="Share card"
                                 >
                                   <Share2 className="h-3 w-3" />
                                 </Button>
                               )}
+                            </div>
+                          </div>
+                          <div className="grid w-full grid-cols-3 gap-1">
                               <Button
                                 onClick={() =>
                                   openTranslation(
@@ -1413,7 +1435,7 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                                 }
                                 variant="outline"
                                 size="sm"
-                                className="min-h-[44px] min-w-[44px] px-2 sm:min-h-0 sm:min-w-0 sm:px-3"
+                                className="min-h-[44px] w-full min-w-0 px-1 sm:min-h-0 sm:px-3"
                                 aria-label="Translate card"
                               >
                                 <Languages className="h-3 w-3 sm:mr-1" />
@@ -1425,7 +1447,7 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                                   onClick={() => copyToClipboard(getDisplayedCard(mobileCardIndex), mobileCardIndex)}
                                 variant="outline"
                                 size="sm"
-                                className="min-h-[44px] min-w-[44px] px-2 sm:min-h-0 sm:min-w-0 sm:px-3"
+                                className="min-h-[44px] w-full min-w-0 px-1 sm:min-h-0 sm:px-3"
                                 aria-label={
                                   copiedIndex === mobileCardIndex
                                     ? "Card copied"
@@ -1443,7 +1465,15 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                                     : "Copy"}
                                 </span>
                               </Button>
-                            </div>
+                              <Button
+                                onClick={() => setFullscreenCardIndex(mobileCardIndex)}
+                                variant="outline"
+                                size="sm"
+                                className="min-h-[44px] w-full min-w-0 px-1"
+                                aria-label="Read card fullscreen"
+                              >
+                                <Maximize2 className="h-3 w-3" />
+                              </Button>
                           </div>
                           {translatedCards[mobileCardIndex] && (
                             <Button
@@ -1591,7 +1621,7 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                                   </Badge>
                                 )}
                               </CardTitle>
-                              <div className="flex w-full flex-wrap justify-end gap-1">
+                              <div className="grid w-full grid-cols-3 gap-1">
                                 <Button
                                   onClick={() =>
                                     openTranslation(
@@ -1607,7 +1637,7 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                                   }
                                   variant="outline"
                                   size="sm"
-                                  className="min-w-[100px] flex-1 basis-0 group-hover:border-primary/50 group-hover:text-primary transition-all duration-200 shadow-sm hover:shadow-md"
+                                  className="min-w-0 w-full group-hover:border-primary/50 group-hover:text-primary transition-all duration-200 shadow-sm hover:shadow-md sm:px-3"
                                 >
                                   <Languages className="mr-1 h-3 w-3" />
                                   Translate
@@ -1616,10 +1646,20 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                                   onClick={() => copyToClipboard(getDisplayedCard(index), index)}
                                   variant="outline"
                                   size="sm"
-                                  className="min-w-[100px] flex-1 basis-0 group-hover:border-primary/50 group-hover:text-primary transition-all duration-200 shadow-sm hover:shadow-md"
+                                  className="min-w-0 w-full group-hover:border-primary/50 group-hover:text-primary transition-all duration-200 shadow-sm hover:shadow-md sm:px-3"
                                 >
                                   <Copy className="mr-1 h-3 w-3" />
                                   Copy
+                                </Button>
+                                <Button
+                                  onClick={() => setFullscreenCardIndex(index)}
+                                  variant="outline"
+                                  size="sm"
+                                  className="min-w-0 w-full group-hover:border-primary/50 group-hover:text-primary transition-all duration-200 shadow-sm hover:shadow-md sm:px-3"
+                                  aria-label={`Read card ${index + 1} fullscreen`}
+                                >
+                                  <Maximize2 className="h-3 w-3" />
+                                  <span className="sr-only">Read fullscreen</span>
                                 </Button>
                               </div>
                             </div>
@@ -1702,6 +1742,51 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
             </button>
           )}
         </main>
+        {(fullscreenCardIndex !== null || fullscreenAllCards) && (
+          <div className="fixed inset-0 z-[100] flex h-[100dvh] min-h-[100svh] w-screen flex-col bg-background text-foreground overscroll-contain">
+            <header className="flex shrink-0 items-center justify-between border-b border-border bg-background/95 px-4 py-3 pt-[calc(0.75rem+env(safe-area-inset-top))] shadow-sm backdrop-blur sm:px-6">
+              <div className="flex min-w-0 items-center gap-2">
+                <BookOpen className="h-5 w-5 shrink-0 text-primary" />
+                <h2 className="truncate text-base font-semibold sm:text-lg">
+                  {fullscreenAllCards
+                    ? `All cards (${separatedCards.length})`
+                    : `Card ${(fullscreenCardIndex ?? 0) + 1}`}
+                </h2>
+              </div>
+              <Button
+                onClick={closeFullscreenReader}
+                variant="ghost"
+                size="icon"
+                className="shrink-0"
+                aria-label="Close fullscreen reader"
+              >
+                <X className="h-5 w-5" />
+              </Button>
+            </header>
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] sm:px-8 sm:py-8">
+              {fullscreenAllCards ? (
+                <div className="mx-auto max-w-4xl space-y-8">
+                  {separatedCards.map((_, index) => (
+                    <article key={index} className="border-b border-border pb-8 last:border-b-0">
+                      <h3 className="mb-3 text-sm font-semibold text-muted-foreground">
+                        Card {index + 1}
+                      </h3>
+                      <p className="whitespace-pre-wrap break-words text-base leading-8 sm:text-lg">
+                        {getDisplayedCard(index)}
+                      </p>
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <article className="mx-auto max-w-4xl">
+                  <p className="whitespace-pre-wrap break-words text-base leading-8 sm:text-lg">
+                    {getDisplayedCard(fullscreenCardIndex ?? 0)}
+                  </p>
+                </article>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </SidebarProvider>
   );
