@@ -1,10 +1,7 @@
-import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { useEffect, useState } from "react";
 import {
   Copy,
-  Expand,
   Loader2,
-  Minimize,
   Languages,
   Check,
 } from "lucide-react";
@@ -57,36 +54,18 @@ const TranslationView = ({
   onApply,
 }: TranslationViewProps) => {
   const { toast } = useToast();
-  const readingRef = useRef<HTMLDivElement>(null);
   const [translation, setTranslation] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [streaming, setStreaming] = useState(false);
   const [fontSize, setFontSize] = useState(18);
-  const [fullscreen, setFullscreen] = useState(false);
-  const [usesFallbackFullscreen, setUsesFallbackFullscreen] = useState(false);
   const [applied, setApplied] = useState(false);
 
   useEffect(() => {
-    const handleFullscreenChange = () => {
-      setFullscreen(document.fullscreenElement === readingRef.current);
-    };
-
-    document.addEventListener("fullscreenchange", handleFullscreenChange);
-    return () =>
-      document.removeEventListener("fullscreenchange", handleFullscreenChange);
-  }, []);
-
-  useEffect(() => {
     if (!open) {
-      if (document.fullscreenElement === readingRef.current) {
-        document.exitFullscreen().catch(() => undefined);
-      }
       setTranslation("");
       setError(null);
       setStreaming(false);
       setApplied(false);
-      setUsesFallbackFullscreen(false);
-      setFullscreen(false);
     }
   }, [open]);
 
@@ -176,40 +155,9 @@ const TranslationView = ({
     toast({ title: "Translation copied" });
   };
 
-  const toggleFullscreen = async () => {
-    const readingElement = readingRef.current;
-    if (!readingElement) return;
-
-    if (fullscreen || usesFallbackFullscreen) {
-      if (document.fullscreenElement) {
-        await document.exitFullscreen().catch(() => undefined);
-      }
-      setUsesFallbackFullscreen(false);
-      setFullscreen(false);
-      return;
-    }
-
-    if (typeof readingElement.requestFullscreen === "function") {
-      try {
-        await readingElement.requestFullscreen();
-        return;
-      } catch {
-        // Fall through to the CSS fallback used by iOS Safari and PWAs.
-      }
-    }
-
-    setUsesFallbackFullscreen(true);
-    setFullscreen(true);
-  };
-
   const readingArea = (
     <div
-      ref={readingRef}
-      className={
-        usesFallbackFullscreen
-          ? "fixed inset-0 z-[60] flex h-[100dvh] min-h-screen w-screen flex-col overflow-hidden rounded-none border-0 bg-background p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:p-6"
-          : "flex min-h-[220px] flex-col overflow-hidden rounded-lg border border-border bg-muted/30"
-      }
+      className="flex min-h-[220px] flex-col overflow-hidden rounded-lg border border-border bg-muted/30"
     >
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-background/80 p-2">
         <div className="flex items-center gap-2">
@@ -236,18 +184,6 @@ const TranslationView = ({
             aria-label="Copy translation"
           >
             <Copy className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={toggleFullscreen}
-            aria-label="Toggle fullscreen"
-          >
-            {fullscreen ? (
-              <Minimize className="h-4 w-4" />
-            ) : (
-              <Expand className="h-4 w-4" />
-            )}
           </Button>
         </div>
       </div>
@@ -331,9 +267,7 @@ const TranslationView = ({
             </Button>
           </div>
 
-          {usesFallbackFullscreen
-            ? createPortal(readingArea, document.body)
-            : readingArea}
+          {readingArea}
           {onApply && translation && !streaming && (
             <Button
               variant="outline"

@@ -1438,10 +1438,7 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                                 className="min-h-[44px] w-full min-w-0 px-1 sm:min-h-0 sm:px-3"
                                 aria-label="Translate card"
                               >
-                                <Languages className="h-3 w-3 sm:mr-1" />
-                                <span className="hidden sm:inline">
-                                  Translate
-                                </span>
+                                <Languages className="h-3 w-3" />
                               </Button>
                               <Button
                                   onClick={() => copyToClipboard(getDisplayedCard(mobileCardIndex), mobileCardIndex)}
@@ -1459,11 +1456,6 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                                 ) : (
                                   <Copy className="h-3 w-3" />
                                 )}
-                                <span className="hidden sm:inline">
-                                  {copiedIndex === mobileCardIndex
-                                    ? "Copied"
-                                    : "Copy"}
-                                </span>
                               </Button>
                               <Button
                                 onClick={() => setFullscreenCardIndex(mobileCardIndex)}
@@ -1637,25 +1629,23 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                                   }
                                   variant="outline"
                                   size="sm"
-                                  className="min-w-0 w-full group-hover:border-primary/50 group-hover:text-primary transition-all duration-200 shadow-sm hover:shadow-md sm:px-3"
+                                  className="min-w-0 w-full px-1 group-hover:border-primary/50 group-hover:text-primary transition-all duration-200 shadow-sm hover:shadow-md"
                                 >
-                                  <Languages className="mr-1 h-3 w-3" />
-                                  Translate
+                                  <Languages className="h-3 w-3" />
                                 </Button>
                                 <Button
                                   onClick={() => copyToClipboard(getDisplayedCard(index), index)}
                                   variant="outline"
                                   size="sm"
-                                  className="min-w-0 w-full group-hover:border-primary/50 group-hover:text-primary transition-all duration-200 shadow-sm hover:shadow-md sm:px-3"
+                                  className="min-w-0 w-full px-1 group-hover:border-primary/50 group-hover:text-primary transition-all duration-200 shadow-sm hover:shadow-md"
                                 >
-                                  <Copy className="mr-1 h-3 w-3" />
-                                  Copy
+                                  <Copy className="h-3 w-3" />
                                 </Button>
                                 <Button
                                   onClick={() => setFullscreenCardIndex(index)}
                                   variant="outline"
                                   size="sm"
-                                  className="min-w-0 w-full group-hover:border-primary/50 group-hover:text-primary transition-all duration-200 shadow-sm hover:shadow-md sm:px-3"
+                                  className="min-w-0 w-full px-1 group-hover:border-primary/50 group-hover:text-primary transition-all duration-200 shadow-sm hover:shadow-md"
                                   aria-label={`Read card ${index + 1} fullscreen`}
                                 >
                                   <Maximize2 className="h-3 w-3" />
