@@ -239,13 +239,13 @@ const Index = () => {
   const handleLongPressStart = useCallback(() => {
     if (longPressTimer.current) window.clearTimeout(longPressTimer.current);
     longPressTimer.current = window.setTimeout(() => {
-      const text = separatedCards[mobileCardIndex];
+      const text = getDisplayedCard(mobileCardIndex);
       if (text) {
         vibrate(20);
         copyToClipboard(text, mobileCardIndex);
       }
     }, 550);
-  }, [mobileCardIndex, separatedCards]);
+  }, [mobileCardIndex, separatedCards, translatedCards, showOriginalIndexes]);
   const handleLongPressEnd = useCallback(() => {
     if (longPressTimer.current) {
       window.clearTimeout(longPressTimer.current);
@@ -659,7 +659,7 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
   const copyAllCards = async () => {
     try {
       const allText = separatedCards
-        .map((card, i) => `--- Card ${i + 1} ---\n${card}`)
+        .map((_, i) => `--- Card ${i + 1} ---\n${getDisplayedCard(i)}`)
         .join("\n\n");
       await navigator.clipboard.writeText(allText);
       toast({
@@ -673,6 +673,19 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
         variant: "destructive",
       });
     }
+  };
+
+  const getDisplayedCard = (index: number) =>
+    translatedCards[index] && !showOriginalIndexes.includes(index)
+      ? translatedCards[index]!
+      : separatedCards[index] ?? "";
+
+  const toggleOriginal = (index: number) => {
+    setShowOriginalIndexes((current) =>
+      current.includes(index)
+        ? current.filter((item) => item !== index)
+        : [...current, index],
+    );
   };
 
   const openTranslation = (
@@ -1390,13 +1403,12 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                                     separatedCards[mobileCardIndex] ?? "",
                                     `Translate card ${mobileCardIndex + 1}`,
                                     (translation) =>
-                                      setSeparatedCards((cards) =>
-                                        cards.map((card, index) =>
-                                          index === mobileCardIndex
-                                            ? translation
-                                            : card,
-                                        ),
-                                      ),
+                                      (() => {
+                                        const nextTranslations = [...translatedCards];
+                                        nextTranslations[mobileCardIndex] = translation;
+                                        setTranslatedCards(nextTranslations);
+                                        void saveToDatabase(separatedCards, nextTranslations);
+                                      })(),
                                   )
                                 }
                                 variant="outline"
@@ -1410,12 +1422,7 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                                 </span>
                               </Button>
                               <Button
-                                onClick={() =>
-                                  copyToClipboard(
-                                    separatedCards[mobileCardIndex] ?? "",
-                                    mobileCardIndex,
-                                  )
-                                }
+                                  onClick={() => copyToClipboard(getDisplayedCard(mobileCardIndex), mobileCardIndex)}
                                 variant="outline"
                                 size="sm"
                                 className="min-h-[44px] min-w-[44px] px-2 sm:min-h-0 sm:min-w-0 sm:px-3"
@@ -1438,6 +1445,18 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                               </Button>
                             </div>
                           </div>
+                          {translatedCards[mobileCardIndex] && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 self-start px-2 text-xs"
+                              onClick={() => toggleOriginal(mobileCardIndex)}
+                            >
+                              {showOriginalIndexes.includes(mobileCardIndex)
+                                ? "Translated"
+                                : "Original"}
+                            </Button>
+                          )}
                         </CardHeader>
                         <CardContent className="space-y-3 flex-1 flex flex-col min-h-0 pt-3">
                           <div
@@ -1447,7 +1466,7 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                             onTouchMove={handleLongPressEnd}
                             onTouchCancel={handleLongPressEnd}
                           >
-                            {separatedCards[mobileCardIndex] ?? ""}
+                              {getDisplayedCard(mobileCardIndex)}
                           </div>
                           <div className="flex gap-4 text-xs text-muted-foreground flex-shrink-0">
                             <div className="flex items-center gap-1">
@@ -1566,6 +1585,11 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                                   <BookOpen className="h-4 w-4 text-primary" />
                                 </div>
                                 Card {index + 1}
+                                {translatedCards[index] && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    Translated
+                                  </Badge>
+                                )}
                               </CardTitle>
                               <div className="flex w-full flex-wrap justify-end gap-1">
                                 <Button
@@ -1573,14 +1597,12 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                                     openTranslation(
                                       card,
                                       `Translate card ${index + 1}`,
-                                      (translation) =>
-                                        setSeparatedCards((cards) =>
-                                          cards.map((item, itemIndex) =>
-                                            itemIndex === index
-                                              ? translation
-                                              : item,
-                                          ),
-                                        ),
+                                      (translation) => {
+                                        const nextTranslations = [...translatedCards];
+                                        nextTranslations[index] = translation;
+                                        setTranslatedCards(nextTranslations);
+                                        void saveToDatabase(separatedCards, nextTranslations);
+                                      },
                                     )
                                   }
                                   variant="outline"
@@ -1591,7 +1613,7 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                                   Translate
                                 </Button>
                                 <Button
-                                  onClick={() => copyToClipboard(card, index)}
+                                  onClick={() => copyToClipboard(getDisplayedCard(index), index)}
                                   variant="outline"
                                   size="sm"
                                   className="min-w-[100px] flex-1 basis-0 group-hover:border-primary/50 group-hover:text-primary transition-all duration-200 shadow-sm hover:shadow-md"
@@ -1601,10 +1623,22 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                                 </Button>
                               </div>
                             </div>
+                            {translatedCards[index] && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 self-start px-2 text-xs"
+                                onClick={() => toggleOriginal(index)}
+                              >
+                                {showOriginalIndexes.includes(index)
+                                  ? "Translated"
+                                  : "Original"}
+                              </Button>
+                            )}
                           </CardHeader>
                           <CardContent className="space-y-4 flex-1 flex flex-col min-h-0">
                             <div className="text-card-foreground leading-relaxed text-sm whitespace-pre-wrap break-words bg-muted/50 p-4 rounded-lg border border-border/50 flex-1 overflow-auto min-h-0">
-                              {card}
+                              {getDisplayedCard(index)}
                             </div>
                             <div className="flex gap-4 text-xs text-muted-foreground flex-shrink-0">
                               <div className="flex items-center gap-1">

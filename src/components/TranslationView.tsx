@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -254,7 +255,12 @@ const TranslationView = ({
         {error ? (
           <p className="text-sm text-destructive">{error}</p>
         ) : translation ? (
-          <p className="whitespace-pre-wrap leading-relaxed">{translation}</p>
+          <Textarea
+            value={translation}
+            onChange={(event) => setTranslation(event.target.value)}
+            className="min-h-[220px] h-full resize-none border-0 bg-transparent p-0 leading-relaxed focus-visible:ring-0"
+            aria-label="Translation text"
+          />
         ) : (
           <p className="text-sm text-muted-foreground">
             Your translation will appear here.
@@ -267,7 +273,7 @@ const TranslationView = ({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-        <DialogHeader>
+      <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Languages className="h-5 w-5" />
             {title}
