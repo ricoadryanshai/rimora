@@ -70,6 +70,8 @@ const Index = () => {
     "paragraph",
   );
   const [separatedCards, setSeparatedCards] = useState<string[]>([]);
+  const [translatedCards, setTranslatedCards] = useState<(string | null)[]>([]);
+  const [showOriginalIndexes, setShowOriginalIndexes] = useState<number[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [wordReplacements, setWordReplacements] = useState<any[]>([]);
   const [currentSection, setCurrentSection] =
@@ -337,6 +339,8 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
       }
       if (Array.isArray(parsed.separatedCards))
         setSeparatedCards(parsed.separatedCards);
+      if (Array.isArray(parsed.translatedCards))
+        setTranslatedCards(parsed.translatedCards);
     } catch {
       // ignore malformed cache
     }
@@ -353,12 +357,20 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
           cardCount,
           separationMode,
           separatedCards,
+          translatedCards,
         }),
       );
     } catch {
       // storage full or unavailable
     }
-  }, [originalText, paragraphCount, cardCount, separationMode, separatedCards]);
+  }, [
+    originalText,
+    paragraphCount,
+    cardCount,
+    separationMode,
+    separatedCards,
+    translatedCards,
+  ]);
 
   useEffect(() => {
     if (user && !isOffline) {
@@ -395,6 +407,13 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
           ? (data.separated_cards as string[])
           : [];
         setSeparatedCards(cards);
+        const translations = Array.isArray(data.translated_cards)
+          ? (data.translated_cards as (string | null)[]).map((t) =>
+              typeof t === "string" ? t : null,
+            )
+          : [];
+        setTranslatedCards(translations);
+        setShowOriginalIndexes([]);
         setCurrentSessionId(data.id);
       }
     } catch (error) {
@@ -416,7 +435,10 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
     return processedText;
   };
 
-  const saveToDatabase = async (cardsToSave?: string[]) => {
+  const saveToDatabase = async (
+    cardsToSave?: string[],
+    translationsToSave?: (string | null)[],
+  ) => {
     if (!user) {
       toast({
         title: "Sign In Required",
@@ -438,6 +460,7 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
 
     try {
       const cardsData = cardsToSave || separatedCards;
+      const translationsData = translationsToSave ?? translatedCards;
 
       const sessionData = {
         user_id: user.id,
@@ -446,6 +469,7 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
         card_count: cardCount,
         separation_mode: separationMode,
         separated_cards: cardsData,
+        translated_cards: translationsData,
         updated_at: new Date().toISOString(),
       };
 
@@ -538,6 +562,9 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
     }
 
     setSeparatedCards(cards);
+    const freshTranslations = cards.map(() => null);
+    setTranslatedCards(freshTranslations);
+    setShowOriginalIndexes([]);
     setMobileCardIndex(0);
 
     // Auto-scroll to results after a brief delay
@@ -549,7 +576,7 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
     }, 100);
 
     if (user) {
-      await saveToDatabase(cards);
+      await saveToDatabase(cards, freshTranslations);
     }
 
     const replacementCount = wordReplacements.length;
