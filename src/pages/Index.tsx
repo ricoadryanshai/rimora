@@ -418,7 +418,10 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
     return processedText;
   };
 
-  const saveToDatabase = async (cardsToSave?: string[]) => {
+  const saveToDatabase = async (
+    cardsToSave?: string[],
+    translationsToSave?: (string | null)[],
+  ) => {
     if (!user) {
       toast({
         title: "Sign In Required",
