@@ -1,10 +1,5 @@
 import { useEffect, useState } from "react";
-import {
-  Copy,
-  Loader2,
-  Languages,
-  Check,
-} from "lucide-react";
+import { Copy, Loader2, Languages, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -156,9 +151,7 @@ const TranslationView = ({
   };
 
   const readingArea = (
-    <div
-      className="flex min-h-[220px] flex-col overflow-hidden rounded-lg border border-border bg-muted/30"
-    >
+    <div className="flex min-h-[220px] flex-col overflow-hidden rounded-lg border border-border bg-muted/30">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-background/80 p-2">
         <div className="flex items-center gap-2">
           <Label htmlFor="translation-font-size" className="text-xs">
@@ -209,7 +202,7 @@ const TranslationView = ({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-      <DialogHeader>
+        <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Languages className="h-5 w-5" />
             {title}

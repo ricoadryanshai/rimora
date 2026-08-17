@@ -80,7 +80,9 @@ const Index = () => {
     useState<string>("input-settings");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [mobileCardIndex, setMobileCardIndex] = useState(0);
-  const [fullscreenCardIndex, setFullscreenCardIndex] = useState<number | null>(null);
+  const [fullscreenCardIndex, setFullscreenCardIndex] = useState<number | null>(
+    null,
+  );
   const [fullscreenAllCards, setFullscreenAllCards] = useState(false);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [copiedOriginal, setCopiedOriginal] = useState(false);
@@ -682,7 +684,7 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
   const getDisplayedCard = (index: number) =>
     translatedCards[index] && !showOriginalIndexes.includes(index)
       ? translatedCards[index]!
-      : separatedCards[index] ?? "";
+      : (separatedCards[index] ?? "");
 
   const toggleOriginal = (index: number) => {
     setShowOriginalIndexes((current) =>
@@ -1367,7 +1369,10 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                                 () => completeTranslation,
                               );
                               setTranslatedCards(nextTranslations);
-                              void saveToDatabase(separatedCards, nextTranslations);
+                              void saveToDatabase(
+                                separatedCards,
+                                nextTranslations,
+                              );
                             },
                           )
                         }
@@ -1427,53 +1432,66 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                             </div>
                           </div>
                           <div className="grid w-full grid-cols-3 gap-1">
-                              <Button
-                                onClick={() =>
-                                  openTranslation(
-                                    separatedCards[mobileCardIndex] ?? "",
-                                    `Translate card ${mobileCardIndex + 1}`,
-                                    (translation) =>
-                                      (() => {
-                                        const nextTranslations = [...translatedCards];
-                                        nextTranslations[mobileCardIndex] = translation;
-                                        setTranslatedCards(nextTranslations);
-                                        void saveToDatabase(separatedCards, nextTranslations);
-                                      })(),
-                                  )
-                                }
-                                variant="outline"
-                                size="sm"
-                                className="min-h-[44px] w-full min-w-0 px-1 sm:min-h-0 sm:px-3"
-                                aria-label="Translate card"
-                              >
-                                <Languages className="h-3 w-3" />
-                              </Button>
-                              <Button
-                                  onClick={() => copyToClipboard(getDisplayedCard(mobileCardIndex), mobileCardIndex)}
-                                variant="outline"
-                                size="sm"
-                                className="min-h-[44px] w-full min-w-0 px-1 sm:min-h-0 sm:px-3"
-                                aria-label={
-                                  copiedIndex === mobileCardIndex
-                                    ? "Card copied"
-                                    : "Copy card"
-                                }
-                              >
-                                {copiedIndex === mobileCardIndex ? (
-                                  <Check className="h-3 w-3 text-green-500" />
-                                ) : (
-                                  <Copy className="h-3 w-3" />
-                                )}
-                              </Button>
-                              <Button
-                                onClick={() => setFullscreenCardIndex(mobileCardIndex)}
-                                variant="outline"
-                                size="sm"
-                                className="min-h-[44px] w-full min-w-0 px-1"
-                                aria-label="Read card fullscreen"
-                              >
-                                <Maximize2 className="h-3 w-3" />
-                              </Button>
+                            <Button
+                              onClick={() =>
+                                openTranslation(
+                                  separatedCards[mobileCardIndex] ?? "",
+                                  `Translate card ${mobileCardIndex + 1}`,
+                                  (translation) =>
+                                    (() => {
+                                      const nextTranslations = [
+                                        ...translatedCards,
+                                      ];
+                                      nextTranslations[mobileCardIndex] =
+                                        translation;
+                                      setTranslatedCards(nextTranslations);
+                                      void saveToDatabase(
+                                        separatedCards,
+                                        nextTranslations,
+                                      );
+                                    })(),
+                                )
+                              }
+                              variant="outline"
+                              size="sm"
+                              className="min-h-[44px] w-full min-w-0 px-1 sm:min-h-0 sm:px-3"
+                              aria-label="Translate card"
+                            >
+                              <Languages className="h-3 w-3" />
+                            </Button>
+                            <Button
+                              onClick={() =>
+                                copyToClipboard(
+                                  getDisplayedCard(mobileCardIndex),
+                                  mobileCardIndex,
+                                )
+                              }
+                              variant="outline"
+                              size="sm"
+                              className="min-h-[44px] w-full min-w-0 px-1 sm:min-h-0 sm:px-3"
+                              aria-label={
+                                copiedIndex === mobileCardIndex
+                                  ? "Card copied"
+                                  : "Copy card"
+                              }
+                            >
+                              {copiedIndex === mobileCardIndex ? (
+                                <Check className="h-3 w-3 text-green-500" />
+                              ) : (
+                                <Copy className="h-3 w-3" />
+                              )}
+                            </Button>
+                            <Button
+                              onClick={() =>
+                                setFullscreenCardIndex(mobileCardIndex)
+                              }
+                              variant="outline"
+                              size="sm"
+                              className="min-h-[44px] w-full min-w-0 px-1"
+                              aria-label="Read card fullscreen"
+                            >
+                              <Maximize2 className="h-3 w-3" />
+                            </Button>
                           </div>
                           {translatedCards[mobileCardIndex] && (
                             <Button
@@ -1496,7 +1514,7 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                             onTouchMove={handleLongPressEnd}
                             onTouchCancel={handleLongPressEnd}
                           >
-                              {getDisplayedCard(mobileCardIndex)}
+                            {getDisplayedCard(mobileCardIndex)}
                           </div>
                           <div className="flex gap-4 text-xs text-muted-foreground flex-shrink-0">
                             <div className="flex items-center gap-1">
@@ -1616,7 +1634,10 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                                 </div>
                                 Card {index + 1}
                                 {translatedCards[index] && (
-                                  <Badge variant="secondary" className="text-xs">
+                                  <Badge
+                                    variant="secondary"
+                                    className="text-xs"
+                                  >
                                     Translated
                                   </Badge>
                                 )}
@@ -1628,10 +1649,15 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                                       card,
                                       `Translate card ${index + 1}`,
                                       (translation) => {
-                                        const nextTranslations = [...translatedCards];
+                                        const nextTranslations = [
+                                          ...translatedCards,
+                                        ];
                                         nextTranslations[index] = translation;
                                         setTranslatedCards(nextTranslations);
-                                        void saveToDatabase(separatedCards, nextTranslations);
+                                        void saveToDatabase(
+                                          separatedCards,
+                                          nextTranslations,
+                                        );
                                       },
                                     )
                                   }
@@ -1642,7 +1668,12 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                                   <Languages className="h-3 w-3" />
                                 </Button>
                                 <Button
-                                  onClick={() => copyToClipboard(getDisplayedCard(index), index)}
+                                  onClick={() =>
+                                    copyToClipboard(
+                                      getDisplayedCard(index),
+                                      index,
+                                    )
+                                  }
                                   variant="outline"
                                   size="sm"
                                   className="min-w-0 w-full px-1 group-hover:border-primary/50 group-hover:text-primary transition-all duration-200 shadow-sm hover:shadow-md"
@@ -1657,7 +1688,9 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
                                   aria-label={`Read card ${index + 1} fullscreen`}
                                 >
                                   <Maximize2 className="h-3 w-3" />
-                                  <span className="sr-only">Read fullscreen</span>
+                                  <span className="sr-only">
+                                    Read fullscreen
+                                  </span>
                                 </Button>
                               </div>
                             </div>
@@ -1765,7 +1798,10 @@ Explicabo nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut f
               {fullscreenAllCards ? (
                 <div className="mx-auto max-w-4xl space-y-8">
                   {separatedCards.map((_, index) => (
-                    <article key={index} className="border-b border-border pb-8 last:border-b-0">
+                    <article
+                      key={index}
+                      className="border-b border-border pb-8 last:border-b-0"
+                    >
                       <h3 className="mb-3 text-sm font-semibold text-muted-foreground">
                         Card {index + 1}
                       </h3>

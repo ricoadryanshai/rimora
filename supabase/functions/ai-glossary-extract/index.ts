@@ -180,7 +180,7 @@ Deno.serve(async (req) => {
           {
             role: "system",
             content:
-              "Extract recurring names, places, titles, organizations, fictional terms, and other translation-specific terms from the source text. Return ONLY a JSON array of objects with exactly original_word and replacement_word. original_word must be the source term and replacement_word must be its natural English translation or preferred spelling. Do not include ordinary common words, full sentences, or explanations. Return [] when no glossary terms are useful.",
+              "Extract recurring names, places, titles, organizations, fictional terms, and other translation-specific terms from the source text. Return ONLY a JSON array of objects with exactly original_word and replacement_word. original_word must preserve the character's or term's exact source spelling. replacement_word must be the natural English translation or preferred spelling. For identifiable characters, infer gender from the source text when possible and append exactly \" (Male)\" or \" (Female)\" to replacement_word, never to original_word. Example: {\"original_word\":\"陈靖\",\"replacement_word\":\"Chen Jing (Male)\"}. If gender cannot be determined, do not invent one or add a gender label. Do not include ordinary common words, full sentences, or explanations. Return [] when no glossary terms are useful.",
           },
           { role: "user", content: text },
         ],
