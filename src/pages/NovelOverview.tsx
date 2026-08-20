@@ -1,0 +1,8 @@
+import { Link, useParams } from "react-router-dom";
+import { ArrowRight, Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { RimoraShell } from "@/components/RimoraShell";
+
+const NovelOverview = () => { const { novelId } = useParams(); return <RimoraShell><div className="mx-auto max-w-5xl space-y-8"><div className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-xs uppercase tracking-[0.18em] text-primary">Novel workspace</p><h1 className="mt-2 font-display text-4xl font-bold">Your untitled story</h1><p className="mt-2 text-muted-foreground">Draft · 0 chapters · Private</p></div><div className="flex gap-2"><Button variant="outline" asChild><Link to={`/novels/${novelId}/workbook`}>Open Workbook</Link></Button><Button><Plus /> New chapter</Button></div></div><Card><CardHeader><CardTitle className="font-display">Chapters</CardTitle></CardHeader><CardContent><div className="flex items-center justify-between border-t border-border py-4"><div><p className="font-medium">Chapter 01 · First words</p><p className="text-xs text-muted-foreground">Draft · Not started</p></div><Button variant="ghost" size="icon" asChild><Link to={`/novels/${novelId}/workbook`} aria-label="Open chapter"><ArrowRight /></Link></Button></div></CardContent></Card></div></RimoraShell>; };
+export default NovelOverview;

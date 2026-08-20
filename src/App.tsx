@@ -9,6 +9,12 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import ThemeProvider from "@/components/ThemeProvider";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import Index from "./pages/Index";
+import Library from "./pages/Library";
+import Explore from "./pages/Explore";
+import NovelCreate from "./pages/NovelCreate";
+import NovelOverview from "./pages/NovelOverview";
+import Workbook from "./pages/Workbook";
+import Reader from "./pages/Reader";
 
 const Auth = lazy(() => import("./pages/Auth"));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -37,7 +43,12 @@ const App = () => (
               }>
                 <Suspense fallback={<RouteFallback />}>
                   <Routes>
-                    <Route path="/" element={<Index />} />
+                    <Route path="/" element={<Library />} />
+                    <Route path="/explore" element={<Explore />} />
+                    <Route path="/novels/new" element={<NovelCreate />} />
+                    <Route path="/novels/:novelId" element={<NovelOverview />} />
+                    <Route path="/novels/:novelId/workbook" element={<Workbook />} />
+                    <Route path="/novels/:novelId/read" element={<Reader />} />
                     <Route path="/auth" element={<Auth />} />
                     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                     <Route path="*" element={<NotFound />} />

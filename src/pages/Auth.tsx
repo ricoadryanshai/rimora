@@ -81,10 +81,10 @@ const Auth = () => {
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-3 mb-4">
             <BookOpen className="h-8 w-8 text-primary" />
-            <h1 className="text-3xl font-bold text-foreground">Novel Separator</h1>
+            <h1 className="font-display text-3xl font-bold text-foreground">Rimora</h1>
           </div>
           <p className="text-muted-foreground">
-            Sign in to save your work and access advanced features
+            Write, translate, and read stories in one literary workspace.
           </p>
         </div>
 
