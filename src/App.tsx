@@ -11,6 +11,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import Index from "./pages/Index";
 import Library from "./pages/Library";
 import Explore from "./pages/Explore";
+import Settings from "./pages/Settings";
 import NovelCreate from "./pages/NovelCreate";
 import NovelOverview from "./pages/NovelOverview";
 import Workbook from "./pages/Workbook";
@@ -43,8 +44,10 @@ const App = () => (
               }>
                 <Suspense fallback={<RouteFallback />}>
                   <Routes>
-                    <Route path="/" element={<Library />} />
+                    <Route path="/" element={<Explore />} />
+                    <Route path="/library" element={<Library />} />
                     <Route path="/explore" element={<Explore />} />
+                    <Route path="/settings" element={<Settings />} />
                     <Route path="/novels/new" element={<NovelCreate />} />
                     <Route path="/novels/:novelId" element={<NovelOverview />} />
                     <Route path="/novels/:novelId/workbook" element={<Workbook />} />

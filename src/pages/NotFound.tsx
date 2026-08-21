@@ -16,7 +16,7 @@ const NotFound = () => {
 
   return (
     <RimoraShell>
-      <div className="relative isolate flex min-h-[calc(100vh-10rem)] items-center overflow-hidden py-12">
+      <div className="page-container relative isolate flex min-h-[calc(100vh-10rem)] items-center overflow-hidden py-12">
         <div className="pointer-events-none absolute -right-24 top-1/2 -z-10 h-80 w-80 -translate-y-1/2 rounded-full border border-primary/10 bg-primary/[0.03] shadow-[0_0_120px_hsl(182_100%_50%/0.08)]" />
         <div className="pointer-events-none absolute -right-4 top-1/2 -z-10 h-56 w-56 -translate-y-1/2 rounded-full border border-primary/10" />
         <div className="grid w-full gap-12 lg:grid-cols-[minmax(0,1fr)_280px] lg:items-center">

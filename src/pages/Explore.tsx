@@ -1,8 +1,26 @@
-import { Link } from "react-router-dom";
-import { Compass, Search } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
+import { Compass } from "lucide-react";
+import { ComingSoon } from "@/components/ComingSoon";
 import { RimoraShell } from "@/components/RimoraShell";
 
-const Explore = () => <RimoraShell><div className="mx-auto max-w-6xl space-y-8"><section className="flex flex-wrap items-end justify-between gap-6"><div><p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-primary">The public shelf</p><h1 className="font-display text-4xl font-bold">Explore stories.</h1><p className="mt-3 text-muted-foreground">Find your next world, voice, or obsession.</p></div><div className="relative w-full sm:w-72"><Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" /><Input className="pl-9" placeholder="Search novels, tags, authors" /></div></section><div className="grid gap-5 md:grid-cols-3"><Card className="md:col-span-2 bg-gradient-to-br from-primary/15 via-card/60 to-accent/15"><CardContent className="flex min-h-64 flex-col justify-end p-6"><Compass className="mb-auto h-7 w-7 text-primary" /><p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Featured</p><h2 className="mt-2 font-display text-3xl font-bold">A shelf waiting for its first stories.</h2><p className="mt-2 max-w-lg text-sm text-muted-foreground">Published novels will appear here as Rimora's community grows.</p></CardContent></Card><Card><CardContent className="p-6"><p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Genres</p><div className="mt-5 flex flex-wrap gap-2">{["Fantasy", "Romance", "Mystery", "Sci-fi", "Literary", "Translation"].map((genre) => <Link key={genre} to={`/explore?genre=${genre}`} className="rounded-sm border border-border px-3 py-2 text-sm text-muted-foreground transition-colors hover:border-primary/50 hover:text-primary">{genre}</Link>)}</div></CardContent></Card></div></div></RimoraShell>;
+const Explore = () => (
+	<RimoraShell>
+		<div className="page-container max-w-4xl space-y-8">
+			<header className="flex items-center gap-4">
+				<div className="grid h-12 w-12 place-items-center rounded-xl bg-primary/10 text-primary">
+					<Compass className="h-6 w-6" />
+				</div>
+				<div>
+					<p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+						The public shelf
+					</p>
+					<h1 className="font-display text-4xl font-semibold">Explore</h1>
+				</div>
+			</header>
+			<ComingSoon
+				title="Explore is coming soon"
+				description="Discover stories, translators, genres, and new worlds when the public shelf is ready."
+			/>
+		</div>
+	</RimoraShell>
+);
 export default Explore;

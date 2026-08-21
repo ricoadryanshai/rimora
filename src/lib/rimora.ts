@@ -1,7 +1,6 @@
-import { createClient } from "@supabase/supabase-js";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { supabase } from "@/integrations/supabase/client";
 
-// Kept separate until the generated Supabase types include Rimora's new tables.
-export const rimora = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-);
+// Reuse the authenticated singleton. The Rimora tables are not in generated
+// types yet, so this view intentionally exposes the client without its schema type.
+export const rimora = supabase as unknown as SupabaseClient;

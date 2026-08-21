@@ -1,73 +1,43 @@
-# Welcome to your Lovable project
+# Rimora
 
-## Project info
+Rimora is being built as a central, official home for translated novels and original stories.
 
-**URL**: https://lovable.dev/projects/f83ad0d7-d971-4cd9-aa64-fb64a896f47a
+Right now, translators often have to publish across personal websites, scattered groups, and platforms that were never designed around the way translation work actually happens. Readers have to follow the same trail in reverse. It is difficult to know where a project lives, who is working on it, or whether a translation is still active.
 
-## How can I edit this code?
+The idea behind Rimora is simple: bring translators and readers into one global platform. A translator should be able to create a story, publish their work, and build an audience without first needing to join or create a translation group. Readers should have one friendly place to discover stories, follow projects, and read the work people have chosen to share.
 
-There are several ways of editing your application.
+This is not meant to erase the communities and groups that already do valuable work. It is meant to give individuals and groups a dependable public home when they want one.
 
-**Use Lovable**
+Rimora is still in development and far from perfect. Some parts are rough, some features are incomplete, and the product is still finding its shape. That is intentional: this repository is the working project, not a finished promise. The goal is to keep improving it until publishing and reading translated fiction feels straightforward, welcoming, and connected.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/f83ad0d7-d971-4cd9-aa64-fb64a896f47a) and start prompting.
+## Development
 
-Changes made via Lovable will be committed automatically to this repo.
+The project uses Vite, React, TypeScript, Tailwind CSS, shadcn/ui, and Supabase.
 
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+You need Node.js and npm installed locally.
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
 git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
 cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+npm install
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+The development server starts with hot reload. To create a production build:
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```sh
+npm run build
+```
 
-**Use GitHub Codespaces**
+## Environment
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+Create a local `.env` file for the Supabase and application settings required by your environment. Never commit real credentials, database passwords, or API keys. Use `.env.example` for a safe list of variable names when sharing configuration.
 
-## What technologies are used for this project?
+## Project Structure
 
-This project is built with:
+- `src/` contains the React application and pages.
+- `public/` contains static assets and PWA metadata.
+- `supabase/functions/` contains server-side Edge Functions.
+- `supabase/migrations/` contains database migrations.
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/f83ad0d7-d971-4cd9-aa64-fb64a896f47a) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+The project is currently developed through the local workspace and Supabase tooling. Deployment details will become more formal as the platform moves closer to release.

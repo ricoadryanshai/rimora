@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   ArrowRight,
   BookOpen,
+  CircleHelp,
   ImagePlus,
   Sparkles,
   Upload,
@@ -10,10 +11,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from "@/components/ui/hover-card";
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -26,18 +27,20 @@ import {
 } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { RimoraShell } from "@/components/RimoraShell";
+import { MessageAlert } from "@/components/MessageAlert";
 import { useAuth } from "@/contexts/AuthContext";
 import { rimora } from "@/lib/rimora";
+import { supabase } from "@/integrations/supabase/client";
 
 const NovelCreate = () => {
-  const { user } = useAuth();
+  const { user, session, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [title, setTitle] = useState("");
   const [author, setAuthor] = useState("");
   const [novelType, setNovelType] = useState("Novel");
   const [leadingGender, setLeadingGender] = useState("");
   const [genre, setGenre] = useState("");
-  const [language, setLanguage] = useState("English");
+  const [language, setLanguage] = useState("");
   const [coverUrl, setCoverUrl] = useState("");
   const [coverPreview, setCoverPreview] = useState("");
   const [abbreviation, setAbbreviation] = useState("");
@@ -47,14 +50,20 @@ const NovelCreate = () => {
   const [fanficTopic, setFanficTopic] = useState("");
   const [fanficCategory, setFanficCategory] = useState("Gen");
   const [translationTitle, setTranslationTitle] = useState("");
-  const [translationLanguage, setTranslationLanguage] = useState("English");
+  const [translationLanguage, setTranslationLanguage] = useState("");
+  const [customTranslationLanguage, setCustomTranslationLanguage] = useState("");
   const [originalPlatform, setOriginalPlatform] = useState("");
   const [translator, setTranslator] = useState("");
   const [translatorGroup, setTranslatorGroup] = useState("");
   const [importUrl, setImportUrl] = useState("");
+  const [isImporting, setIsImporting] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [importMissingFields, setImportMissingFields] = useState<string[]>([]);
   const coverInputRef = useRef<HTMLInputElement>(null);
+  const originalLanguageRef = useRef<HTMLButtonElement>(null);
+  const translationLanguageRef = useRef<HTMLButtonElement>(null);
+  const customTranslationLanguageRef = useRef<HTMLInputElement>(null);
   const createNovel = async (event: FormEvent) => {
     event.preventDefault();
     if (abbreviation.length > 15) {
@@ -63,6 +72,14 @@ const NovelCreate = () => {
     }
     if (!leadingGender) {
       setError("Select a leading gender before creating your novel.");
+      return;
+    }
+    const effectiveTranslationLanguage =
+      translationLanguage === "Other"
+        ? customTranslationLanguage.trim()
+        : translationLanguage;
+    if (novelType === "Translation" && !effectiveTranslationLanguage) {
+      setError("Specify the translation language before creating your novel.");
       return;
     }
     setSaving(true);
@@ -77,7 +94,7 @@ const NovelCreate = () => {
         novel_type: novelType,
         leading_gender: leadingGender,
         genre,
-        language: novelType === "Translation" ? translationLanguage : language,
+        language: novelType === "Translation" ? effectiveTranslationLanguage : language,
         cover_url: coverUrl || null,
         abbreviation,
         length,
@@ -89,7 +106,7 @@ const NovelCreate = () => {
           novelType === "Translation" ? translationTitle : null,
         original_language: novelType === "Translation" ? language : null,
         translation_language:
-          novelType === "Translation" ? translationLanguage : null,
+          novelType === "Translation" ? effectiveTranslationLanguage : null,
         original_platform:
           novelType === "Translation" ? originalPlatform : null,
         translator: novelType === "Translation" ? translator : null,
@@ -99,18 +116,154 @@ const NovelCreate = () => {
       .select("id")
       .single();
     if (insertError) setError(insertError.message);
-    else if (data) navigate(`/novels/${data.id}`);
+    else if (data) navigate("/library");
     setSaving(false);
   };
+  const maleNovelGenres = [
+    "Urban",
+    "Fantasy",
+    "History",
+    "Horror",
+    "Sci-fi",
+    "Sports",
+    "Games",
+    "Eastern",
+    "Realistic",
+    "Action",
+    "War",
+  ];
+  const femaleNovelGenres = [
+    "Urban",
+    "History",
+    "Fantasy",
+    "Sci-fi",
+    "Teen",
+    "LGBT+",
+  ];
+  const translationMaleGenres = [...maleNovelGenres, "Others"];
+  const translationFemaleGenres = [...femaleNovelGenres, "Others"];
+  const fanficGenres = [
+    "Book & Literature",
+    "Celebrities & Real People",
+    "Music & Bands",
+    "Theater",
+    "Video Games",
+    "Anime & Comics",
+    "Movies",
+    "TV",
+    "Others",
+  ];
   const genres =
-    leadingGender === "Male-Oriented"
-      ? ["Fantasy", "Action", "Adventure", "Xianxia", "Science Fiction"]
-      : leadingGender === "Female-Oriented"
-        ? ["Romance", "Drama", "Historical", "Contemporary", "Fantasy Romance"]
-        : [];
+    novelType === "Fanfic"
+      ? fanficGenres
+      : leadingGender === "Male-Oriented"
+        ? novelType === "Translation"
+          ? translationMaleGenres
+          : maleNovelGenres
+        : leadingGender === "Female-Oriented"
+          ? novelType === "Translation"
+            ? translationFemaleGenres
+            : femaleNovelGenres
+          : [];
+  const handleTypeChange = (value: string) => {
+    setNovelType(value);
+    setGenre(value === "Fanfic" ? "Book & Literature" : leadingGender ? "Urban" : "");
+  };
   const handleGenderChange = (value: string) => {
     setLeadingGender(value);
-    setGenre(value === "Male-Oriented" ? "Fantasy" : "Romance");
+    setGenre(value ? (novelType === "Fanfic" ? "Book & Literature" : "Urban") : "");
+  };
+  const handleAiImport = async () => {
+    const focusRequiredField = (
+      field: HTMLButtonElement | HTMLInputElement | null,
+    ) => {
+      field?.scrollIntoView({ behavior: "smooth", block: "center" });
+      field?.focus({ preventScroll: true });
+    };
+    if (!language) {
+      setError("Select an original language before importing.");
+      focusRequiredField(originalLanguageRef.current);
+      return;
+    }
+    if (!translationLanguage) {
+      setError("Select a translation language before importing.");
+      focusRequiredField(translationLanguageRef.current);
+      return;
+    }
+    if (translationLanguage === "Other" && !customTranslationLanguage.trim()) {
+      setError("Specify the target translation language before importing.");
+      focusRequiredField(customTranslationLanguageRef.current);
+      return;
+    }
+    if (authLoading) {
+      setError("Checking your sign-in session. Please try again in a moment.");
+      return;
+    }
+    if (!session?.access_token) {
+      setError("Sign in before using AI import.");
+      navigate("/auth");
+      return;
+    }
+    if (!importUrl.trim()) {
+      setError("Enter the novel information page URL before importing.");
+      return;
+    }
+    setIsImporting(true);
+    setError(null);
+    try {
+      const { data, error: importError } = await supabase.functions.invoke(
+        "ai-novel-import",
+        { body: { url: importUrl.trim() } },
+      );
+      if (importError) throw new Error(importError.message);
+      if (!data?.success || !data.novel) {
+        throw new Error(data?.error || "Could not import novel information.");
+      }
+      const imported = data.novel;
+      if (typeof imported.title === "string") setTitle(imported.title);
+      if (typeof imported.author === "string") setAuthor(imported.author);
+      if (imported.leadingGender === "Male-Oriented" || imported.leadingGender === "Female-Oriented") setLeadingGender(imported.leadingGender);
+      if (["Novel", "Short Story", "Super-Short Story"].includes(imported.length)) setLength(imported.length);
+      if (["General Audiences", "Parental Guidance Suggested", "Parents Strongly Cautioned", "Restricted", "No One 17 and Under Admitted"].includes(imported.warningNotice)) setWarningNotice(imported.warningNotice);
+      if (typeof imported.abbreviation === "string") setAbbreviation(imported.abbreviation.slice(0, 15));
+      if (typeof imported.description === "string") setDescription(imported.description);
+      if (typeof imported.originalPlatform === "string") setOriginalPlatform(imported.originalPlatform);
+      const importedGenre = typeof imported.genre === "string" ? imported.genre.trim() : "";
+      const hasUsableGenre = importedGenre.length > 0 && genres.includes(importedGenre);
+      setGenre(hasUsableGenre ? importedGenre : "");
+      if (typeof imported.coverUrl === "string") {
+        setCoverUrl(imported.coverUrl);
+        setCoverPreview(imported.coverUrl);
+      }
+      if (typeof imported.translationTitle === "string") setTranslationTitle(imported.translationTitle);
+      const ignoredFields = new Set([
+        "originalLanguage",
+        "translationLanguage",
+        "translator",
+        "translatorGroup",
+      ]);
+      const missingFields = Array.isArray(data.missingFields)
+        ? data.missingFields.filter((field: unknown) => typeof field === "string" && !ignoredFields.has(field))
+        : [];
+      if (!hasUsableGenre && !missingFields.includes("genre")) {
+        missingFields.push("genre");
+      }
+      if (typeof imported.originalPlatform === "string" && imported.originalPlatform.trim()) {
+        const isValidUrl = /^https?:\/\//i.test(imported.originalPlatform.trim());
+        if (isValidUrl) {
+          setImportMissingFields(missingFields.filter((field: string) => field !== "originalPlatform"));
+        } else {
+          setImportMissingFields(missingFields);
+        }
+      } else {
+        setImportMissingFields(missingFields);
+      }
+      setImportUrl("");
+    } catch (importError) {
+      setError(importError instanceof Error ? importError.message : "Could not import novel information.");
+    } finally {
+      setIsImporting(false);
+    }
   };
   const handleCoverFile = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -122,58 +275,70 @@ const NovelCreate = () => {
   const openCoverPicker = () => coverInputRef.current?.click();
   return (
     <RimoraShell>
-      <div className="mx-auto max-w-2xl">
+      <div className="page-container max-w-2xl">
+        {error && <MessageAlert type="error" message={error} />}
+        {importMissingFields.length > 0 && (
+          <MessageAlert
+            type="warning"
+            title="Review imported fields"
+            message={`The source did not provide: ${importMissingFields.join(", ")}. Please complete these fields manually.`}
+          />
+        )}
         <Card>
           <CardHeader className="relative">
-            {novelType === "Translation" && (
-              <HoverCard openDelay={120} closeDelay={180}>
-                <HoverCardTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    className="absolute right-6 top-6"
-                    aria-label="Import translation source"
-                  >
-                    <Sparkles />
-                  </Button>
-                </HoverCardTrigger>
-                <HoverCardContent align="end" className="w-80 space-y-3">
-                  <div>
-                    <p className="text-sm font-semibold">Import with AI</p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Add a source URL to prepare the translation details.
-                    </p>
-                    <p className="mt-2 text-xs leading-5 text-muted-foreground">
-                      Use the novel's actual information page with details such
-                      as the title, author, and synopsis so the import can
-                      succeed.
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Input
-                      value={importUrl}
-                      onChange={(event) => setImportUrl(event.target.value)}
-                      placeholder="Paste source URL"
-                      type="url"
-                      aria-label="Translation source URL"
-                    />
-                    <Button type="button" size="sm">
-                      Import
+            <div className="relative flex items-start gap-4 pr-12">
+              <div className="grid h-11 w-11 shrink-0 place-items-center rounded-sm bg-primary/10 text-primary">
+                <BookOpen />
+              </div>
+              <div className="min-w-0 space-y-1">
+                <CardTitle className="font-display text-3xl">
+                  Novel Information
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Give your story a home. You can refine everything later.
+                </p>
+              </div>
+              {novelType === "Translation" && (
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="absolute right-0 top-0"
+                      aria-label="Import translation source"
+                    >
+                      <Sparkles />
                     </Button>
-                  </div>
-                </HoverCardContent>
-              </HoverCard>
-            )}
-            <div className="mb-3 grid h-11 w-11 place-items-center rounded-sm bg-primary/10 text-primary">
-              <BookOpen />
+                  </PopoverTrigger>
+                  <PopoverContent align="end" className="w-80 space-y-3">
+                    <div>
+                      <p className="text-sm font-semibold">Import with AI</p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Add a source URL to prepare the translation details.
+                      </p>
+                      <p className="mt-2 text-xs leading-5 text-muted-foreground">
+                        Use the novel's actual information page with details such
+                        as the title, author, and synopsis so the import can
+                        succeed.
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Input
+                        value={importUrl}
+                        onChange={(event) => setImportUrl(event.target.value)}
+                        placeholder="Paste source URL"
+                        type="url"
+                        aria-label="Translation source URL"
+                      />
+                      <Button type="button" size="sm" onClick={() => void handleAiImport()} disabled={isImporting}>
+                        {isImporting ? "Importing..." : "Import"}
+                      </Button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              )}
             </div>
-            <CardTitle className="font-display text-3xl">
-              Novel Information
-            </CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Give your story a home. You can refine everything later.
-            </p>
           </CardHeader>
           <CardContent>
             <form onSubmit={createNovel} className="space-y-5">
@@ -217,16 +382,16 @@ const NovelCreate = () => {
                 <Label>Type</Label>
                 <RadioGroup
                   value={novelType}
-                  onValueChange={setNovelType}
+                  onValueChange={handleTypeChange}
                   className="flex gap-5 pt-2"
                 >
-                  <label className="flex items-center gap-2 text-sm">
+                  <label className="flex cursor-pointer items-center gap-2 text-sm">
                     <RadioGroupItem value="Novel" /> Novel
                   </label>
-                  <label className="flex items-center gap-2 text-sm">
+                  <label className="flex cursor-pointer items-center gap-2 text-sm">
                     <RadioGroupItem value="Fanfic" /> Fanfic
                   </label>
-                  <label className="flex items-center gap-2 text-sm">
+                  <label className="flex cursor-pointer items-center gap-2 text-sm">
                     <RadioGroupItem value="Translation" /> Translation
                   </label>
                 </RadioGroup>
@@ -238,10 +403,10 @@ const NovelCreate = () => {
                   onValueChange={handleGenderChange}
                   className="flex gap-5 pt-2"
                 >
-                  <label className="flex items-center gap-2 text-sm">
+                  <label className="flex cursor-pointer items-center gap-2 text-sm">
                     <RadioGroupItem value="Male-Oriented" /> Male-Oriented
                   </label>
-                  <label className="flex items-center gap-2 text-sm">
+                  <label className="flex cursor-pointer items-center gap-2 text-sm">
                     <RadioGroupItem value="Female-Oriented" /> Female-Oriented
                   </label>
                 </RadioGroup>
@@ -276,8 +441,8 @@ const NovelCreate = () => {
                     : "Language"}
                 </Label>
                 <Select value={language} onValueChange={setLanguage}>
-                  <SelectTrigger>
-                    <SelectValue />
+                  <SelectTrigger ref={originalLanguageRef}>
+                    <SelectValue placeholder="Select original language" />
                   </SelectTrigger>
                   <SelectContent>
                     {[
@@ -303,8 +468,8 @@ const NovelCreate = () => {
                     value={translationLanguage}
                     onValueChange={setTranslationLanguage}
                   >
-                    <SelectTrigger>
-                      <SelectValue />
+                    <SelectTrigger ref={translationLanguageRef}>
+                      <SelectValue placeholder="Select translation language" />
                     </SelectTrigger>
                     <SelectContent>
                       {[
@@ -322,6 +487,16 @@ const NovelCreate = () => {
                       ))}
                     </SelectContent>
                   </Select>
+                  {translationLanguage === "Other" && (
+                    <Input
+                      ref={customTranslationLanguageRef}
+                      value={customTranslationLanguage}
+                      onChange={(event) => setCustomTranslationLanguage(event.target.value)}
+                      placeholder="Specify the target language not listed above"
+                      aria-label="Custom translation language"
+                      required
+                    />
+                  )}
                 </div>
               )}
               <div className="space-y-3">
@@ -390,7 +565,27 @@ const NovelCreate = () => {
                 </p>
               </div>
               <div className="space-y-2">
-                <Label>Length</Label>
+                <div className="flex items-center gap-2">
+                  <Label>Length</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-5 w-5 rounded-full p-0 text-muted-foreground hover:text-primary"
+                        aria-label="Length definitions"
+                      >
+                        <CircleHelp className="h-4 w-4" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent align="start" className="w-64 space-y-1 text-sm">
+                      <p><strong>Novels:</strong> ≥100 chapters</p>
+                      <p><strong>Short Stories:</strong> 20–99 chapters</p>
+                      <p><strong>Super-Short-Stories:</strong> &lt;20 chapters</p>
+                    </PopoverContent>
+                  </Popover>
+                </div>
                 <Select value={length} onValueChange={setLength}>
                   <SelectTrigger>
                     <SelectValue />
@@ -513,11 +708,12 @@ const NovelCreate = () => {
                   </SelectContent>
                 </Select>
               </div>
-              {error && <p className="text-sm text-destructive">{error}</p>}
-              <Button type="submit" disabled={saving}>
-                {saving ? "Creating..." : "Create"}
-                <ArrowRight />
-              </Button>
+              <div className="flex justify-end">
+                <Button type="submit" disabled={saving}>
+                  {saving ? "Creating..." : "Create"}
+                  <ArrowRight />
+                </Button>
+              </div>
             </form>
           </CardContent>
         </Card>
