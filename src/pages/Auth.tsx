@@ -2,11 +2,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { LoadingButton } from '@/components/LoadingButton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { BookOpen, LogIn, UserPlus } from 'lucide-react';
+import { LogIn, UserPlus } from 'lucide-react';
+import { useTheme } from 'next-themes';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 
@@ -16,6 +18,7 @@ const Auth = () => {
   const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
   const { signIn, signUp, user } = useAuth();
+  const { resolvedTheme } = useTheme();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -80,8 +83,14 @@ const Auth = () => {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-3 mb-4">
-            <BookOpen className="h-8 w-8 text-primary" />
-            <h1 className="font-display text-3xl font-bold text-foreground">Rimora</h1>
+            <span className="rounded-lg bg-transparent p-1">
+              <img
+                src={resolvedTheme === "dark" ? "/logo-rimora-light.svg" : "/logo-rimora-dark.svg"}
+                alt="Rimora"
+                className="h-10 w-auto object-contain"
+              />
+            </span>
+            <h1 className="font-display text-3xl font-semibold uppercase tracking-[0.12em] text-foreground">RIMORA</h1>
           </div>
           <p className="text-muted-foreground">
             Write, translate, and read stories in one literary workspace.
@@ -123,14 +132,15 @@ const Auth = () => {
                       required
                     />
                   </div>
-                  <Button 
+                  <LoadingButton
                     type="submit" 
                     className="w-full"
-                    disabled={loading}
+                    loading={loading}
+                    loadingLabel="Signing In..."
                   >
                     <LogIn className="mr-2 h-4 w-4" />
-                    {loading ? 'Signing In...' : 'Sign In'}
-                  </Button>
+                    Sign In
+                  </LoadingButton>
                 </form>
               </TabsContent>
               
@@ -169,14 +179,15 @@ const Auth = () => {
                       required
                     />
                   </div>
-                  <Button 
+                  <LoadingButton
                     type="submit" 
                     className="w-full"
-                    disabled={loading}
+                    loading={loading}
+                    loadingLabel="Creating Account..."
                   >
                     <UserPlus className="mr-2 h-4 w-4" />
-                    {loading ? 'Creating Account...' : 'Sign Up'}
-                  </Button>
+                    Sign Up
+                  </LoadingButton>
                 </form>
               </TabsContent>
             </Tabs>

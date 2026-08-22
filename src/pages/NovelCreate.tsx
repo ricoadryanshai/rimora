@@ -9,6 +9,7 @@ import {
   Upload,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { LoadingButton } from "@/components/LoadingButton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Popover,
@@ -331,9 +332,7 @@ const NovelCreate = () => {
                         type="url"
                         aria-label="Translation source URL"
                       />
-                      <Button type="button" size="sm" onClick={() => void handleAiImport()} disabled={isImporting}>
-                        {isImporting ? "Importing..." : "Import"}
-                      </Button>
+                      <LoadingButton type="button" size="sm" onClick={() => void handleAiImport()} loading={isImporting} loadingLabel="Importing...">Import</LoadingButton>
                     </div>
                   </PopoverContent>
                 </Popover>
@@ -709,10 +708,10 @@ const NovelCreate = () => {
                 </Select>
               </div>
               <div className="flex justify-end">
-                <Button type="submit" disabled={saving}>
+                <LoadingButton type="submit" loading={saving} loadingLabel="Creating...">
                   {saving ? "Creating..." : "Create"}
                   <ArrowRight />
-                </Button>
+                </LoadingButton>
               </div>
             </form>
           </CardContent>

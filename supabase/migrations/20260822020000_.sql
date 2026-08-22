@@ -1,0 +1,4 @@
+ALTER TABLE public.profiles
+  ADD COLUMN gender TEXT,
+  ADD COLUMN location TEXT NOT NULL DEFAULT 'Global',
+  ADD COLUMN bio TEXT NOT NULL DEFAULT '';
