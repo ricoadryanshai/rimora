@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CalendarDays, CircleUserRound, Pencil } from "lucide-react";
+import { CalendarDays, CircleUserRound, MapPin, Pencil } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 const Profile = () => {
   const { userId } = useParams();
-  const [profile, setProfile] = useState<{ user_id: string; username: string | null; full_name: string | null; created_at: string; gender: string | null; avatar_url: string | null; banner_url: string | null } | null>(null);
+  const [profile, setProfile] = useState<{ user_id: string; username: string | null; full_name: string | null; created_at: string; gender: string | null; location: string | null; bio: string | null; avatar_url: string | null; banner_url: string | null } | null>(null);
   const [email, setEmail] = useState("");
 
   useEffect(() => {
@@ -24,7 +24,7 @@ const Profile = () => {
       if (sessionUser?.id === userId) {
         const { data: profileData } = await supabase
           .from("profiles")
-          .select("user_id,username,full_name,gender,avatar_url,banner_url,created_at")
+          .select("user_id,username,full_name,gender,location,bio,avatar_url,banner_url,created_at")
           .eq("id", userId)
           .maybeSingle();
         if (!active) return;
@@ -34,6 +34,8 @@ const Profile = () => {
           full_name: profileData?.full_name ?? sessionUser.user_metadata?.full_name ?? null,
           created_at: profileData?.created_at ?? sessionUser.created_at,
           gender: profileData?.gender ?? sessionUser.user_metadata?.leading_gender ?? null,
+          location: profileData?.location ?? null,
+          bio: profileData?.bio ?? null,
           avatar_url: profileData?.avatar_url ?? sessionUser.user_metadata?.avatar_url ?? null,
           banner_url: profileData?.banner_url ?? sessionUser.user_metadata?.banner_url ?? null,
         });
@@ -67,7 +69,11 @@ const Profile = () => {
                 {gender === "female" && <CircleUserRound className="h-6 w-6 text-pink-600" aria-label="Female" />}
               </div>
               <p className="font-mono text-xs text-muted-foreground">User ID: {profile?.user_id || "Loading"}</p>
-              <p className="flex items-center gap-2 text-sm text-muted-foreground"><CalendarDays className="h-4 w-4" /> Joined {joinDate}</p>
+              {profile?.bio?.trim() && <p className="max-w-2xl whitespace-pre-wrap text-sm leading-6 text-muted-foreground">{profile.bio}</p>}
+              <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted-foreground">
+                <p className="flex items-center gap-2"><CalendarDays className="h-4 w-4" /> Joined {joinDate}</p>
+                {profile?.location && <p className="flex items-center gap-2"><MapPin className="h-4 w-4" /> {profile.location}</p>}
+              </div>
             </div>
           </CardContent>
         </Card>

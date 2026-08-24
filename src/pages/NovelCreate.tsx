@@ -1,10 +1,12 @@
-import { FormEvent, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { FormEvent, useEffect, useRef, useState } from "react";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowRight,
+  ArrowLeft,
   BookOpen,
   CircleHelp,
   ImagePlus,
+  Plus,
   Sparkles,
   Upload,
 } from "lucide-react";
@@ -18,7 +20,7 @@ import {
 } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import RichTextEditor from "@/components/RichTextEditor";
 import {
   Select,
   SelectContent,
@@ -35,7 +37,13 @@ import { supabase } from "@/integrations/supabase/client";
 
 const NovelCreate = () => {
   const { user, session, loading: authLoading } = useAuth();
+  const location = useLocation();
+  const { novelId } = useParams();
   const navigate = useNavigate();
+  const editMode = Boolean(novelId);
+  const [showForm, setShowForm] = useState(false);
+  const [ownedNovels, setOwnedNovels] = useState<Array<{ id: string; title: string; translation_title: string | null; cover_url: string | null; novel_type: string; status: string }>>([]);
+  const [novelsLoading, setNovelsLoading] = useState(true);
   const [title, setTitle] = useState("");
   const [author, setAuthor] = useState("");
   const [novelType, setNovelType] = useState("Novel");
@@ -65,6 +73,47 @@ const NovelCreate = () => {
   const originalLanguageRef = useRef<HTMLButtonElement>(null);
   const translationLanguageRef = useRef<HTMLButtonElement>(null);
   const customTranslationLanguageRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (!user) return;
+    void supabase
+      .from("novels")
+      .select("id,title,translation_title,cover_url,novel_type,status")
+      .eq("owner_id", user.id)
+      .order("updated_at", { ascending: false })
+      .then(({ data }) => {
+        setOwnedNovels((data ?? []) as Array<{ id: string; title: string; translation_title: string | null; cover_url: string | null; novel_type: string; status: string }>);
+        setNovelsLoading(false);
+      });
+  }, [user]);
+  useEffect(() => {
+    if (!user || !novelId) return;
+    void supabase.from("novels").select("*").eq("id", novelId).eq("owner_id", user.id).maybeSingle().then(({ data }) => {
+      if (!data) {
+        setError("Novel not found or you do not have permission to edit it.");
+        return;
+      }
+      setTitle(data.title ?? "");
+      setAuthor(data.author ?? "");
+      setNovelType(data.novel_type ?? "Novel");
+      setLeadingGender(data.leading_gender ?? "");
+      setGenre(data.genre ?? "");
+      setLanguage(data.language ?? "");
+      setCoverUrl(data.cover_url ?? "");
+      setCoverPreview(data.cover_url ?? "");
+      setAbbreviation(data.abbreviation ?? "");
+      setLength(data.length ?? "Novel");
+      setDescription(data.description ?? "");
+      setWarningNotice(data.warning_notice ?? "General Audiences");
+      setFanficTopic(data.fanfic_topic ?? "");
+      setFanficCategory(data.fanfic_category ?? "Gen");
+      setTranslationTitle(data.translation_title ?? "");
+      setTranslationLanguage(data.translation_language ?? "");
+      setOriginalPlatform(data.original_platform ?? "");
+      setTranslator(data.translator ?? "");
+      setTranslatorGroup(data.translator_group ?? "");
+      setShowForm(true);
+    });
+  }, [novelId, user]);
   const createNovel = async (event: FormEvent) => {
     event.preventDefault();
     if (abbreviation.length > 15) {
@@ -85,9 +134,7 @@ const NovelCreate = () => {
     }
     setSaving(true);
     setError(null);
-    const { data, error: insertError } = await rimora
-      .from("novels")
-      .insert({
+    const novelValues = {
         owner_id: user?.id,
         title,
         author,
@@ -113,11 +160,15 @@ const NovelCreate = () => {
         translator: novelType === "Translation" ? translator : null,
         translator_group:
           novelType === "Translation" ? translatorGroup || null : null,
-      })
-      .select("id")
-      .single();
-    if (insertError) setError(insertError.message);
-    else if (data) navigate("/library");
+        status: editMode ? undefined : "ongoing",
+        visibility: editMode ? undefined : "public",
+        published_at: editMode ? undefined : new Date().toISOString(),
+      };
+    const result = editMode
+      ? await rimora.from("novels").update(novelValues).eq("id", novelId).eq("owner_id", user?.id).select("id").single()
+      : await rimora.from("novels").insert(novelValues).select("id").single();
+    if (result.error) setError(result.error.message);
+    else if (result.data) navigate(`/workspace/${result.data.id}`);
     setSaving(false);
   };
   const maleNovelGenres = [
@@ -274,9 +325,68 @@ const NovelCreate = () => {
     }
   };
   const openCoverPicker = () => coverInputRef.current?.click();
+  if (!showForm && location.pathname !== "/novel/new") {
+    return (
+      <RimoraShell>
+        <div className="page-container max-w-6xl space-y-8">
+          <header className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="grid h-12 w-12 place-items-center rounded-xl bg-primary/10 text-primary">
+                <BookOpen className="h-6 w-6" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Your writing space</p>
+                <h1 className="font-display text-4xl font-semibold">My Novels</h1>
+              </div>
+            </div>
+            <Button onClick={() => navigate("/novel/new")}>
+              <Plus />
+              Create novel
+            </Button>
+          </header>
+          {novelsLoading ? (
+            <p className="text-sm text-muted-foreground">Loading your novels...</p>
+          ) : ownedNovels.length === 0 ? (
+            <Card><CardContent className="flex min-h-48 flex-col items-center justify-center gap-4 text-center"><p className="text-muted-foreground">You have not created any novels yet.</p><Button onClick={() => navigate("/novel/new")}><Plus />Create your first novel</Button></CardContent></Card>
+          ) : (
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {ownedNovels.map((novel) => {
+                const displayTitle = novel.novel_type === "Translation" && novel.translation_title?.trim()
+                  ? novel.translation_title
+                  : novel.title;
+                const typeBadgeClass = novel.novel_type === "Translation"
+                  ? "bg-sky-600 text-white"
+                  : novel.novel_type === "Fanfic"
+                    ? "bg-fuchsia-600 text-white"
+                    : "bg-emerald-600 text-white";
+                return (
+                <Card key={novel.id} className="overflow-hidden transition-shadow hover:shadow-lg">
+                  <button type="button" onClick={() => navigate(`/workspace/${novel.id}`)} className="block w-full text-left">
+                    <div className="relative aspect-[3/4] overflow-hidden bg-muted">
+                      <div className="absolute left-3 top-3 z-10 flex flex-wrap gap-2">
+                        <span className={`rounded-full px-2.5 py-1 text-xs font-semibold shadow-sm ${typeBadgeClass}`}>
+                          {novel.novel_type}
+                        </span>
+                      </div>
+                      {novel.cover_url ? <img src={novel.cover_url} alt={`${displayTitle} cover`} className="h-full w-full object-cover" /> : <div className="grid h-full place-items-center text-muted-foreground"><BookOpen className="h-10 w-10" /></div>}
+                    </div>
+                    <CardContent className="p-4"><h2 className="line-clamp-2 font-display font-semibold">{displayTitle}</h2></CardContent>
+                  </button>
+                </Card>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </RimoraShell>
+    );
+  }
   return (
     <RimoraShell>
-      <div className="page-container max-w-2xl">
+      <div className="page-container max-w-5xl">
+        <Button variant="ghost" size="sm" asChild className="mb-6">
+          <Link to={editMode && novelId ? `/workspace/${novelId}` : "/workspace"}><ArrowLeft /> My Novels</Link>
+        </Button>
         {error && <MessageAlert type="error" message={error} />}
         {importMissingFields.length > 0 && (
           <MessageAlert
@@ -293,7 +403,7 @@ const NovelCreate = () => {
               </div>
               <div className="min-w-0 space-y-1">
                 <CardTitle className="font-display text-3xl">
-                  Novel Information
+                  {editMode ? "Edit Novel" : "Novel Information"}
                 </CardTitle>
                 <p className="text-sm text-muted-foreground">
                   Give your story a home. You can refine everything later.
@@ -602,12 +712,11 @@ const NovelCreate = () => {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="description">Synopsis</Label>
-                <Textarea
+                <RichTextEditor
                   id="description"
                   value={description}
-                  onChange={(event) => setDescription(event.target.value)}
+                  onChange={setDescription}
                   placeholder="What is this story about?"
-                  rows={6}
                 />
               </div>
               {novelType === "Translation" && (
@@ -708,8 +817,8 @@ const NovelCreate = () => {
                 </Select>
               </div>
               <div className="flex justify-end">
-                <LoadingButton type="submit" loading={saving} loadingLabel="Creating...">
-                  {saving ? "Creating..." : "Create"}
+                  <LoadingButton type="submit" loading={saving} loadingLabel={editMode ? "Saving..." : "Creating..."}>
+                  {saving ? (editMode ? "Saving..." : "Creating...") : (editMode ? "Save changes" : "Create")}
                   <ArrowRight />
                 </LoadingButton>
               </div>

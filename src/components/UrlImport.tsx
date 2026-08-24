@@ -16,9 +16,11 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useOnline } from "@/hooks/use-online";
 import { supabase } from "@/integrations/supabase/client";
+import { Switch } from "@/components/ui/switch";
 
 interface UrlImportProps {
   onContentReady: (content: string) => void;
+  onTitleReady?: (title: string) => void;
   modelRowId?: string | null;
   onGlossaryEntries?: (
     entries: { original_word: string; replacement_word: string }[],
@@ -27,6 +29,7 @@ interface UrlImportProps {
 
 const UrlImport: React.FC<UrlImportProps> = ({
   onContentReady,
+  onTitleReady,
   modelRowId,
   onGlossaryEntries,
 }) => {
@@ -36,6 +39,7 @@ const UrlImport: React.FC<UrlImportProps> = ({
   const [pageTitle, setPageTitle] = useState("");
   const [step, setStep] = useState<"input" | "preview">("input");
   const [isExtractingGlossary, setIsExtractingGlossary] = useState(false);
+  const [cleanWithAi, setCleanWithAi] = useState(false);
   const { toast } = useToast();
   const isOnline = useOnline();
 
@@ -62,7 +66,7 @@ const UrlImport: React.FC<UrlImportProps> = ({
       const { data, error } = await supabase.functions.invoke(
         "firecrawl-scrape",
         {
-          body: { url: url.trim() },
+          body: { url: url.trim(), cleanWithAi },
         },
       );
 
@@ -95,13 +99,15 @@ const UrlImport: React.FC<UrlImportProps> = ({
         .replace(/\n{3,}/g, "\n\n") // excessive newlines
         .trim();
 
-      setExtractedContent(plainText);
-      setPageTitle(data.title || "");
-      setStep("preview");
+      onContentReady(plainText.replace(/\r?\n/g, "<br>"));
       toast({
-        title: "Content Extracted!",
-        description: `Successfully extracted text from the webpage.`,
+        title: "Content imported",
+        description: "The scraped text was added directly to the chapter content.",
       });
+      setUrl("");
+      setExtractedContent("");
+      setPageTitle("");
+      setStep("input");
     } catch (error) {
       console.error("URL import error:", error);
       toast({
@@ -127,6 +133,7 @@ const UrlImport: React.FC<UrlImportProps> = ({
       return;
     }
     onContentReady(extractedContent);
+    if (pageTitle) onTitleReady?.(pageTitle);
     toast({
       title: "Content Inserted!",
       description: "The extracted text has been added to the chapter input.",
@@ -314,6 +321,10 @@ const UrlImport: React.FC<UrlImportProps> = ({
         Perfect for iPhone users who can't easily select and copy text from web
         pages.
       </p>
+      <div className="flex items-center gap-2">
+        <Switch id="clean-scraped-content" checked={cleanWithAi} onCheckedChange={setCleanWithAi} disabled={isLoading || !isOnline} />
+        <Label htmlFor="clean-scraped-content" className="cursor-pointer text-xs text-muted-foreground">Trim the content with AI</Label>
+      </div>
       {!isOnline && (
         <p className="text-xs text-destructive">
           You're offline — URL import will work again once you're back online.

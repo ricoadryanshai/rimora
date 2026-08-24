@@ -131,38 +131,18 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => null);
     const text = typeof body?.text === "string" ? body.text : "";
-    const modelRowId =
-      typeof body?.modelRowId === "string" ? body.modelRowId : "";
+    const originalLanguage = typeof body?.originalLanguage === "string" ? body.originalLanguage : "original language";
+    const translatedLanguage = typeof body?.translatedLanguage === "string" ? body.translatedLanguage : "translated language";
     if (!text.trim()) return json({ error: "Text is required" }, 400);
     if (text.length > MAX_CHARS)
       return json({ error: `Text exceeds ${MAX_CHARS} characters` }, 400);
-    if (!modelRowId) return json({ error: "No AI model selected" }, 400);
+    const apiKey = Deno.env.get("AI_API_KEY");
+    const configuredEndpoint = Deno.env.get("AI_API_ENDPOINT");
+    const model = Deno.env.get("AI_API_MODEL");
+    if (!apiKey || !configuredEndpoint || !model)
+      return json({ error: "AI glossary extraction is not configured on the server." }, 500);
 
-    const admin = createClient(supabaseUrl, serviceKey);
-    const { data: model } = await admin
-      .from("ai_models")
-      .select("id, user_id, model_id, provider_id")
-      .eq("id", modelRowId)
-      .maybeSingle();
-    if (!model || model.user_id !== userData.user.id)
-      return json({ error: "Model not found" }, 404);
-
-    const { data: provider } = await admin
-      .from("ai_providers")
-      .select("api_url, api_key_encrypted")
-      .eq("id", model.provider_id)
-      .maybeSingle();
-    if (!provider?.api_key_encrypted)
-      return json({ error: "Provider is missing an API key" }, 400);
-
-    let apiKey: string;
-    try {
-      apiKey = await decryptSecret(provider.api_key_encrypted);
-    } catch {
-      return json({ error: "Could not read the stored API key" }, 400);
-    }
-
-    const baseUrl = provider.api_url.replace(/\/+$/, "");
+    const baseUrl = configuredEndpoint.replace(/\/+$/, "");
     const endpoint = baseUrl.endsWith("/chat/completions")
       ? baseUrl
       : `${baseUrl}/chat/completions`;
@@ -173,14 +153,14 @@ Deno.serve(async (req) => {
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: model.model_id,
+        model,
         stream: true,
         temperature: 0,
         messages: [
           {
             role: "system",
             content:
-              "Extract recurring names, places, titles, organizations, fictional terms, and other translation-specific terms from the source text. Return ONLY a JSON array of objects with exactly original_word and replacement_word. original_word must be the source term and replacement_word must be its natural English translation or preferred spelling. Do not include ordinary common words, full sentences, or explanations. Return [] when no glossary terms are useful.",
+              `Extract recurring names, places, titles, organizations, fictional terms, and other translation-specific terms from the source text. The source/original term language is ${originalLanguage}; the translated/preferred term language is ${translatedLanguage}. Return ONLY a JSON array of objects with exactly original_word and replacement_word. Preserve original_word in ${originalLanguage} and provide replacement_word in ${translatedLanguage}. Do not include ordinary common words, full sentences, or explanations. Return [] when no glossary terms are useful.`,
           },
           { role: "user", content: text },
         ],

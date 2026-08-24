@@ -3,52 +3,34 @@ import { Link } from "react-router-dom";
 import { BookOpen, Library as LibraryIcon } from "lucide-react";
 import { ComingSoon } from "@/components/ComingSoon";
 import { RimoraShell } from "@/components/RimoraShell";
-import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
-type NovelCard = {
-  id: string;
-  title: string;
-  translation_title: string | null;
-  novel_type: string;
-  cover_url: string | null;
-  chapters: { count: number }[];
-};
+type SavedNovel = { id: string; title: string; translation_title: string | null; novel_type: string; cover_url: string | null; chapters: { count: number }[] };
+type ReadingProgress = { novel_id: string; chapter_id: string };
+type ChapterNumber = { id: string; chapter_number: number };
 
 const Library = () => {
   const { user } = useAuth();
-  const [novels, setNovels] = useState<NovelCard[]>([]);
-  const [loading, setLoading] = useState(false);
-
+  const [savedNovels, setSavedNovels] = useState<SavedNovel[]>([]);
+  const [readingProgress, setReadingProgress] = useState<ReadingProgress[]>([]);
+  const [chapterNumbers, setChapterNumbers] = useState<ChapterNumber[]>([]);
+  const [loading, setLoading] = useState(true);
   useEffect(() => {
-    if (!user) {
-      setNovels([]);
-      return;
-    }
-    setLoading(true);
-    void supabase
-      .from("novels")
-      .select("id,title,translation_title,novel_type,cover_url,chapters(count)")
-      .eq("owner_id", user.id)
-      .order("updated_at", { ascending: false })
-      .then(({ data, error }) => {
-        if (error) {
-          console.error("Failed to load novels:", error);
-          setNovels([]);
-        } else {
-          setNovels((data ?? []) as unknown as NovelCard[]);
-        }
-        setLoading(false);
-      });
+    if (!user) { setSavedNovels([]); setLoading(false); return; }
+    void supabase.from("library_entries").select("novels(id,title,translation_title,novel_type,cover_url,chapters(count))").eq("user_id", user.id).eq("entry_type", "saved").order("created_at", { ascending: false }).then(async ({ data }) => {
+      const novels = (data ?? []).flatMap((entry) => entry.novels ? [entry.novels as unknown as SavedNovel] : []);
+      const novelIds = novels.map((novel) => novel.id);
+      const { data: progressData } = novelIds.length ? await supabase.from("reading_progress").select("novel_id,chapter_id").eq("user_id", user.id).in("novel_id", novelIds) : { data: [] as ReadingProgress[] };
+      const chapterIds = (progressData ?? []).map((progress) => progress.chapter_id);
+      const { data: chapterData } = chapterIds.length ? await supabase.from("chapters").select("id,chapter_number").in("id", chapterIds) : { data: [] as ChapterNumber[] };
+      setSavedNovels(novels);
+      setReadingProgress((progressData ?? []) as ReadingProgress[]);
+      setChapterNumbers((chapterData ?? []) as ChapterNumber[]);
+      setLoading(false);
+    });
   }, [user]);
-
   return (
     <RimoraShell>
       <div className="page-container max-w-6xl space-y-8">
@@ -63,84 +45,17 @@ const Library = () => {
             <h1 className="font-display text-4xl font-semibold">Library</h1>
           </div>
         </header>
-        <Tabs defaultValue="my-novels" className="space-y-6">
-          <TabsList className="grid h-auto w-full grid-cols-3 rounded-xl bg-muted/70 p-1">
-            <TabsTrigger value="my-novels" className="rounded-lg py-2.5">
-              My Novels
-            </TabsTrigger>
-            <TabsTrigger value="bookmark" className="rounded-lg py-2.5">
+        <Tabs defaultValue="bookmark" className="space-y-6">
+          <TabsList className="grid h-auto w-full grid-cols-2 border-b border-border bg-transparent p-0">
+            <TabsTrigger value="bookmark" className="rounded-none border-b-2 border-transparent px-3 py-3 text-muted-foreground shadow-none transition-colors data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none">
               Bookmark
             </TabsTrigger>
-            <TabsTrigger value="history" className="rounded-lg py-2.5">
+            <TabsTrigger value="history" className="rounded-none border-b-2 border-transparent px-3 py-3 text-muted-foreground shadow-none transition-colors data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none">
               History
             </TabsTrigger>
           </TabsList>
-          <TabsContent value="my-novels">
-            {loading ? (
-              <Card>
-                <CardContent className="flex min-h-48 items-center justify-center text-sm text-muted-foreground">
-                  Loading your novels...
-                </CardContent>
-              </Card>
-            ) : novels.length === 0 ? (
-              <ComingSoon
-                title="Your novels are on the way"
-                description="Create a novel and it will appear here in your personal writing workspace."
-              />
-            ) : (
-              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
-                {novels.map((novel) => {
-                  const displayTitle =
-                    novel.novel_type === "Translation" &&
-                    novel.translation_title?.trim()
-                      ? novel.translation_title
-                      : novel.title;
-                  const chapterCount = novel.chapters?.[0]?.count ?? 0;
-                  return (
-                    <Card
-                      key={novel.id}
-                      className="group cursor-pointer overflow-hidden transition-all duration-200 hover:-translate-y-1 hover:shadow-lg"
-                    >
-                      <Link to={`/novels/${novel.id}`} className="block">
-                      <div className="aspect-[3/4] overflow-hidden bg-muted">
-                        {novel.cover_url ? (
-                          <img
-                            src={novel.cover_url}
-                            alt={`${displayTitle} cover`}
-                            className="h-full w-full object-cover transition-transform duration-300 ease-out group-hover:scale-105"
-                          />
-                        ) : (
-                          <div className="grid h-full place-items-center text-muted-foreground transition-transform duration-300 group-hover:scale-105">
-                            <BookOpen className="h-10 w-10" />
-                          </div>
-                        )}
-                      </div>
-                      <CardContent className="space-y-2 p-4">
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <p className="line-clamp-2 min-h-12 cursor-help font-display font-semibold">
-                              {displayTitle}
-                            </p>
-                          </TooltipTrigger>
-                          <TooltipContent>{displayTitle}</TooltipContent>
-                        </Tooltip>
-                        <p className="text-sm text-muted-foreground">
-                          {chapterCount}{" "}
-                          {chapterCount === 1 ? "chapter" : "chapters"}
-                        </p>
-                      </CardContent>
-                      </Link>
-                    </Card>
-                  );
-                })}
-              </div>
-            )}
-          </TabsContent>
           <TabsContent value="bookmark">
-            <ComingSoon
-              title="Bookmarks are coming soon"
-              description="Save stories from across Rimora and find them here when bookmarks are ready."
-            />
+            {loading ? <p className="text-sm text-muted-foreground">Loading bookmarks...</p> : savedNovels.length === 0 ? <ComingSoon title="No bookmarks yet" description="Save stories from across Rimora and find them here." /> : <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">{savedNovels.map((novel) => { const title = novel.novel_type === "Translation" && novel.translation_title?.trim() ? novel.translation_title : novel.title; const typeBadgeClass = novel.novel_type === "Translation" ? "bg-sky-600 text-white" : novel.novel_type === "Fanfic" ? "bg-fuchsia-600 text-white" : "bg-emerald-600 text-white"; const progress = readingProgress.find((entry) => entry.novel_id === novel.id); const chapterNumber = progress ? chapterNumbers.find((chapter) => chapter.id === progress.chapter_id)?.chapter_number : undefined; const totalChapters = novel.chapters?.[0]?.count ?? 0; return <Link key={novel.id} to={`/novels/${novel.id}`} className="overflow-hidden rounded-sm border bg-card/60 transition-shadow hover:shadow-lg"><div className="relative aspect-[3/4] bg-muted"><span className={`absolute left-3 top-3 z-10 rounded-full px-2.5 py-1 text-xs font-semibold shadow-sm ${typeBadgeClass}`}>{novel.novel_type}</span>{novel.cover_url ? <img src={novel.cover_url} alt={`${title} cover`} className="h-full w-full object-cover" /> : <div className="grid h-full place-items-center text-muted-foreground"><BookOpen /></div>}</div><div className="p-4"><h2 className="line-clamp-2 font-display font-semibold">{title}</h2><p className="mt-2 text-xs text-muted-foreground">{chapterNumber ? `Last read: Chapter ${chapterNumber} of ${totalChapters}` : "Not started"}</p></div></Link>; })}</div>}
           </TabsContent>
           <TabsContent value="history">
             <ComingSoon

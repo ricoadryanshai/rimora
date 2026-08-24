@@ -9,7 +9,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { url } = await req.json();
+    const { url, cleanWithAi } = await req.json();
 
     if (!url || typeof url !== 'string') {
       return new Response(
@@ -70,8 +70,27 @@ Deno.serve(async (req) => {
       );
     }
 
-    const markdown = data?.data?.markdown || data?.markdown || '';
+    let markdown = data?.data?.markdown || data?.markdown || '';
     const title = data?.data?.metadata?.title || data?.metadata?.title || '';
+
+    if (cleanWithAi && markdown.trim()) {
+      const aiKey = Deno.env.get('AI_API_KEY');
+      const aiEndpoint = Deno.env.get('AI_API_ENDPOINT');
+      const aiModel = Deno.env.get('AI_API_MODEL');
+      if (!aiKey || !aiEndpoint || !aiModel) {
+        return new Response(JSON.stringify({ success: false, error: 'AI cleanup is not configured on the server.' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+      const baseEndpoint = aiEndpoint.replace(/\/+$/, '');
+      const endpoint = baseEndpoint.endsWith('/chat/completions') ? baseEndpoint : `${baseEndpoint}/chat/completions`;
+      const aiResponse = await fetch(endpoint, { method: 'POST', headers: { Authorization: `Bearer ${aiKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ model: aiModel, temperature: 0, messages: [
+        { role: 'system', content: 'Clean scraped web content for a novel chapter. Remove advertisements, navigation, menus, cookie notices, comments, recommendations, author/site tools, and unrelated page text. Preserve only the chapter title and chapter narrative. Preserve paragraph boundaries and line breaks. Return only the cleaned chapter text, with no explanation.' },
+        { role: 'user', content: markdown.slice(0, 60000) },
+      ] }) });
+      const aiData = await aiResponse.json();
+      if (!aiResponse.ok) return new Response(JSON.stringify({ success: false, error: `AI cleanup failed (${aiResponse.status}).` }), { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      const cleaned = aiData?.choices?.[0]?.message?.content;
+      if (typeof cleaned === 'string' && cleaned.trim()) markdown = cleaned.trim();
+    }
 
     console.log('Scrape successful, content length:', markdown.length);
 

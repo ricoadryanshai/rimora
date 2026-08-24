@@ -14,6 +14,7 @@ import Explore from "./pages/Explore";
 import Settings from "./pages/Settings";
 import NovelCreate from "./pages/NovelCreate";
 import NovelOverview from "./pages/NovelOverview";
+import NovelWorkspace from "./pages/NovelWorkspace";
 import Workbook from "./pages/Workbook";
 import Reader from "./pages/Reader";
 import Profile from "./pages/Profile";
@@ -61,9 +62,13 @@ const App = () => (
                     <Route path="/settings" element={<Settings />} />
                     <Route path="/profile/:userId" element={<RequireAuth><Profile /></RequireAuth>} />
                     <Route path="/profile/:userId/edit" element={<RequireAuth><EditProfile /></RequireAuth>} />
+                    <Route path="/workspace" element={<RequireAuth><NovelCreate /></RequireAuth>} />
+                    <Route path="/workspace/:novelId" element={<RequireAuth><NovelWorkspace /></RequireAuth>} />
+                    <Route path="/novel/new" element={<RequireAuth><NovelCreate /></RequireAuth>} />
+                    <Route path="/novel/:novelId/edit" element={<RequireAuth><NovelCreate /></RequireAuth>} />
                     <Route path="/novels/new" element={<RequireAuth><NovelCreate /></RequireAuth>} />
                     <Route path="/novels/:novelId" element={<NovelOverview />} />
-                    <Route path="/novels/:novelId/workbook" element={<Workbook />} />
+                    <Route path="/workbook/:novelId" element={<RequireAuth><Workbook /></RequireAuth>} />
                     <Route path="/novels/:novelId/read" element={<Reader />} />
                     <Route path="/auth" element={<Auth />} />
                     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
