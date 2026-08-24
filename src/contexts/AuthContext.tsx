@@ -2,6 +2,11 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
+const configuredInactivityTimeout = Number(import.meta.env.VITE_AUTH_INACTIVITY_TIMEOUT_MS);
+const authInactivityTimeout = Number.isFinite(configuredInactivityTimeout) && configuredInactivityTimeout > 0
+  ? configuredInactivityTimeout
+  : 30 * 60 * 1000;
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
@@ -89,6 +94,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
     return () => subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (!session?.user) return;
+
+    let inactivityTimer: ReturnType<typeof setTimeout>;
+    const resetInactivityTimer = () => {
+      clearTimeout(inactivityTimer);
+      inactivityTimer = setTimeout(() => {
+        void supabase.auth.signOut();
+      }, authInactivityTimeout);
+    };
+    const activityEvents: Array<keyof WindowEventMap> = ["pointerdown", "keydown", "touchstart", "scroll"];
+
+    activityEvents.forEach((eventName) => window.addEventListener(eventName, resetInactivityTimer, { passive: true }));
+    resetInactivityTimer();
+
+    return () => {
+      clearTimeout(inactivityTimer);
+      activityEvents.forEach((eventName) => window.removeEventListener(eventName, resetInactivityTimer));
+    };
+  }, [session?.user]);
 
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({
