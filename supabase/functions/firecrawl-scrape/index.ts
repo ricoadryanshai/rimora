@@ -3,6 +3,13 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
+type FirecrawlResponse = {
+  error?: unknown;
+  markdown?: string;
+  metadata?: { title?: string };
+  data?: { markdown?: string; metadata?: { title?: string } };
+};
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -57,13 +64,23 @@ Deno.serve(async (req) => {
       }),
     });
 
-    const data = await response.json();
+    const responseText = await response.text();
+    let data: FirecrawlResponse = {};
+    try {
+      data = responseText ? JSON.parse(responseText) as FirecrawlResponse : {};
+    } catch {
+      console.error('Firecrawl returned a non-JSON response:', responseText.slice(0, 500));
+      return new Response(
+        JSON.stringify({ success: false, error: `Firecrawl returned an invalid response (${response.status}).` }),
+        { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     if (!response.ok) {
       console.error('Firecrawl API error:', data);
       const errorMsg = response.status === 402
         ? 'Firecrawl credits exhausted. Please top up your Firecrawl plan.'
-        : data.error || `Scrape failed with status ${response.status}`;
+        : typeof data.error === 'string' ? data.error : `Scrape failed with status ${response.status}`;
       return new Response(
         JSON.stringify({ success: false, error: errorMsg }),
         { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

@@ -261,6 +261,7 @@ const Workbook = () => {
 							<Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
 								<DialogTrigger asChild><Button type="button" variant="outline"><Eye /> Preview</Button></DialogTrigger>
 								<DialogContent className="h-screen w-screen max-w-none rounded-none border-0 p-0">
+									<DialogHeader className="sr-only"><DialogTitle>Chapter preview</DialogTitle><DialogDescription>Preview this chapter before saving or publishing it.</DialogDescription></DialogHeader>
 									<div className="h-full overflow-y-auto bg-background px-6 py-12 sm:px-12 lg:px-24">
 										<div className="mx-auto max-w-3xl">
 											<p className="mb-3 text-center text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">Chapter {chapterNumber ?? "-"}</p>
@@ -295,6 +296,7 @@ const Workbook = () => {
 													<TooltipContent>Import from webpage</TooltipContent>
 												</Tooltip>
 												<DialogContent className="max-w-2xl">
+													<DialogHeader><DialogTitle>Import chapter from webpage</DialogTitle><DialogDescription>Fetch chapter content from a webpage and add it to the editor.</DialogDescription></DialogHeader>
 													<UrlImport onContentReady={(scrapedContent) => { setContent(scrapedContent); setImportOpen(false); }} onTitleReady={() => undefined} />
 												</DialogContent>
 											</Dialog>
