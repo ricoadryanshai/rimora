@@ -272,7 +272,9 @@ const NovelOverview = () => {
               </div>
               <div className="mt-8 flex gap-3">
                 <Button className="flex-1" asChild>
-                  <Link to={`/novels/${novel.id}/read${visibleChapters[0] ? `?chapter=${visibleChapters[0].id}` : ""}`}>
+                  <Link
+                    to={`/novels/${novel.id}/read${visibleChapters[0] ? `?chapter=${visibleChapters[0].id}` : ""}`}
+                  >
                     Read <BookOpen />
                   </Link>
                 </Button>

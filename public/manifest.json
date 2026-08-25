@@ -14,7 +14,17 @@
   "theme_color": "#ede3d5",
   "orientation": "portrait",
   "icons": [
-    { "src": "/logo-rimora-dark.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
-    { "src": "/logo-rimora-dark.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+    {
+      "src": "/logo-rimora-dark.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo-rimora-dark.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
   ]
 }

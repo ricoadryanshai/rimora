@@ -86,6 +86,7 @@ const Workbook = () => {
   const [originalLanguage, setOriginalLanguage] = useState("");
   const [translationLanguage, setTranslationLanguage] = useState("");
   const [authorUsername, setAuthorUsername] = useState("Author");
+  const [translatorName, setTranslatorName] = useState("Translator");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [editingChapter, setEditingChapter] = useState(false);
@@ -147,7 +148,9 @@ const Workbook = () => {
     void Promise.all([
       supabase
         .from("novels")
-        .select("title,abbreviation,novel_type,language,translation_language")
+        .select(
+          "title,abbreviation,novel_type,language,translation_language,translator",
+        )
         .eq("id", novelId)
         .eq("owner_id", user.id)
         .maybeSingle(),
@@ -170,6 +173,7 @@ const Workbook = () => {
       setNovelType(novelResult.data?.novel_type ?? "");
       setOriginalLanguage(novelResult.data?.language ?? "");
       setTranslationLanguage(novelResult.data?.translation_language ?? "");
+      setTranslatorName(novelResult.data?.translator || "Translator");
       setAuthorUsername(
         profileResult.data?.username ||
           user.user_metadata?.full_name ||
@@ -179,7 +183,6 @@ const Workbook = () => {
       const latestVisibleNumber = chaptersResult.data?.[0]?.chapter_number ?? 0;
       setLatestChapterTitle(chaptersResult.data?.[0]?.title ?? null);
       setLatestChapterNumber(latestVisibleNumber || null);
-      setChapterNumber(latestVisibleNumber + 1);
       setLoading(false);
     });
     if (editingChapterId) {
@@ -613,6 +616,21 @@ const Workbook = () => {
             <Card>
               <CardContent className="space-y-5 pt-6">
                 <div className="space-y-2">
+                  <Label htmlFor="chapter-number">Chapter</Label>
+                  <Input
+                    id="chapter-number"
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={chapterNumber ?? ""}
+                    onChange={(event) => {
+                      const value = event.target.value;
+                      setChapterNumber(value ? Number(value) : null);
+                    }}
+                    placeholder="Enter a chapter number"
+                  />
+                </div>
+                <div className="space-y-2">
                   <Label htmlFor="chapter-title">Chapter title</Label>
                   <Input
                     id="chapter-title"
@@ -669,32 +687,39 @@ const Workbook = () => {
                           Preview this chapter before saving or publishing it.
                         </DialogDescription>
                       </DialogHeader>
-                      <div className="h-full overflow-y-auto bg-background px-6 py-12 sm:px-12 lg:px-24">
-                        <div className="mx-auto max-w-3xl">
-                          <p className="mb-3 text-center text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                      <div className="h-full overflow-y-auto bg-background px-4 py-8 pb-24 sm:px-8">
+                        <main className="mx-auto max-w-3xl space-y-8 py-8">
+                          <p className="text-center text-xs uppercase tracking-[0.2em] text-primary">
                             Chapter {chapterNumber ?? "-"}
                           </p>
-                          <h1 className="mb-10 text-center font-display text-3xl font-semibold">
+                          <h1 className="mt-3 text-center font-display text-4xl font-bold">
                             {title.trim() || `Chapter ${chapterNumber ?? "-"}`}
                           </h1>
-                          <div
-                            className="whitespace-pre-wrap text-base leading-8"
+                          <p className="mt-3 text-center text-sm text-muted-foreground">
+                            {authorUsername}
+                            {novelType === "Translation"
+                              ? ` · Translated by ${translatorName}`
+                              : ""}
+                          </p>
+                          <article
+                            className="mt-12 text-base leading-8 [&_blockquote]:border-l-2 [&_blockquote]:border-primary [&_blockquote]:pl-4 [&_h3]:font-display [&_h3]:text-xl [&_h3]:font-semibold [&_li]:ml-6 [&_ol]:list-decimal [&_p]:mb-5 [&_ul]:list-disc"
                             dangerouslySetInnerHTML={{ __html: content }}
                           />
+                          <div className="mt-16 border-t border-border pt-8 text-center text-sm uppercase tracking-[0.18em] text-muted-foreground">
+                            End of Chapter
+                          </div>
                           {hasRichText(authorThoughts) && (
-                            <section className="mt-12 border-t border-border pt-8">
+                            <section className="mt-8 rounded-sm border border-primary/20 bg-primary/5 p-6">
                               <div
                                 className="border-l-2 border-primary/50 pl-5 italic leading-8"
-                                dangerouslySetInnerHTML={{
-                                  __html: authorThoughts,
-                                }}
+                                dangerouslySetInnerHTML={{ __html: authorThoughts }}
                               />
                               <p className="mt-4 text-right text-sm font-medium text-muted-foreground">
-                                - {authorUsername}
+                                - {novelType === "Translation" ? translatorName : authorUsername}
                               </p>
                             </section>
                           )}
-                        </div>
+                        </main>
                       </div>
                     </DialogContent>
                   </Dialog>

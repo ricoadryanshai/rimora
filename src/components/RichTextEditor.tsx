@@ -1,5 +1,12 @@
 import { useEffect, useRef } from "react";
-import { Bold, Italic, List, ListOrdered, Quote, Underline } from "lucide-react";
+import {
+  Bold,
+  Italic,
+  List,
+  ListOrdered,
+  Quote,
+  Underline,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface RichTextEditorProps {
@@ -10,7 +17,13 @@ interface RichTextEditorProps {
   className?: string;
 }
 
-const RichTextEditor = ({ id, value, onChange, placeholder, className }: RichTextEditorProps) => {
+const RichTextEditor = ({
+  id,
+  value,
+  onChange,
+  placeholder,
+  className,
+}: RichTextEditorProps) => {
   const editorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -27,13 +40,77 @@ const RichTextEditor = ({ id, value, onChange, placeholder, className }: RichTex
 
   return (
     <div className="overflow-hidden rounded-sm border border-input bg-background/60 ring-offset-background focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/40">
-      <div className="flex flex-wrap gap-1 border-b border-input p-1" role="toolbar" aria-label="Synopsis formatting">
-        <Button type="button" variant="ghost" size="icon" aria-label="Bold" title="Bold" onMouseDown={(event) => event.preventDefault()} onClick={() => applyFormat("bold")}><Bold /></Button>
-        <Button type="button" variant="ghost" size="icon" aria-label="Italic" title="Italic" onMouseDown={(event) => event.preventDefault()} onClick={() => applyFormat("italic")}><Italic /></Button>
-        <Button type="button" variant="ghost" size="icon" aria-label="Underline" title="Underline" onMouseDown={(event) => event.preventDefault()} onClick={() => applyFormat("underline")}><Underline /></Button>
-        <Button type="button" variant="ghost" size="icon" aria-label="Bullet list" title="Bullet list" onMouseDown={(event) => event.preventDefault()} onClick={() => applyFormat("insertUnorderedList")}><List /></Button>
-        <Button type="button" variant="ghost" size="icon" aria-label="Numbered list" title="Numbered list" onMouseDown={(event) => event.preventDefault()} onClick={() => applyFormat("insertOrderedList")}><ListOrdered /></Button>
-        <Button type="button" variant="ghost" size="icon" aria-label="Blockquote" title="Blockquote" onMouseDown={(event) => event.preventDefault()} onClick={() => applyFormat("formatBlock")}><Quote /></Button>
+      <div
+        className="flex flex-wrap gap-1 border-b border-input p-1"
+        role="toolbar"
+        aria-label="Synopsis formatting"
+      >
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          aria-label="Bold"
+          title="Bold"
+          onMouseDown={(event) => event.preventDefault()}
+          onClick={() => applyFormat("bold")}
+        >
+          <Bold />
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          aria-label="Italic"
+          title="Italic"
+          onMouseDown={(event) => event.preventDefault()}
+          onClick={() => applyFormat("italic")}
+        >
+          <Italic />
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          aria-label="Underline"
+          title="Underline"
+          onMouseDown={(event) => event.preventDefault()}
+          onClick={() => applyFormat("underline")}
+        >
+          <Underline />
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          aria-label="Bullet list"
+          title="Bullet list"
+          onMouseDown={(event) => event.preventDefault()}
+          onClick={() => applyFormat("insertUnorderedList")}
+        >
+          <List />
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          aria-label="Numbered list"
+          title="Numbered list"
+          onMouseDown={(event) => event.preventDefault()}
+          onClick={() => applyFormat("insertOrderedList")}
+        >
+          <ListOrdered />
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          aria-label="Blockquote"
+          title="Blockquote"
+          onMouseDown={(event) => event.preventDefault()}
+          onClick={() => applyFormat("formatBlock")}
+        >
+          <Quote />
+        </Button>
       </div>
       <div
         id={id}

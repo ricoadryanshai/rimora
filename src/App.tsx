@@ -1,4 +1,3 @@
-
 import { Suspense, lazy } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -49,26 +48,87 @@ const App = () => (
             <Toaster />
             <Sonner />
             <BrowserRouter>
-              <ErrorBoundary fallback={
-                <div className="min-h-screen bg-background flex items-center justify-center">
-                  <p className="text-muted-foreground">Failed to load page</p>
-                </div>
-              }>
+              <ErrorBoundary
+                fallback={
+                  <div className="min-h-screen bg-background flex items-center justify-center">
+                    <p className="text-muted-foreground">Failed to load page</p>
+                  </div>
+                }
+              >
                 <Suspense fallback={<RouteFallback />}>
                   <Routes>
                     <Route path="/" element={<Explore />} />
                     <Route path="/library" element={<Library />} />
                     <Route path="/explore" element={<Explore />} />
                     <Route path="/settings" element={<Settings />} />
-                    <Route path="/profile/:userId" element={<RequireAuth><Profile /></RequireAuth>} />
-                    <Route path="/profile/:userId/edit" element={<RequireAuth><EditProfile /></RequireAuth>} />
-                    <Route path="/workspace" element={<RequireAuth><NovelCreate /></RequireAuth>} />
-                    <Route path="/workspace/:novelId" element={<RequireAuth><NovelWorkspace /></RequireAuth>} />
-                    <Route path="/novel/new" element={<RequireAuth><NovelCreate /></RequireAuth>} />
-                    <Route path="/novel/:novelId/edit" element={<RequireAuth><NovelCreate /></RequireAuth>} />
-                    <Route path="/novels/new" element={<RequireAuth><NovelCreate /></RequireAuth>} />
-                    <Route path="/novels/:novelId" element={<NovelOverview />} />
-                    <Route path="/workbook/:novelId" element={<RequireAuth><Workbook /></RequireAuth>} />
+                    <Route
+                      path="/profile/:userId"
+                      element={
+                        <RequireAuth>
+                          <Profile />
+                        </RequireAuth>
+                      }
+                    />
+                    <Route
+                      path="/profile/:userId/edit"
+                      element={
+                        <RequireAuth>
+                          <EditProfile />
+                        </RequireAuth>
+                      }
+                    />
+                    <Route
+                      path="/workspace"
+                      element={
+                        <RequireAuth>
+                          <NovelCreate />
+                        </RequireAuth>
+                      }
+                    />
+                    <Route
+                      path="/workspace/:novelId"
+                      element={
+                        <RequireAuth>
+                          <NovelWorkspace />
+                        </RequireAuth>
+                      }
+                    />
+                    <Route
+                      path="/novel/new"
+                      element={
+                        <RequireAuth>
+                          <NovelCreate />
+                        </RequireAuth>
+                      }
+                    />
+                    <Route
+                      path="/novel/:novelId/edit"
+                      element={
+                        <RequireAuth>
+                          <NovelCreate />
+                        </RequireAuth>
+                      }
+                    />
+                    <Route
+                      path="/novels/new"
+                      element={
+                        <RequireAuth>
+                          <NovelCreate />
+                        </RequireAuth>
+                      }
+                    />
+                    <Route
+                      path="/novels/:novelId"
+                      element={<NovelOverview />}
+                    />
+                    <Route
+                      path="/workbook/:novelId"
+                      element={
+                        <RequireAuth>
+                          <Workbook />
+                        </RequireAuth>
+                      }
+                    />
                     <Route path="/novels/:novelId/read" element={<Reader />} />
                     <Route path="/auth" element={<Auth />} />
                     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

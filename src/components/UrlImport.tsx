@@ -102,7 +102,8 @@ const UrlImport: React.FC<UrlImportProps> = ({
       onContentReady(plainText.replace(/\r?\n/g, "<br>"));
       toast({
         title: "Content imported",
-        description: "The scraped text was added directly to the chapter content.",
+        description:
+          "The scraped text was added directly to the chapter content.",
       });
       setUrl("");
       setExtractedContent("");
@@ -322,8 +323,18 @@ const UrlImport: React.FC<UrlImportProps> = ({
         pages.
       </p>
       <div className="flex items-center gap-2">
-        <Switch id="clean-scraped-content" checked={cleanWithAi} onCheckedChange={setCleanWithAi} disabled={isLoading || !isOnline} />
-        <Label htmlFor="clean-scraped-content" className="cursor-pointer text-xs text-muted-foreground">Trim the content with AI</Label>
+        <Switch
+          id="clean-scraped-content"
+          checked={cleanWithAi}
+          onCheckedChange={setCleanWithAi}
+          disabled={isLoading || !isOnline}
+        />
+        <Label
+          htmlFor="clean-scraped-content"
+          className="cursor-pointer text-xs text-muted-foreground"
+        >
+          Trim the content with AI
+        </Label>
       </div>
       {!isOnline && (
         <p className="text-xs text-destructive">

@@ -1,5 +1,13 @@
 import { createElement, useEffect, useState, type ReactNode } from "react";
-import { ArrowLeft, BookOpen, Bot, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
+import {
+  ArrowLeft,
+  BookOpen,
+  Bot,
+  Loader2,
+  Pencil,
+  Plus,
+  Trash2,
+} from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,7 +19,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 type Novel = {
   id: string;
@@ -109,26 +121,70 @@ const NovelWorkspace = () => {
     if (!novelId || !aiImportUrl.trim()) return;
     setAiImporting(true);
     try {
-      const { data, error } = await supabase.functions.invoke("ai-chapter-import", { body: { url: aiImportUrl.trim() } });
+      const { data, error } = await supabase.functions.invoke(
+        "ai-chapter-import",
+        { body: { url: aiImportUrl.trim() } },
+      );
       if (error) throw new Error(error.message);
-      if (!data?.success) throw new Error(data?.error || "Chapter import failed.");
+      if (!data?.success)
+        throw new Error(data?.error || "Chapter import failed.");
       const candidates = Array.isArray(data.chapters) ? data.chapters : [];
-      const existingNumbers = new Set(chapters.filter((chapter) => !chapter.deleted_at).map((chapter) => chapter.chapter_number));
-      const valid = candidates.filter((chapter: { chapter_number?: number; content?: string }) => Number.isInteger(chapter.chapter_number) && chapter.chapter_number > 0 && typeof chapter.content === "string" && chapter.content.trim() && !existingNumbers.has(chapter.chapter_number));
+      const existingNumbers = new Set(
+        chapters
+          .filter((chapter) => !chapter.deleted_at)
+          .map((chapter) => chapter.chapter_number),
+      );
+      const valid = candidates.filter(
+        (chapter: { chapter_number?: number; content?: string }) =>
+          Number.isInteger(chapter.chapter_number) &&
+          chapter.chapter_number > 0 &&
+          typeof chapter.content === "string" &&
+          chapter.content.trim() &&
+          !existingNumbers.has(chapter.chapter_number),
+      );
       let imported = 0;
       for (let index = 0; index < valid.length; index += 20) {
-        const batch = valid.slice(index, index + 20).map((chapter: { chapter_number: number; title?: string; content: string }) => ({ novel_id: novelId, chapter_number: chapter.chapter_number, title: chapter.title?.trim() || `Chapter ${chapter.chapter_number}`, content: chapter.content, status: "draft" as const, published_at: null }));
-        const { error: insertError } = await supabase.from("chapters").insert(batch);
+        const batch = valid
+          .slice(index, index + 20)
+          .map(
+            (chapter: {
+              chapter_number: number;
+              title?: string;
+              content: string;
+            }) => ({
+              novel_id: novelId,
+              chapter_number: chapter.chapter_number,
+              title:
+                chapter.title?.trim() || `Chapter ${chapter.chapter_number}`,
+              content: chapter.content,
+              status: "draft" as const,
+              published_at: null,
+            }),
+          );
+        const { error: insertError } = await supabase
+          .from("chapters")
+          .insert(batch);
         if (insertError) throw insertError;
         imported += batch.length;
-        toast({ title: "AI import progress", description: `${imported} of ${valid.length} chapters imported.` });
+        toast({
+          title: "AI import progress",
+          description: `${imported} of ${valid.length} chapters imported.`,
+        });
       }
       setAiImportOpen(false);
       setAiImportUrl("");
-      toast({ title: "AI chapter import complete", description: `${imported} imported${candidates.length - imported ? `, ${candidates.length - imported} skipped` : ""}.` });
+      toast({
+        title: "AI chapter import complete",
+        description: `${imported} imported${candidates.length - imported ? `, ${candidates.length - imported} skipped` : ""}.`,
+      });
       window.location.reload();
     } catch (error) {
-      toast({ title: "AI chapter import failed", description: error instanceof Error ? error.message : "Could not import chapters.", variant: "destructive" });
+      toast({
+        title: "AI chapter import failed",
+        description:
+          error instanceof Error ? error.message : "Could not import chapters.",
+        variant: "destructive",
+      });
     } finally {
       setAiImporting(false);
     }
@@ -278,7 +334,8 @@ const NovelWorkspace = () => {
     }
     setChapters((current) =>
       current.filter(
-        (chapter) => !trashedChapters.some((trashed) => trashed.id === chapter.id),
+        (chapter) =>
+          !trashedChapters.some((trashed) => trashed.id === chapter.id),
       ),
     );
     toast({
@@ -497,19 +554,49 @@ const NovelWorkspace = () => {
               <div className="flex items-center gap-2">
                 <Popover open={aiImportOpen} onOpenChange={setAiImportOpen}>
                   <PopoverTrigger asChild>
-                    <Button type="button" variant="outline" size="icon" aria-label="Import chapters with AI" title="Import chapters with AI">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      aria-label="Import chapters with AI"
+                      title="Import chapters with AI"
+                    >
                       <Bot />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent align="end" className="w-[min(92vw,420px)] space-y-4">
+                  <PopoverContent
+                    align="end"
+                    className="w-[min(92vw,420px)] space-y-4"
+                  >
                     <div>
                       <p className="font-semibold">Import chapters with AI</p>
-                      <p className="text-xs text-muted-foreground">Paste a novel page URL. Chapters will be extracted and saved as drafts in batches.</p>
+                      <p className="text-xs text-muted-foreground">
+                        Paste a novel page URL. Chapters will be extracted and
+                        saved as drafts in batches.
+                      </p>
                     </div>
                     <div className="flex gap-2">
-                      <Input value={aiImportUrl} onChange={(event) => setAiImportUrl(event.target.value)} placeholder="https://example.com/novel" disabled={aiImporting} onKeyDown={(event) => { if (event.key === "Enter") void importChaptersWithAi(); }} />
-                      <Button type="button" onClick={() => void importChaptersWithAi()} disabled={aiImporting || !aiImportUrl.trim()}>
-                        {aiImporting ? <Loader2 className="animate-spin" /> : <Bot />} Import
+                      <Input
+                        value={aiImportUrl}
+                        onChange={(event) => setAiImportUrl(event.target.value)}
+                        placeholder="https://example.com/novel"
+                        disabled={aiImporting}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter")
+                            void importChaptersWithAi();
+                        }}
+                      />
+                      <Button
+                        type="button"
+                        onClick={() => void importChaptersWithAi()}
+                        disabled={aiImporting || !aiImportUrl.trim()}
+                      >
+                        {aiImporting ? (
+                          <Loader2 className="animate-spin" />
+                        ) : (
+                          <Bot />
+                        )}{" "}
+                        Import
                       </Button>
                     </div>
                   </PopoverContent>
@@ -551,12 +638,21 @@ const NovelWorkspace = () => {
                   <TabsContent key={tab} value={tab} className="space-y-3">
                     {tab === "trash" && chaptersForTab("trash").length > 0 && (
                       <div className="flex flex-wrap items-center justify-end gap-2 border-b border-border pb-3">
-                        <Button type="button" variant="outline" size="sm" onClick={() => void restoreAllChapters()}>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => void restoreAllChapters()}
+                        >
                           Restore all
                         </Button>
                         <ConfirmationDialog
                           trigger={
-                            <Button type="button" variant="destructive" size="sm">
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="sm"
+                            >
                               Clear all Trash
                             </Button>
                           }
@@ -582,26 +678,40 @@ const NovelWorkspace = () => {
                             className={`min-w-0 flex-1 rounded-sm ${tab !== "trash" ? "cursor-pointer hover:bg-muted/50" : ""}`}
                             role={tab !== "trash" ? "link" : undefined}
                             tabIndex={tab !== "trash" ? 0 : undefined}
-                            onClick={() => tab !== "trash" && navigate(`/workbook/${novel.id}?chapter=${chapter.id}`)}
+                            onClick={() =>
+                              tab !== "trash" &&
+                              navigate(
+                                `/workbook/${novel.id}?chapter=${chapter.id}`,
+                              )
+                            }
                             onKeyDown={(event) => {
-                              if (tab !== "trash" && (event.key === "Enter" || event.key === " ")) {
+                              if (
+                                tab !== "trash" &&
+                                (event.key === "Enter" || event.key === " ")
+                              ) {
                                 event.preventDefault();
-                                navigate(`/workbook/${novel.id}?chapter=${chapter.id}`);
+                                navigate(
+                                  `/workbook/${novel.id}?chapter=${chapter.id}`,
+                                );
                               }
                             }}
                           >
                             <p className="font-medium">
-                              Chapter {chapter.chapter_number}{chapter.title.trim() !== `Chapter ${chapter.chapter_number}` ? `: ${chapter.title}` : ""}
+                              Chapter {chapter.chapter_number}
+                              {chapter.title.trim() !==
+                              `Chapter ${chapter.chapter_number}`
+                                ? `: ${chapter.title}`
+                                : ""}
                             </p>
-                              <p className="text-xs text-muted-foreground">
-                                {tab === "trash"
-                                  ? "Trash"
-                                  : chapter.status.charAt(0).toUpperCase() +
-                                    chapter.status.slice(1)}
-                                {chapter.updated_at
-                                  ? ` · Updated ${new Date(chapter.updated_at).toLocaleString()}`
-                                  : ""}
-                              </p>
+                            <p className="text-xs text-muted-foreground">
+                              {tab === "trash"
+                                ? "Trash"
+                                : chapter.status.charAt(0).toUpperCase() +
+                                  chapter.status.slice(1)}
+                              {chapter.updated_at
+                                ? ` · Updated ${new Date(chapter.updated_at).toLocaleString()}`
+                                : ""}
+                            </p>
                           </div>
                           <div className="flex items-center gap-2">
                             {tab === "trash" ? (

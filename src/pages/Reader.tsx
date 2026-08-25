@@ -1,19 +1,166 @@
 import { createElement, useEffect, useState, type ReactNode } from "react";
-import { ArrowLeft, Bookmark, ChevronLeft, ChevronRight, Minus, Plus, Settings2 } from "lucide-react";
-import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import {
+  ArrowLeft,
+  Bookmark,
+  ChevronLeft,
+  ChevronRight,
+  Minus,
+  Plus,
+  Settings2,
+} from "lucide-react";
+import {
+  Link,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ComingSoon } from "@/components/ComingSoon";
 import { RimoraShell } from "@/components/RimoraShell";
 import { supabase } from "@/integrations/supabase/client";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
-type Chapter = { id: string; title: string; chapter_number: number; content: string; author_thoughts: string | null; published_at: string | null };
-type Novel = { id: string; title: string; translation_title: string | null; novel_type: string; author: string | null; translator: string | null };
-const allowedTags: Record<string, string> = { p: "p", strong: "strong", b: "strong", em: "em", i: "em", u: "u", s: "s", br: "br", ul: "ul", ol: "ol", li: "li", h3: "h3", h4: "h4", blockquote: "blockquote" };
-const renderNode = (node: Node, key: string): ReactNode => { if (node.nodeType === Node.TEXT_NODE) return node.textContent; if (node.nodeType !== Node.ELEMENT_NODE) return null; const element = node as HTMLElement; const tag = allowedTags[element.tagName.toLowerCase()]; if (!tag) return Array.from(element.childNodes).map((child, index) => renderNode(child, `${key}-${index}`)); return createElement(tag, { key }, tag === "br" ? undefined : Array.from(element.childNodes).map((child, index) => renderNode(child, `${key}-${index}`))); };
-const RichText = ({ content }: { content: string }) => { if (!content.includes("<")) return <>{content}</>; const document = new DOMParser().parseFromString(content, "text/html"); return <>{Array.from(document.body.childNodes).map((node, index) => renderNode(node, String(index)))}</>; };
+type Chapter = {
+  id: string;
+  title: string;
+  chapter_number: number;
+  content: string;
+  author_thoughts: string | null;
+  published_at: string | null;
+};
+type Novel = {
+  id: string;
+  title: string;
+  translation_title: string | null;
+  novel_type: string;
+  author: string | null;
+  translator: string | null;
+};
+const allowedTags: Record<string, string> = {
+  p: "p",
+  strong: "strong",
+  b: "strong",
+  em: "em",
+  i: "em",
+  u: "u",
+  s: "s",
+  br: "br",
+  ul: "ul",
+  ol: "ol",
+  li: "li",
+  h3: "h3",
+  h4: "h4",
+  blockquote: "blockquote",
+};
+const renderNode = (node: Node, key: string): ReactNode => {
+  if (node.nodeType === Node.TEXT_NODE) return node.textContent;
+  if (node.nodeType !== Node.ELEMENT_NODE) return null;
+  const element = node as HTMLElement;
+  const tag = allowedTags[element.tagName.toLowerCase()];
+  if (!tag)
+    return Array.from(element.childNodes).map((child, index) =>
+      renderNode(child, `${key}-${index}`),
+    );
+  return createElement(
+    tag,
+    { key },
+    tag === "br"
+      ? undefined
+      : Array.from(element.childNodes).map((child, index) =>
+          renderNode(child, `${key}-${index}`),
+        ),
+  );
+};
+const RichText = ({ content }: { content: string }) => {
+  if (!content.includes("<")) return <>{content}</>;
+  const document = new DOMParser().parseFromString(content, "text/html");
+  return (
+    <>
+      {Array.from(document.body.childNodes).map((node, index) =>
+        renderNode(node, String(index)),
+      )}
+    </>
+  );
+};
 type ReaderSurface = "original" | "light" | "dark";
-const ReaderSettings = ({ fontSize, surface, onFontSizeChange, onSurfaceChange }: { fontSize: number; surface: ReaderSurface; onFontSizeChange: (size: number) => void; onSurfaceChange: (surface: ReaderSurface) => void }) => <Popover><PopoverTrigger asChild><Button variant="outline" size="icon" aria-label="Reading settings"><Settings2 /></Button></PopoverTrigger><PopoverContent align="end" className="w-72"><div className="space-y-5"><div><p className="text-sm font-semibold">Reading settings</p><p className="text-xs text-muted-foreground">Adjust the page for comfortable reading.</p></div><div className="space-y-2"><p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Text size</p><div className="flex items-center justify-between rounded-md border border-border p-1"><Button variant="ghost" size="icon" aria-label="Decrease font size" disabled={fontSize <= 14} onClick={() => onFontSizeChange(Math.max(14, fontSize - 2))}><Minus /></Button><span className="text-sm">{fontSize}px</span><Button variant="ghost" size="icon" aria-label="Increase font size" disabled={fontSize >= 24} onClick={() => onFontSizeChange(Math.min(24, fontSize + 2))}><Plus /></Button></div></div><div className="space-y-2"><p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Page color</p><div className="grid grid-cols-3 gap-2">{(["original", "light", "dark"] as ReaderSurface[]).map((option) => <Button key={option} variant={surface === option ? "default" : "outline"} className="capitalize" onClick={() => onSurfaceChange(option)}>{option}</Button>)}</div></div></div></PopoverContent></Popover>;
+const ReaderSettings = ({
+  fontSize,
+  surface,
+  onFontSizeChange,
+  onSurfaceChange,
+}: {
+  fontSize: number;
+  surface: ReaderSurface;
+  onFontSizeChange: (size: number) => void;
+  onSurfaceChange: (surface: ReaderSurface) => void;
+}) => (
+  <Popover>
+    <PopoverTrigger asChild>
+      <Button variant="outline" size="icon" aria-label="Reading settings">
+        <Settings2 />
+      </Button>
+    </PopoverTrigger>
+    <PopoverContent align="end" className="w-72">
+      <div className="space-y-5">
+        <div>
+          <p className="text-sm font-semibold">Reading settings</p>
+          <p className="text-xs text-muted-foreground">
+            Adjust the page for comfortable reading.
+          </p>
+        </div>
+        <div className="space-y-2">
+          <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            Text size
+          </p>
+          <div className="flex items-center justify-between rounded-md border border-border p-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Decrease font size"
+              disabled={fontSize <= 14}
+              onClick={() => onFontSizeChange(Math.max(14, fontSize - 2))}
+            >
+              <Minus />
+            </Button>
+            <span className="text-sm">{fontSize}px</span>
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Increase font size"
+              disabled={fontSize >= 24}
+              onClick={() => onFontSizeChange(Math.min(24, fontSize + 2))}
+            >
+              <Plus />
+            </Button>
+          </div>
+        </div>
+        <div className="space-y-2">
+          <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            Page color
+          </p>
+          <div className="grid grid-cols-3 gap-2">
+            {(["original", "light", "dark"] as ReaderSurface[]).map(
+              (option) => (
+                <Button
+                  key={option}
+                  variant={surface === option ? "default" : "outline"}
+                  className="capitalize"
+                  onClick={() => onSurfaceChange(option)}
+                >
+                  {option}
+                </Button>
+              ),
+            )}
+          </div>
+        </div>
+      </div>
+    </PopoverContent>
+  </Popover>
+);
 
 const Reader = () => {
   const { novelId } = useParams();
@@ -23,19 +170,164 @@ const Reader = () => {
   const [novel, setNovel] = useState<Novel | null>(null);
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [loading, setLoading] = useState(true);
-  const [fontSize, setFontSize] = useState(() => Number(localStorage.getItem("reader-font-size")) || 16);
-  const [surface, setSurface] = useState<ReaderSurface>(() => (localStorage.getItem("reader-surface") as ReaderSurface) || "original");
-  useEffect(() => { localStorage.setItem("reader-font-size", String(fontSize)); }, [fontSize]);
-  useEffect(() => { localStorage.setItem("reader-surface", surface); }, [surface]);
-  useEffect(() => { if (!novelId) return; void Promise.all([supabase.from("novels").select("id,title,translation_title,novel_type,author,translator").eq("id", novelId).maybeSingle(), supabase.from("chapters").select("id,title,chapter_number,content,author_thoughts,published_at").eq("novel_id", novelId).eq("status", "published").is("deleted_at", null).order("chapter_number", { ascending: true })]).then(([novelResult, chaptersResult]) => { setNovel(novelResult.data as Novel | null); setChapters((chaptersResult.data ?? []) as Chapter[]); setLoading(false); }); }, [novelId]);
-  if (loading) return <RimoraShell><div className="page-container max-w-3xl"><ComingSoon title="Loading chapter" description="Preparing the reading experience..." /></div></RimoraShell>;
-  if (!novel || !chapters.length) return <RimoraShell><div className="page-container max-w-3xl"><ComingSoon title="Chapter not found" description="This novel has no published chapters yet." /></div></RimoraShell>;
-  const index = Math.max(0, chapters.findIndex((chapter) => chapter.id === chapterId));
+  const [fontSize, setFontSize] = useState(
+    () => Number(localStorage.getItem("reader-font-size")) || 16,
+  );
+  const [surface, setSurface] = useState<ReaderSurface>(
+    () =>
+      (localStorage.getItem("reader-surface") as ReaderSurface) || "original",
+  );
+  useEffect(() => {
+    localStorage.setItem("reader-font-size", String(fontSize));
+  }, [fontSize]);
+  useEffect(() => {
+    localStorage.setItem("reader-surface", surface);
+  }, [surface]);
+  useEffect(() => {
+    if (!novelId) return;
+    void Promise.all([
+      supabase
+        .from("novels")
+        .select("id,title,translation_title,novel_type,author,translator")
+        .eq("id", novelId)
+        .maybeSingle(),
+      supabase
+        .from("chapters")
+        .select("id,title,chapter_number,content,author_thoughts,published_at")
+        .eq("novel_id", novelId)
+        .eq("status", "published")
+        .is("deleted_at", null)
+        .order("chapter_number", { ascending: true }),
+    ]).then(([novelResult, chaptersResult]) => {
+      setNovel(novelResult.data as Novel | null);
+      setChapters((chaptersResult.data ?? []) as Chapter[]);
+      setLoading(false);
+    });
+  }, [novelId]);
+  if (loading)
+    return (
+      <RimoraShell>
+        <div className="page-container max-w-3xl">
+          <ComingSoon
+            title="Loading chapter"
+            description="Preparing the reading experience..."
+          />
+        </div>
+      </RimoraShell>
+    );
+  if (!novel || !chapters.length)
+    return (
+      <RimoraShell>
+        <div className="page-container max-w-3xl">
+          <ComingSoon
+            title="Chapter not found"
+            description="This novel has no published chapters yet."
+          />
+        </div>
+      </RimoraShell>
+    );
+  const index = Math.max(
+    0,
+    chapters.findIndex((chapter) => chapter.id === chapterId),
+  );
   const chapter = chapters[index];
   const previous = chapters[index - 1];
   const next = chapters[index + 1];
-  const title = novel.novel_type === "Translation" && novel.translation_title?.trim() ? novel.translation_title : novel.title;
-  const surfaceClass = surface === "light" ? "bg-white text-slate-900" : surface === "dark" ? "bg-slate-950 text-slate-100" : "bg-background text-foreground";
-  return <RimoraShell><div className={`min-h-full ${surfaceClass}`}><div className="mx-auto max-w-3xl space-y-8 px-4 sm:px-8"><header className="flex items-center justify-between border-b border-current/10 py-4"><Button variant="ghost" size="icon" asChild><Link to={`/novels/${novelId}`} aria-label="Back to novel"><ArrowLeft /></Link></Button><p className="font-display font-semibold">{title}</p><div className="flex items-center gap-2"><ReaderSettings fontSize={fontSize} surface={surface} onFontSizeChange={setFontSize} onSurfaceChange={setSurface} /><Button variant="outline" size="icon" aria-label="Save novel"><Bookmark /></Button></div></header><main className="py-8"><p className="text-center text-xs uppercase tracking-[0.2em] text-primary">Chapter {chapter.chapter_number}</p><h1 className="mt-3 text-center font-display text-4xl font-bold">{chapter.title}</h1><p className="mt-3 text-center text-sm text-muted-foreground">{novel.author || "Author"}{novel.novel_type === "Translation" ? ` · Translated by ${novel.translator || "Translator"}` : ""}{chapter.published_at ? ` · Published ${new Date(chapter.published_at).toLocaleString()}` : ""}</p><article style={{ fontSize }} className="mt-12 leading-8 [&_blockquote]:border-l-2 [&_blockquote]:border-primary [&_blockquote]:pl-4 [&_h3]:font-display [&_h3]:text-xl [&_h3]:font-semibold [&_li]:ml-6 [&_ol]:list-decimal [&_p]:mb-5 [&_ul]:list-disc"><RichText content={chapter.content} /></article><div className="mt-16 border-t border-current/10 pt-8 text-center text-sm uppercase tracking-[0.18em] text-muted-foreground">End of Chapter</div>{chapter.author_thoughts?.replace(/<[^>]*>/g, "").trim() && <section className="mt-8 rounded-sm border border-primary/20 bg-primary/5 p-6"><div className="border-l-2 border-primary/50 pl-5 italic leading-8"><RichText content={chapter.author_thoughts} /></div><p className="mt-4 text-right text-sm font-medium text-muted-foreground">- {novel.novel_type === "Translation" ? novel.translator || "Translator" : novel.author || "Author"}</p></section>}<nav className="mt-8 flex justify-between border-t border-current/10 pt-6"><Button variant="outline" disabled={!previous} onClick={() => previous && navigate(`/novels/${novelId}/read?chapter=${previous.id}`)}><ChevronLeft /> Previous</Button><Button disabled={!next} onClick={() => next && navigate(`/novels/${novelId}/read?chapter=${next.id}`)}>Next chapter <ChevronRight /></Button></nav></main></div></div></RimoraShell>;
+  const title =
+    novel.novel_type === "Translation" && novel.translation_title?.trim()
+      ? novel.translation_title
+      : novel.title;
+  const surfaceClass =
+    surface === "light"
+      ? "bg-white text-slate-900"
+      : surface === "dark"
+        ? "bg-slate-950 text-slate-100"
+        : "bg-background text-foreground";
+  return (
+    <RimoraShell>
+      <div className={`min-h-full ${surfaceClass}`}>
+        <div className="mx-auto max-w-3xl space-y-8 px-4 sm:px-8">
+          <header className="flex items-center justify-between border-b border-current/10 py-4">
+            <Button variant="ghost" size="icon" asChild>
+              <Link to={`/novels/${novelId}`} aria-label="Back to novel">
+                <ArrowLeft />
+              </Link>
+            </Button>
+            <p className="font-display font-semibold">{title}</p>
+            <div className="flex items-center gap-2">
+              <ReaderSettings
+                fontSize={fontSize}
+                surface={surface}
+                onFontSizeChange={setFontSize}
+                onSurfaceChange={setSurface}
+              />
+              <Button variant="outline" size="icon" aria-label="Save novel">
+                <Bookmark />
+              </Button>
+            </div>
+          </header>
+          <main className="py-8">
+            <p className="text-center text-xs uppercase tracking-[0.2em] text-primary">
+              Chapter {chapter.chapter_number}
+            </p>
+            <h1 className="mt-3 text-center font-display text-4xl font-bold">
+              {chapter.title}
+            </h1>
+            <p className="mt-3 text-center text-sm text-muted-foreground">
+              {novel.author || "Author"}
+              {novel.novel_type === "Translation"
+                ? ` · Translated by ${novel.translator || "Translator"}`
+                : ""}
+              {chapter.published_at
+                ? ` · Published ${new Date(chapter.published_at).toLocaleString()}`
+                : ""}
+            </p>
+            <article
+              style={{ fontSize }}
+              className="mt-12 leading-8 [&_blockquote]:border-l-2 [&_blockquote]:border-primary [&_blockquote]:pl-4 [&_h3]:font-display [&_h3]:text-xl [&_h3]:font-semibold [&_li]:ml-6 [&_ol]:list-decimal [&_p]:mb-5 [&_ul]:list-disc"
+            >
+              <RichText content={chapter.content} />
+            </article>
+            <div className="mt-16 border-t border-current/10 pt-8 text-center text-sm uppercase tracking-[0.18em] text-muted-foreground">
+              End of Chapter
+            </div>
+            {chapter.author_thoughts?.replace(/<[^>]*>/g, "").trim() && (
+              <section className="mt-8 rounded-sm border border-primary/20 bg-primary/5 p-6">
+                <div className="border-l-2 border-primary/50 pl-5 italic leading-8">
+                  <RichText content={chapter.author_thoughts} />
+                </div>
+                <p className="mt-4 text-right text-sm font-medium text-muted-foreground">
+                  -{" "}
+                  {novel.novel_type === "Translation"
+                    ? novel.translator || "Translator"
+                    : novel.author || "Author"}
+                </p>
+              </section>
+            )}
+            <nav className="mt-8 flex justify-between border-t border-current/10 pt-6">
+              <Button
+                variant="outline"
+                disabled={!previous}
+                onClick={() =>
+                  previous &&
+                  navigate(`/novels/${novelId}/read?chapter=${previous.id}`)
+                }
+              >
+                <ChevronLeft /> Previous
+              </Button>
+              <Button
+                disabled={!next}
+                onClick={() =>
+                  next && navigate(`/novels/${novelId}/read?chapter=${next.id}`)
+                }
+              >
+                Next chapter <ChevronRight />
+              </Button>
+            </nav>
+          </main>
+        </div>
+      </div>
+    </RimoraShell>
+  );
 };
 export default Reader;

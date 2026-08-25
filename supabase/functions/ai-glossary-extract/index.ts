@@ -131,8 +131,14 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => null);
     const text = typeof body?.text === "string" ? body.text : "";
-    const originalLanguage = typeof body?.originalLanguage === "string" ? body.originalLanguage : "original language";
-    const translatedLanguage = typeof body?.translatedLanguage === "string" ? body.translatedLanguage : "translated language";
+    const originalLanguage =
+      typeof body?.originalLanguage === "string"
+        ? body.originalLanguage
+        : "original language";
+    const translatedLanguage =
+      typeof body?.translatedLanguage === "string"
+        ? body.translatedLanguage
+        : "translated language";
     if (!text.trim()) return json({ error: "Text is required" }, 400);
     if (text.length > MAX_CHARS)
       return json({ error: `Text exceeds ${MAX_CHARS} characters` }, 400);
@@ -140,7 +146,10 @@ Deno.serve(async (req) => {
     const configuredEndpoint = Deno.env.get("AI_API_ENDPOINT");
     const model = Deno.env.get("AI_API_MODEL");
     if (!apiKey || !configuredEndpoint || !model)
-      return json({ error: "AI glossary extraction is not configured on the server." }, 500);
+      return json(
+        { error: "AI glossary extraction is not configured on the server." },
+        500,
+      );
 
     const baseUrl = configuredEndpoint.replace(/\/+$/, "");
     const endpoint = baseUrl.endsWith("/chat/completions")
@@ -159,8 +168,7 @@ Deno.serve(async (req) => {
         messages: [
           {
             role: "system",
-            content:
-              `Extract recurring names, places, titles, organizations, fictional terms, and other translation-specific terms from the source text. The source/original term language is ${originalLanguage}; the translated/preferred term language is ${translatedLanguage}. Return ONLY a JSON array of objects with exactly original_word and replacement_word. Preserve original_word in ${originalLanguage} and provide replacement_word in ${translatedLanguage}. Do not include ordinary common words, full sentences, or explanations. Return [] when no glossary terms are useful.`,
+            content: `Extract recurring names, places, titles, organizations, fictional terms, and other translation-specific terms from the source text. The source/original term language is ${originalLanguage}; the translated/preferred term language is ${translatedLanguage}. Return ONLY a JSON array of objects with exactly original_word and replacement_word. Preserve original_word in ${originalLanguage} and provide replacement_word in ${translatedLanguage}. Do not include ordinary common words, full sentences, or explanations. Return [] when no glossary terms are useful.`,
           },
           { role: "user", content: text },
         ],

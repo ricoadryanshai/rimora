@@ -42,7 +42,16 @@ const NovelCreate = () => {
   const navigate = useNavigate();
   const editMode = Boolean(novelId);
   const [showForm, setShowForm] = useState(false);
-  const [ownedNovels, setOwnedNovels] = useState<Array<{ id: string; title: string; translation_title: string | null; cover_url: string | null; novel_type: string; status: string }>>([]);
+  const [ownedNovels, setOwnedNovels] = useState<
+    Array<{
+      id: string;
+      title: string;
+      translation_title: string | null;
+      cover_url: string | null;
+      novel_type: string;
+      status: string;
+    }>
+  >([]);
   const [novelsLoading, setNovelsLoading] = useState(true);
   const [title, setTitle] = useState("");
   const [author, setAuthor] = useState("");
@@ -60,7 +69,8 @@ const NovelCreate = () => {
   const [fanficCategory, setFanficCategory] = useState("Gen");
   const [translationTitle, setTranslationTitle] = useState("");
   const [translationLanguage, setTranslationLanguage] = useState("");
-  const [customTranslationLanguage, setCustomTranslationLanguage] = useState("");
+  const [customTranslationLanguage, setCustomTranslationLanguage] =
+    useState("");
   const [originalPlatform, setOriginalPlatform] = useState("");
   const [translator, setTranslator] = useState("");
   const [translatorGroup, setTranslatorGroup] = useState("");
@@ -81,38 +91,53 @@ const NovelCreate = () => {
       .eq("owner_id", user.id)
       .order("updated_at", { ascending: false })
       .then(({ data }) => {
-        setOwnedNovels((data ?? []) as Array<{ id: string; title: string; translation_title: string | null; cover_url: string | null; novel_type: string; status: string }>);
+        setOwnedNovels(
+          (data ?? []) as Array<{
+            id: string;
+            title: string;
+            translation_title: string | null;
+            cover_url: string | null;
+            novel_type: string;
+            status: string;
+          }>,
+        );
         setNovelsLoading(false);
       });
   }, [user]);
   useEffect(() => {
     if (!user || !novelId) return;
-    void supabase.from("novels").select("*").eq("id", novelId).eq("owner_id", user.id).maybeSingle().then(({ data }) => {
-      if (!data) {
-        setError("Novel not found or you do not have permission to edit it.");
-        return;
-      }
-      setTitle(data.title ?? "");
-      setAuthor(data.author ?? "");
-      setNovelType(data.novel_type ?? "Novel");
-      setLeadingGender(data.leading_gender ?? "");
-      setGenre(data.genre ?? "");
-      setLanguage(data.language ?? "");
-      setCoverUrl(data.cover_url ?? "");
-      setCoverPreview(data.cover_url ?? "");
-      setAbbreviation(data.abbreviation ?? "");
-      setLength(data.length ?? "Novel");
-      setDescription(data.description ?? "");
-      setWarningNotice(data.warning_notice ?? "General Audiences");
-      setFanficTopic(data.fanfic_topic ?? "");
-      setFanficCategory(data.fanfic_category ?? "Gen");
-      setTranslationTitle(data.translation_title ?? "");
-      setTranslationLanguage(data.translation_language ?? "");
-      setOriginalPlatform(data.original_platform ?? "");
-      setTranslator(data.translator ?? "");
-      setTranslatorGroup(data.translator_group ?? "");
-      setShowForm(true);
-    });
+    void supabase
+      .from("novels")
+      .select("*")
+      .eq("id", novelId)
+      .eq("owner_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!data) {
+          setError("Novel not found or you do not have permission to edit it.");
+          return;
+        }
+        setTitle(data.title ?? "");
+        setAuthor(data.author ?? "");
+        setNovelType(data.novel_type ?? "Novel");
+        setLeadingGender(data.leading_gender ?? "");
+        setGenre(data.genre ?? "");
+        setLanguage(data.language ?? "");
+        setCoverUrl(data.cover_url ?? "");
+        setCoverPreview(data.cover_url ?? "");
+        setAbbreviation(data.abbreviation ?? "");
+        setLength(data.length ?? "Novel");
+        setDescription(data.description ?? "");
+        setWarningNotice(data.warning_notice ?? "General Audiences");
+        setFanficTopic(data.fanfic_topic ?? "");
+        setFanficCategory(data.fanfic_category ?? "Gen");
+        setTranslationTitle(data.translation_title ?? "");
+        setTranslationLanguage(data.translation_language ?? "");
+        setOriginalPlatform(data.original_platform ?? "");
+        setTranslator(data.translator ?? "");
+        setTranslatorGroup(data.translator_group ?? "");
+        setShowForm(true);
+      });
   }, [novelId, user]);
   const createNovel = async (event: FormEvent) => {
     event.preventDefault();
@@ -135,37 +160,42 @@ const NovelCreate = () => {
     setSaving(true);
     setError(null);
     const novelValues = {
-        owner_id: user?.id,
-        title,
-        author,
-        description,
-        novel_type: novelType,
-        leading_gender: leadingGender,
-        genre,
-        language: novelType === "Translation" ? effectiveTranslationLanguage : language,
-        cover_url: coverUrl || null,
-        abbreviation,
-        length,
-        warning_notice: warningNotice,
-        fanfic_topic: novelType === "Fanfic" ? fanficTopic : null,
-        fanfic_category: novelType === "Fanfic" ? fanficCategory : null,
-        original_title: novelType === "Translation" ? title : null,
-        translation_title:
-          novelType === "Translation" ? translationTitle : null,
-        original_language: novelType === "Translation" ? language : null,
-        translation_language:
-          novelType === "Translation" ? effectiveTranslationLanguage : null,
-        original_platform:
-          novelType === "Translation" ? originalPlatform : null,
-        translator: novelType === "Translation" ? translator : null,
-        translator_group:
-          novelType === "Translation" ? translatorGroup || null : null,
-        status: editMode ? undefined : "ongoing",
-        visibility: editMode ? undefined : "public",
-        published_at: editMode ? undefined : new Date().toISOString(),
-      };
+      owner_id: user?.id,
+      title,
+      author,
+      description,
+      novel_type: novelType,
+      leading_gender: leadingGender,
+      genre,
+      language:
+        novelType === "Translation" ? effectiveTranslationLanguage : language,
+      cover_url: coverUrl || null,
+      abbreviation,
+      length,
+      warning_notice: warningNotice,
+      fanfic_topic: novelType === "Fanfic" ? fanficTopic : null,
+      fanfic_category: novelType === "Fanfic" ? fanficCategory : null,
+      original_title: novelType === "Translation" ? title : null,
+      translation_title: novelType === "Translation" ? translationTitle : null,
+      original_language: novelType === "Translation" ? language : null,
+      translation_language:
+        novelType === "Translation" ? effectiveTranslationLanguage : null,
+      original_platform: novelType === "Translation" ? originalPlatform : null,
+      translator: novelType === "Translation" ? translator : null,
+      translator_group:
+        novelType === "Translation" ? translatorGroup || null : null,
+      status: editMode ? undefined : "ongoing",
+      visibility: editMode ? undefined : "public",
+      published_at: editMode ? undefined : new Date().toISOString(),
+    };
     const result = editMode
-      ? await rimora.from("novels").update(novelValues).eq("id", novelId).eq("owner_id", user?.id).select("id").single()
+      ? await rimora
+          .from("novels")
+          .update(novelValues)
+          .eq("id", novelId)
+          .eq("owner_id", user?.id)
+          .select("id")
+          .single()
       : await rimora.from("novels").insert(novelValues).select("id").single();
     if (result.error) setError(result.error.message);
     else if (result.data) navigate(`/workspace/${result.data.id}`);
@@ -219,11 +249,15 @@ const NovelCreate = () => {
           : [];
   const handleTypeChange = (value: string) => {
     setNovelType(value);
-    setGenre(value === "Fanfic" ? "Book & Literature" : leadingGender ? "Urban" : "");
+    setGenre(
+      value === "Fanfic" ? "Book & Literature" : leadingGender ? "Urban" : "",
+    );
   };
   const handleGenderChange = (value: string) => {
     setLeadingGender(value);
-    setGenre(value ? (novelType === "Fanfic" ? "Book & Literature" : "Urban") : "");
+    setGenre(
+      value ? (novelType === "Fanfic" ? "Book & Literature" : "Urban") : "",
+    );
   };
   const handleAiImport = async () => {
     const focusRequiredField = (
@@ -274,20 +308,42 @@ const NovelCreate = () => {
       const imported = data.novel;
       if (typeof imported.title === "string") setTitle(imported.title);
       if (typeof imported.author === "string") setAuthor(imported.author);
-      if (imported.leadingGender === "Male-Oriented" || imported.leadingGender === "Female-Oriented") setLeadingGender(imported.leadingGender);
-      if (["Novel", "Short Story", "Super-Short Story"].includes(imported.length)) setLength(imported.length);
-      if (["General Audiences", "Parental Guidance Suggested", "Parents Strongly Cautioned", "Restricted", "No One 17 and Under Admitted"].includes(imported.warningNotice)) setWarningNotice(imported.warningNotice);
-      if (typeof imported.abbreviation === "string") setAbbreviation(imported.abbreviation.slice(0, 15));
-      if (typeof imported.description === "string") setDescription(imported.description);
-      if (typeof imported.originalPlatform === "string") setOriginalPlatform(imported.originalPlatform);
-      const importedGenre = typeof imported.genre === "string" ? imported.genre.trim() : "";
-      const hasUsableGenre = importedGenre.length > 0 && genres.includes(importedGenre);
+      if (
+        imported.leadingGender === "Male-Oriented" ||
+        imported.leadingGender === "Female-Oriented"
+      )
+        setLeadingGender(imported.leadingGender);
+      if (
+        ["Novel", "Short Story", "Super-Short Story"].includes(imported.length)
+      )
+        setLength(imported.length);
+      if (
+        [
+          "General Audiences",
+          "Parental Guidance Suggested",
+          "Parents Strongly Cautioned",
+          "Restricted",
+          "No One 17 and Under Admitted",
+        ].includes(imported.warningNotice)
+      )
+        setWarningNotice(imported.warningNotice);
+      if (typeof imported.abbreviation === "string")
+        setAbbreviation(imported.abbreviation.slice(0, 15));
+      if (typeof imported.description === "string")
+        setDescription(imported.description);
+      if (typeof imported.originalPlatform === "string")
+        setOriginalPlatform(imported.originalPlatform);
+      const importedGenre =
+        typeof imported.genre === "string" ? imported.genre.trim() : "";
+      const hasUsableGenre =
+        importedGenre.length > 0 && genres.includes(importedGenre);
       setGenre(hasUsableGenre ? importedGenre : "");
       if (typeof imported.coverUrl === "string") {
         setCoverUrl(imported.coverUrl);
         setCoverPreview(imported.coverUrl);
       }
-      if (typeof imported.translationTitle === "string") setTranslationTitle(imported.translationTitle);
+      if (typeof imported.translationTitle === "string")
+        setTranslationTitle(imported.translationTitle);
       const ignoredFields = new Set([
         "originalLanguage",
         "translationLanguage",
@@ -295,15 +351,27 @@ const NovelCreate = () => {
         "translatorGroup",
       ]);
       const missingFields = Array.isArray(data.missingFields)
-        ? data.missingFields.filter((field: unknown) => typeof field === "string" && !ignoredFields.has(field))
+        ? data.missingFields.filter(
+            (field: unknown) =>
+              typeof field === "string" && !ignoredFields.has(field),
+          )
         : [];
       if (!hasUsableGenre && !missingFields.includes("genre")) {
         missingFields.push("genre");
       }
-      if (typeof imported.originalPlatform === "string" && imported.originalPlatform.trim()) {
-        const isValidUrl = /^https?:\/\//i.test(imported.originalPlatform.trim());
+      if (
+        typeof imported.originalPlatform === "string" &&
+        imported.originalPlatform.trim()
+      ) {
+        const isValidUrl = /^https?:\/\//i.test(
+          imported.originalPlatform.trim(),
+        );
         if (isValidUrl) {
-          setImportMissingFields(missingFields.filter((field: string) => field !== "originalPlatform"));
+          setImportMissingFields(
+            missingFields.filter(
+              (field: string) => field !== "originalPlatform",
+            ),
+          );
         } else {
           setImportMissingFields(missingFields);
         }
@@ -312,7 +380,11 @@ const NovelCreate = () => {
       }
       setImportUrl("");
     } catch (importError) {
-      setError(importError instanceof Error ? importError.message : "Could not import novel information.");
+      setError(
+        importError instanceof Error
+          ? importError.message
+          : "Could not import novel information.",
+      );
     } finally {
       setIsImporting(false);
     }
@@ -335,8 +407,12 @@ const NovelCreate = () => {
                 <BookOpen className="h-6 w-6" />
               </div>
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Your writing space</p>
-                <h1 className="font-display text-4xl font-semibold">My Novels</h1>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+                  Your writing space
+                </p>
+                <h1 className="font-display text-4xl font-semibold">
+                  My Novels
+                </h1>
               </div>
             </div>
             <Button onClick={() => navigate("/novel/new")}>
@@ -345,34 +421,72 @@ const NovelCreate = () => {
             </Button>
           </header>
           {novelsLoading ? (
-            <p className="text-sm text-muted-foreground">Loading your novels...</p>
+            <p className="text-sm text-muted-foreground">
+              Loading your novels...
+            </p>
           ) : ownedNovels.length === 0 ? (
-            <Card><CardContent className="flex min-h-48 flex-col items-center justify-center gap-4 text-center"><p className="text-muted-foreground">You have not created any novels yet.</p><Button onClick={() => navigate("/novel/new")}><Plus />Create your first novel</Button></CardContent></Card>
+            <Card>
+              <CardContent className="flex min-h-48 flex-col items-center justify-center gap-4 text-center">
+                <p className="text-muted-foreground">
+                  You have not created any novels yet.
+                </p>
+                <Button onClick={() => navigate("/novel/new")}>
+                  <Plus />
+                  Create your first novel
+                </Button>
+              </CardContent>
+            </Card>
           ) : (
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {ownedNovels.map((novel) => {
-                const displayTitle = novel.novel_type === "Translation" && novel.translation_title?.trim()
-                  ? novel.translation_title
-                  : novel.title;
-                const typeBadgeClass = novel.novel_type === "Translation"
-                  ? "bg-sky-600 text-white"
-                  : novel.novel_type === "Fanfic"
-                    ? "bg-fuchsia-600 text-white"
-                    : "bg-emerald-600 text-white";
+                const displayTitle =
+                  novel.novel_type === "Translation" &&
+                  novel.translation_title?.trim()
+                    ? novel.translation_title
+                    : novel.title;
+                const typeBadgeClass =
+                  novel.novel_type === "Translation"
+                    ? "bg-sky-600 text-white"
+                    : novel.novel_type === "Fanfic"
+                      ? "bg-fuchsia-600 text-white"
+                      : "bg-emerald-600 text-white";
                 return (
-                <Card key={novel.id} className="overflow-hidden transition-shadow hover:shadow-lg">
-                  <button type="button" onClick={() => navigate(`/workspace/${novel.id}`)} className="block w-full text-left">
-                    <div className="relative aspect-[3/4] overflow-hidden bg-muted">
-                      <div className="absolute left-3 top-3 z-10 flex flex-wrap gap-2">
-                        <span className={`rounded-full px-2.5 py-1 text-xs font-semibold shadow-sm ${typeBadgeClass}`}>
-                          {novel.novel_type}
-                        </span>
+                  <Card
+                    key={novel.id}
+                    className="overflow-hidden transition-shadow hover:shadow-lg"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/workspace/${novel.id}`)}
+                      className="block w-full text-left"
+                    >
+                      <div className="relative aspect-[3/4] overflow-hidden bg-muted">
+                        <div className="absolute left-3 top-3 z-10 flex flex-wrap gap-2">
+                          <span
+                            className={`rounded-full px-2.5 py-1 text-xs font-semibold shadow-sm ${typeBadgeClass}`}
+                          >
+                            {novel.novel_type}
+                          </span>
+                        </div>
+                        {novel.cover_url ? (
+                          <img
+                            src={novel.cover_url}
+                            alt={`${displayTitle} cover`}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <div className="grid h-full place-items-center text-muted-foreground">
+                            <BookOpen className="h-10 w-10" />
+                          </div>
+                        )}
                       </div>
-                      {novel.cover_url ? <img src={novel.cover_url} alt={`${displayTitle} cover`} className="h-full w-full object-cover" /> : <div className="grid h-full place-items-center text-muted-foreground"><BookOpen className="h-10 w-10" /></div>}
-                    </div>
-                    <CardContent className="p-4"><h2 className="line-clamp-2 font-display font-semibold">{displayTitle}</h2></CardContent>
-                  </button>
-                </Card>
+                      <CardContent className="p-4">
+                        <h2 className="line-clamp-2 font-display font-semibold">
+                          {displayTitle}
+                        </h2>
+                      </CardContent>
+                    </button>
+                  </Card>
                 );
               })}
             </div>
@@ -385,7 +499,11 @@ const NovelCreate = () => {
     <RimoraShell>
       <div className="page-container max-w-5xl">
         <Button variant="ghost" size="sm" asChild className="mb-6">
-          <Link to={editMode && novelId ? `/workspace/${novelId}` : "/workspace"}><ArrowLeft /> My Novels</Link>
+          <Link
+            to={editMode && novelId ? `/workspace/${novelId}` : "/workspace"}
+          >
+            <ArrowLeft /> My Novels
+          </Link>
         </Button>
         {error && <MessageAlert type="error" message={error} />}
         {importMissingFields.length > 0 && (
@@ -429,9 +547,9 @@ const NovelCreate = () => {
                         Add a source URL to prepare the translation details.
                       </p>
                       <p className="mt-2 text-xs leading-5 text-muted-foreground">
-                        Use the novel's actual information page with details such
-                        as the title, author, and synopsis so the import can
-                        succeed.
+                        Use the novel's actual information page with details
+                        such as the title, author, and synopsis so the import
+                        can succeed.
                       </p>
                     </div>
                     <div className="flex gap-2">
@@ -442,7 +560,15 @@ const NovelCreate = () => {
                         type="url"
                         aria-label="Translation source URL"
                       />
-                      <LoadingButton type="button" size="sm" onClick={() => void handleAiImport()} loading={isImporting} loadingLabel="Importing...">Import</LoadingButton>
+                      <LoadingButton
+                        type="button"
+                        size="sm"
+                        onClick={() => void handleAiImport()}
+                        loading={isImporting}
+                        loadingLabel="Importing..."
+                      >
+                        Import
+                      </LoadingButton>
                     </div>
                   </PopoverContent>
                 </Popover>
@@ -600,7 +726,9 @@ const NovelCreate = () => {
                     <Input
                       ref={customTranslationLanguageRef}
                       value={customTranslationLanguage}
-                      onChange={(event) => setCustomTranslationLanguage(event.target.value)}
+                      onChange={(event) =>
+                        setCustomTranslationLanguage(event.target.value)
+                      }
                       placeholder="Specify the target language not listed above"
                       aria-label="Custom translation language"
                       required
@@ -688,10 +816,19 @@ const NovelCreate = () => {
                         <CircleHelp className="h-4 w-4" />
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent align="start" className="w-64 space-y-1 text-sm">
-                      <p><strong>Novels:</strong> ≥100 chapters</p>
-                      <p><strong>Short Stories:</strong> 20–99 chapters</p>
-                      <p><strong>Super-Short-Stories:</strong> &lt;20 chapters</p>
+                    <PopoverContent
+                      align="start"
+                      className="w-64 space-y-1 text-sm"
+                    >
+                      <p>
+                        <strong>Novels:</strong> ≥100 chapters
+                      </p>
+                      <p>
+                        <strong>Short Stories:</strong> 20–99 chapters
+                      </p>
+                      <p>
+                        <strong>Super-Short-Stories:</strong> &lt;20 chapters
+                      </p>
                     </PopoverContent>
                   </Popover>
                 </div>
@@ -817,8 +954,18 @@ const NovelCreate = () => {
                 </Select>
               </div>
               <div className="flex justify-end">
-                  <LoadingButton type="submit" loading={saving} loadingLabel={editMode ? "Saving..." : "Creating..."}>
-                  {saving ? (editMode ? "Saving..." : "Creating...") : (editMode ? "Save changes" : "Create")}
+                <LoadingButton
+                  type="submit"
+                  loading={saving}
+                  loadingLabel={editMode ? "Saving..." : "Creating..."}
+                >
+                  {saving
+                    ? editMode
+                      ? "Saving..."
+                      : "Creating..."
+                    : editMode
+                      ? "Save changes"
+                      : "Create"}
                   <ArrowRight />
                 </LoadingButton>
               </div>
