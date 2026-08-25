@@ -11,6 +11,9 @@ type FirecrawlResponse = {
   data?: { markdown?: string; metadata?: { title?: string } };
 };
 
+const AI_CLEANUP_MAX_CHARS = 30000;
+const AI_CLEANUP_TIMEOUT_MS = 30000;
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -141,40 +144,47 @@ Deno.serve(async (req) => {
       const endpoint = baseEndpoint.endsWith("/chat/completions")
         ? baseEndpoint
         : `${baseEndpoint}/chat/completions`;
-      const aiResponse = await fetch(endpoint, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${aiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: aiModel,
-          temperature: 0,
-          messages: [
-            {
-              role: "system",
-              content:
-                "Clean scraped web content for a novel chapter. Remove advertisements, navigation, menus, cookie notices, comments, recommendations, author/site tools, and unrelated page text. Preserve only the chapter title and chapter narrative. Preserve paragraph boundaries and line breaks. Return only the cleaned chapter text, with no explanation.",
-            },
-            { role: "user", content: markdown.slice(0, 60000) },
-          ],
-        }),
-      });
-      const aiData = await aiResponse.json();
-      if (!aiResponse.ok)
-        return new Response(
-          JSON.stringify({
-            success: false,
-            error: `AI cleanup failed (${aiResponse.status}).`,
-          }),
-          {
-            status: 502,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), AI_CLEANUP_TIMEOUT_MS);
+      try {
+        const aiResponse = await fetch(endpoint, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${aiKey}`,
+            "Content-Type": "application/json",
           },
-        );
-      const cleaned = aiData?.choices?.[0]?.message?.content;
-      if (typeof cleaned === "string" && cleaned.trim())
-        markdown = cleaned.trim();
+          signal: controller.signal,
+          body: JSON.stringify({
+            model: aiModel,
+            temperature: 0,
+            max_tokens: 12000,
+            messages: [
+              {
+                role: "system",
+                content:
+                  "Clean this scraped novel chapter. Remove navigation, ads, cookie notices, comments, recommendations, and unrelated site text. Keep the chapter title and narrative, preserve paragraph breaks, and return only cleaned text.",
+              },
+              { role: "user", content: markdown.slice(0, AI_CLEANUP_MAX_CHARS) },
+            ],
+          }),
+        });
+        const aiText = await aiResponse.text();
+        if (!aiResponse.ok) {
+          console.error("AI cleanup failed:", aiResponse.status, aiText.slice(0, 300));
+        } else {
+          try {
+            const aiData = aiText ? JSON.parse(aiText) : null;
+            const cleaned = aiData?.choices?.[0]?.message?.content;
+            if (typeof cleaned === "string" && cleaned.trim()) markdown = cleaned.trim();
+          } catch {
+            console.error("AI cleanup returned invalid JSON");
+          }
+        }
+      } catch (error) {
+        console.error("AI cleanup timed out or failed:", error);
+      } finally {
+        clearTimeout(timeout);
+      }
     }
 
     console.log("Scrape successful, content length:", markdown.length);
