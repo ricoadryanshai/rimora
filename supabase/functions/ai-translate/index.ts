@@ -65,9 +65,8 @@ Deno.serve(async (req) => {
     }
     if (!lines.length)
       return json({ error: "At least one line is required" }, 400);
-    if (lines.length > MAX_LINES_PER_REQUEST) {
+    if (lines.length > MAX_LINES_PER_REQUEST)
       return json({ error: `Translate at most ${MAX_LINES_PER_REQUEST} lines per request.` }, 400);
-    }
     const apiKey = Deno.env.get("AI_API_KEY");
     const configuredEndpoint = Deno.env.get("AI_API_ENDPOINT");
     const model = Deno.env.get("AI_API_MODEL");
@@ -88,7 +87,7 @@ Deno.serve(async (req) => {
       `- Return exactly ${lines.length} lines, one translation for each input line in the same order.`,
       "- Never merge, split, reorder, omit, or add lines. Preserve empty lines as empty lines.",
       contextLines.length
-        ? `- Context from previous lines (do not translate or output these separately):\n${contextLines.map((line, index) => `${index + 1}\t${line}`).join("\n")}`
+        ? `- Previous-line context (do not output separately):\n${contextLines.map((line, index) => `${index + 1}\t${line}`).join("\n")}`
         : "- Use the supplied lines as context, but output only the translations.",
       "- Keep names and already-translated terms exactly as written in the input.",
       "- Remove artifacts such as gender tags, TL notes, ads, and chapter navigation text.",
@@ -100,23 +99,24 @@ Deno.serve(async (req) => {
     let upstream: Response;
     try {
       upstream = await fetch(endpoint, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
-        },
-        signal: controller.signal,
-        body: JSON.stringify({
-          model,
-          stream: false,
-          messages: [
-            { role: "system", content: systemPrompt },
-            {
-              role: "user",
-              content: lines.map((line, index) => `${index + 1}\t${line}`).join("\n"),
-            },
-          ],
-        }),
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model,
+        stream: false,
+        messages: [
+          { role: "system", content: systemPrompt },
+          {
+            role: "user",
+            content: lines
+              .map((line, index) => `${index + 1}\t${line}`)
+              .join("\n"),
+          },
+        ],
+      }),
       });
     } catch (error) {
       return json({ error: error instanceof DOMException && error.name === "AbortError" ? "Translation provider timed out. Try a smaller batch." : "Translation provider could not be reached." }, 504);
