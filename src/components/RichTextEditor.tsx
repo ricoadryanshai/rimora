@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Bold,
   Italic,
@@ -6,6 +6,7 @@ import {
   ListOrdered,
   Quote,
   Underline,
+  Copy,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -15,6 +16,7 @@ interface RichTextEditorProps {
   onChange: (value: string) => void;
   placeholder?: string;
   className?: string;
+  showCopyButton?: boolean;
 }
 
 const RichTextEditor = ({
@@ -23,8 +25,10 @@ const RichTextEditor = ({
   onChange,
   placeholder,
   className,
+  showCopyButton = false,
 }: RichTextEditorProps) => {
   const editorRef = useRef<HTMLDivElement>(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (editorRef.current && editorRef.current.innerHTML !== value) {
@@ -36,6 +40,14 @@ const RichTextEditor = ({
     editorRef.current?.focus();
     document.execCommand(command);
     if (editorRef.current) onChange(editorRef.current.innerHTML);
+  };
+
+  const copyContent = async () => {
+    const plainText = (editorRef.current?.innerText ?? "").trim();
+    if (!plainText) return;
+    await navigator.clipboard.writeText(plainText);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1500);
   };
 
   return (
@@ -111,6 +123,19 @@ const RichTextEditor = ({
         >
           <Quote />
         </Button>
+        {showCopyButton && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            aria-label="Copy chapter content"
+            title={copied ? "Copied" : "Copy chapter content"}
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={() => void copyContent()}
+          >
+            <Copy />
+          </Button>
+        )}
       </div>
       <div
         id={id}

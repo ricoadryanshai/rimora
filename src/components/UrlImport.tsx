@@ -21,6 +21,7 @@ import { Switch } from "@/components/ui/switch";
 interface UrlImportProps {
   onContentReady: (content: string) => void;
   onTitleReady?: (title: string) => void;
+  onChapterNumberReady?: (chapterNumber: number) => void;
   modelRowId?: string | null;
   onGlossaryEntries?: (
     entries: { original_word: string; replacement_word: string }[],
@@ -30,6 +31,7 @@ interface UrlImportProps {
 const UrlImport: React.FC<UrlImportProps> = ({
   onContentReady,
   onTitleReady,
+  onChapterNumberReady,
   modelRowId,
   onGlossaryEntries,
 }) => {
@@ -74,7 +76,7 @@ const UrlImport: React.FC<UrlImportProps> = ({
       if (!data?.success)
         throw new Error(data?.error || "Failed to extract content");
 
-      const markdown = data.markdown || "";
+      const markdown = data.content || data.markdown || "";
       if (!markdown.trim()) {
         toast({
           title: "No Content",
@@ -99,6 +101,8 @@ const UrlImport: React.FC<UrlImportProps> = ({
         .replace(/\n{3,}/g, "\n\n") // excessive newlines
         .trim();
 
+      if (Number.isInteger(data.chapterNumber)) onChapterNumberReady?.(data.chapterNumber);
+      if (typeof data.chapterTitle === "string" && data.chapterTitle.trim()) onTitleReady?.(data.chapterTitle.trim());
       onContentReady(plainText.replace(/\r?\n/g, "<br>"));
       toast({
         title: "Content imported",

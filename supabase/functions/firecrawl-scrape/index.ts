@@ -11,6 +11,23 @@ type FirecrawlResponse = {
   data?: { markdown?: string; metadata?: { title?: string } };
 };
 
+const chapterHeadingPattern = /^(?:#{1,6}\s*)?(?:chapter|ch\.?)[\s#.:_-]*(\d+)(?:\s*[:.)-]\s*|\s+)(.+?)\s*$/i;
+const extractChapterMetadata = (value: string) => {
+  const lines = value.split(/\r?\n/);
+  const index = lines.findIndex((line) => chapterHeadingPattern.test(line.trim()));
+  if (index < 0) return { chapterNumber: null, chapterTitle: "", content: value.trim() };
+  const match = lines[index].trim().match(chapterHeadingPattern);
+  return { chapterNumber: match ? Number(match[1]) : null, chapterTitle: match?.[2]?.trim() || "", content: lines.filter((_, lineIndex) => lineIndex !== index).join("\n").trim() };
+};
+const trimChunk = async (endpoint: string, apiKey: string, model: string, chunk: string) => {
+  const response = await fetch(endpoint, { method: "POST", headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" }, body: JSON.stringify({ model, temperature: 0, messages: [{ role: "system", content: "Remove ads, navigation, and unrelated website text from this novel chapter section. Preserve the chapter heading, story content, and paragraph breaks. Return only the cleaned text." }, { role: "user", content: chunk }] }) });
+  const payload = await response.json();
+  if (!response.ok) throw new Error(`AI cleanup failed (${response.status})`);
+  const result = payload?.choices?.[0]?.message?.content;
+  if (typeof result !== "string" || !result.trim()) throw new Error("AI returned empty cleanup");
+  return result.trim();
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -120,6 +137,7 @@ Deno.serve(async (req) => {
 
     let markdown = data?.data?.markdown || data?.markdown || "";
     const title = data?.data?.metadata?.title || data?.metadata?.title || "";
+    let metadata = extractChapterMetadata(markdown.slice(0, 10000));
 
     if (cleanWithAi && markdown.trim()) {
       const aiKey = Deno.env.get("AI_API_KEY");
@@ -141,6 +159,8 @@ Deno.serve(async (req) => {
       const endpoint = baseEndpoint.endsWith("/chat/completions")
         ? baseEndpoint
         : `${baseEndpoint}/chat/completions`;
+      const firstChunk = markdown.slice(0, 10000);
+      const remainingContent = markdown.slice(10000);
       const aiResponse = await fetch(endpoint, {
         method: "POST",
         headers: {
@@ -156,7 +176,7 @@ Deno.serve(async (req) => {
               content:
                 "Clean scraped web content for a novel chapter. Remove advertisements, navigation, menus, cookie notices, comments, recommendations, author/site tools, and unrelated page text. Preserve only the chapter title and chapter narrative. Preserve paragraph boundaries and line breaks. Return only the cleaned chapter text, with no explanation.",
             },
-            { role: "user", content: markdown.slice(0, 60000) },
+            { role: "user", content: firstChunk },
           ],
         }),
       });
@@ -173,13 +193,20 @@ Deno.serve(async (req) => {
           },
         );
       const cleaned = aiData?.choices?.[0]?.message?.content;
-      if (typeof cleaned === "string" && cleaned.trim())
-        markdown = cleaned.trim();
+      if (typeof cleaned === "string" && cleaned.trim()) {
+        const cleanedFirstChunk = cleaned.trim();
+        metadata = extractChapterMetadata(cleanedFirstChunk);
+        const firstChunkContent = metadata.chapterNumber !== null ? metadata.content : cleanedFirstChunk;
+        const remainingChunks = remainingContent.match(/[\s\S]{1,10000}(?:\n|$)/g) ?? [];
+        const cleanedRemaining = [];
+        for (const chunk of remainingChunks) cleanedRemaining.push(await trimChunk(endpoint, aiKey, aiModel, chunk));
+        markdown = [firstChunkContent, ...cleanedRemaining].filter(Boolean).join("\n\n");
+      }
     }
 
     console.log("Scrape successful, content length:", markdown.length);
 
-    return new Response(JSON.stringify({ success: true, markdown, title }), {
+    return new Response(JSON.stringify({ success: true, markdown, content: markdown, chapterNumber: metadata.chapterNumber, chapterTitle: metadata.chapterTitle || title, title }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {

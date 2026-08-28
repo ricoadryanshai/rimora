@@ -14,7 +14,7 @@ const json = (body: unknown, status = 200) =>
   });
 
 const MAX_CHARS = 60000;
-const MAX_LINES_PER_REQUEST = 40;
+const MAX_LINES_PER_REQUEST = 100;
 const UPSTREAM_TIMEOUT_MS = 45000;
 
 Deno.serve(async (req) => {
@@ -42,7 +42,9 @@ Deno.serve(async (req) => {
         )
       : [];
     const contextLines = Array.isArray(body?.contextLines)
-      ? body.contextLines.filter((line: unknown): line is string => typeof line === "string").slice(-10)
+      ? body.contextLines
+          .filter((line: unknown): line is string => typeof line === "string")
+          .slice(-10)
       : [];
     const text = lines.join("\n");
     const originalLanguage =
@@ -66,7 +68,12 @@ Deno.serve(async (req) => {
     if (!lines.length)
       return json({ error: "At least one line is required" }, 400);
     if (lines.length > MAX_LINES_PER_REQUEST)
-      return json({ error: `Translate at most ${MAX_LINES_PER_REQUEST} lines per request.` }, 400);
+      return json(
+        {
+          error: `Translate at most ${MAX_LINES_PER_REQUEST} lines per request.`,
+        },
+        400,
+      );
     const apiKey = Deno.env.get("AI_API_KEY");
     const configuredEndpoint = Deno.env.get("AI_API_ENDPOINT");
     const model = Deno.env.get("AI_API_MODEL");
@@ -99,27 +106,35 @@ Deno.serve(async (req) => {
     let upstream: Response;
     try {
       upstream = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model,
-        stream: false,
-        messages: [
-          { role: "system", content: systemPrompt },
-          {
-            role: "user",
-            content: lines
-              .map((line, index) => `${index + 1}\t${line}`)
-              .join("\n"),
-          },
-        ],
-      }),
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model,
+          stream: false,
+          messages: [
+            { role: "system", content: systemPrompt },
+            {
+              role: "user",
+              content: lines
+                .map((line, index) => `${index + 1}\t${line}`)
+                .join("\n"),
+            },
+          ],
+        }),
       });
     } catch (error) {
-      return json({ error: error instanceof DOMException && error.name === "AbortError" ? "Translation provider timed out. Try a smaller batch." : "Translation provider could not be reached." }, 504);
+      return json(
+        {
+          error:
+            error instanceof DOMException && error.name === "AbortError"
+              ? "Translation provider timed out. Try a smaller batch."
+              : "Translation provider could not be reached.",
+        },
+        504,
+      );
     } finally {
       clearTimeout(timeout);
     }

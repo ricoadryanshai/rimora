@@ -53,6 +53,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Checkbox } from "@/components/ui/checkbox";
+import { GlossaryManager, GlossaryTrigger } from "@/components/GlossaryManager";
 import type { WordReplacementInput } from "@/lib/word-replacements-csv";
 
 const hasRichText = (value: string) =>
@@ -179,7 +180,6 @@ const Workbook = () => {
       const latestVisibleNumber = chaptersResult.data?.[0]?.chapter_number ?? 0;
       setLatestChapterTitle(chaptersResult.data?.[0]?.title ?? null);
       setLatestChapterNumber(latestVisibleNumber || null);
-      setChapterNumber(latestVisibleNumber + 1);
       setLoading(false);
     });
     if (editingChapterId) {
@@ -473,25 +473,40 @@ const Workbook = () => {
         .replace(/<br\s*\/?>/gi, "\n")
         .replace(/<[^>]*>/g, "")
         .split("\n");
-      const batchSize = 40;
       const translations: string[] = [];
-      for (let start = 0; start < lines.length; start += batchSize) {
-        const batch = lines.slice(start, start + batchSize);
-        const { data, error } = await supabase.functions.invoke("ai-translate", {
-          body: {
-            lines: batch,
-            targetLanguage: translationLanguage || "English",
-            originalLanguage: originalLanguage || "source language",
-            contextLines: lines.slice(Math.max(0, start - 10), start),
-          },
-        });
-        if (error) throw error;
-        if (!Array.isArray(data?.translations) || data.translations.length !== batch.length) {
-          throw new Error("Translation returned a different number of lines. Your content was not changed.");
+      const chunkSize = Math.ceil(lines.length / 3);
+      for (let start = 0; start < lines.length; start += chunkSize) {
+        const batch = lines.slice(start, Math.min(start + chunkSize, lines.length));
+        let translatedBatch: string[] | null = null;
+        let lastError: unknown;
+        for (let attempt = 0; attempt < 3 && !translatedBatch; attempt += 1) {
+          try {
+            const { data, error } = await supabase.functions.invoke("ai-translate", {
+              body: {
+                lines: batch,
+                targetLanguage: translationLanguage || "English",
+                originalLanguage: originalLanguage || "source language",
+                contextLines: lines.slice(Math.max(0, start - 10), start),
+              },
+            });
+            if (error) throw error;
+            if (!Array.isArray(data?.translations) || data.translations.length !== batch.length) {
+              throw new Error("Translation returned a different number of lines.");
+            }
+            translatedBatch = data.translations;
+          } catch (error) {
+            lastError = error;
+          }
         }
-        translations.push(...data.translations);
+        if (!translatedBatch) {
+          throw new Error(`Translation failed for chunk ${Math.floor(start / chunkSize) + 1} after 3 attempts: ${lastError instanceof Error ? lastError.message : "provider unavailable"}`);
+        }
+        translations.push(...translatedBatch);
       }
-      if (translations.length !== lines.length) throw new Error("Translation returned a different number of lines. Your content was not changed.");
+      if (translations.length !== lines.length)
+        throw new Error(
+          "Translation returned a different number of lines. Your content was not changed.",
+        );
       setContent(
         translations
           .map((line: string) =>
@@ -613,6 +628,21 @@ const Workbook = () => {
             <Card>
               <CardContent className="space-y-5 pt-6">
                 <div className="space-y-2">
+                  <Label htmlFor="chapter-number">Chapter</Label>
+                  <Input
+                    id="chapter-number"
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={chapterNumber ?? ""}
+                    onChange={(event) => {
+                      const value = event.target.value;
+                      setChapterNumber(value ? Number(value) : null);
+                    }}
+                    placeholder="Enter a chapter number"
+                  />
+                </div>
+                <div className="space-y-2">
                   <Label htmlFor="chapter-title">Chapter title</Label>
                   <Input
                     id="chapter-title"
@@ -629,6 +659,7 @@ const Workbook = () => {
                     value={content}
                     onChange={setContent}
                     placeholder="Write your chapter here..."
+                    showCopyButton
                     className="min-h-[420px] max-h-[640px] overflow-y-auto leading-7"
                   />
                   <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
@@ -755,11 +786,22 @@ const Workbook = () => {
                             setContent(scrapedContent);
                             setImportOpen(false);
                           }}
-                          onTitleReady={() => undefined}
+                          onTitleReady={(importedTitle) => setTitle(importedTitle)}
+                          onChapterNumberReady={setChapterNumber}
                         />
                       </DialogContent>
                     </Dialog>
-                    <Dialog open={glossaryOpen} onOpenChange={setGlossaryOpen}>
+                    <GlossaryTrigger onClick={() => setGlossaryOpen(true)} />
+                    <GlossaryManager
+                      novelId={novelId!}
+                      userId={user!.id}
+                      open={glossaryOpen}
+                      onOpenChange={setGlossaryOpen}
+                      onApply={applyGlossary}
+                      onAiExtract={() => void extractGlossaryWithAi()}
+                      aiLoading={glossaryAiLoading}
+                    />
+                    {false && <Dialog open={glossaryOpen} onOpenChange={setGlossaryOpen}>
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Button
@@ -1065,7 +1107,7 @@ const Workbook = () => {
                           )}
                         </div>
                       </DialogContent>
-                    </Dialog>
+                    </Dialog>}
                     <Dialog
                       open={translateOpen}
                       onOpenChange={setTranslateOpen}

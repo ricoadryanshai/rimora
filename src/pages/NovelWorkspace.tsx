@@ -19,6 +19,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
+import { GlossaryManager, GlossaryTrigger } from "@/components/GlossaryManager";
 import {
   Popover,
   PopoverContent,
@@ -114,6 +115,7 @@ const NovelWorkspace = () => {
   const [activeTab, setActiveTab] = useState("draft");
   const { toast } = useToast();
   const [aiImportOpen, setAiImportOpen] = useState(false);
+  const [glossaryOpen, setGlossaryOpen] = useState(false);
   const [aiImportUrl, setAiImportUrl] = useState("");
   const [aiImporting, setAiImporting] = useState(false);
 
@@ -205,7 +207,7 @@ const NovelWorkspace = () => {
         .from("chapters")
         .select("id,title,chapter_number,status,deleted_at,updated_at")
         .eq("novel_id", novelId)
-        .order("chapter_number", { ascending: true }),
+        .order("chapter_number", { ascending: false }),
     ]).then(([novelResult, chaptersResult]) => {
       setNovel(novelResult.data as Novel | null);
       setChapters((chaptersResult.data ?? []) as Chapter[]);
@@ -213,11 +215,18 @@ const NovelWorkspace = () => {
     });
   }, [novelId, user]);
   const chaptersForTab = (tab: string) =>
-    chapters.filter((chapter) =>
-      tab === "trash"
-        ? Boolean(chapter.deleted_at)
-        : !chapter.deleted_at && chapter.status === tab,
-    );
+    chapters
+      .filter((chapter) =>
+        tab === "trash"
+          ? Boolean(chapter.deleted_at)
+          : !chapter.deleted_at && chapter.status === tab,
+      )
+      .sort((left, right) =>
+        tab === "trash"
+          ? new Date(right.deleted_at ?? 0).getTime() -
+            new Date(left.deleted_at ?? 0).getTime()
+          : right.chapter_number - left.chapter_number,
+      );
   const typeBadgeClass =
     novel?.novel_type === "Translation"
       ? "bg-sky-600 text-white"
@@ -378,8 +387,8 @@ const NovelWorkspace = () => {
             <ArrowLeft /> My Novels
           </Link>
         </Button>
-        <div className="space-y-6">
-          <Card>
+        <div className="flex flex-col gap-6 md:block md:space-y-6">
+          <Card className="order-2 md:order-1">
             <CardContent className="grid gap-8 p-6 md:grid-cols-[minmax(0,320px)_minmax(0,1fr)] md:items-start">
               <div className="relative">
                 <span
@@ -548,7 +557,7 @@ const NovelWorkspace = () => {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="order-1 md:order-2">
             <CardHeader className="flex-row items-center justify-between space-y-0">
               <CardTitle>Chapters</CardTitle>
               <div className="flex items-center gap-2">
@@ -601,6 +610,8 @@ const NovelWorkspace = () => {
                     </div>
                   </PopoverContent>
                 </Popover>
+                <GlossaryTrigger onClick={() => setGlossaryOpen(true)} />
+                {novelId && user && <GlossaryManager novelId={novelId} userId={user.id} open={glossaryOpen} onOpenChange={setGlossaryOpen} />}
                 <Button variant="outline" size="sm" asChild>
                   <Link to={`/workbook/${novel.id}`}>
                     <Plus /> Add chapter
