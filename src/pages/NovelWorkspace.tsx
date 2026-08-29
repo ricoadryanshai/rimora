@@ -611,10 +611,17 @@ const NovelWorkspace = () => {
                   </PopoverContent>
                 </Popover>
                 <GlossaryTrigger onClick={() => setGlossaryOpen(true)} />
-                {novelId && user && <GlossaryManager novelId={novelId} userId={user.id} open={glossaryOpen} onOpenChange={setGlossaryOpen} />}
+                {novelId && user && (
+                  <GlossaryManager
+                    novelId={novelId}
+                    userId={user.id}
+                    open={glossaryOpen}
+                    onOpenChange={setGlossaryOpen}
+                  />
+                )}
                 <Button variant="outline" size="sm" asChild>
-                  <Link to={`/workbook/${novel.id}`}>
-                    <Plus /> Add chapter
+                  <Link to={`/workbook/${novel.id}`} aria-label="Add chapter">
+                    <Plus /> <span className="hidden sm:inline">Add chapter</span>
                   </Link>
                 </Button>
               </div>

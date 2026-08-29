@@ -1,5 +1,4 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { decryptSecret } from "../_shared/crypto.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -14,8 +13,7 @@ const json = (body: unknown, status = 200) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
-const MAX_CHARS = 60000;
-const MAX_ENTRIES = 500;
+const EXTRACTION_TIMEOUT_MS = 60 * 60 * 1000;
 
 type GlossaryEntry = {
   original_word: string;
@@ -28,10 +26,9 @@ const isGlossaryEntry = (value: unknown): value is GlossaryEntry => {
   return (
     typeof entry.original_word === "string" &&
     typeof entry.replacement_word === "string" &&
-    entry.original_word.trim().length > 0 &&
-    entry.original_word.trim().length <= 500 &&
-    entry.replacement_word.trim().length > 0 &&
-    entry.replacement_word.trim().length <= 500
+    entry.original_word.trim().length >= 2 &&
+    entry.original_word.trim().length <= 6 &&
+    entry.replacement_word.trim().length > 0
   );
 };
 
@@ -44,8 +41,6 @@ const parseEntries = (content: string): GlossaryEntry[] => {
   const entries = Array.isArray(parsed) ? parsed : parsed?.entries;
   if (!Array.isArray(entries))
     throw new Error("AI returned an invalid glossary format");
-  if (!entries.every(isGlossaryEntry))
-    throw new Error("AI returned an invalid glossary entry");
 
   const seen = new Set<string>();
   return entries
@@ -59,8 +54,41 @@ const parseEntries = (content: string): GlossaryEntry[] => {
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
-    })
-    .slice(0, MAX_ENTRIES);
+    });
+};
+
+const extractPart = async (
+  endpoint: string,
+  apiKey: string,
+  model: string,
+  text: string,
+  originalLanguage: string,
+  translatedLanguage: string,
+  signal: AbortSignal,
+): Promise<GlossaryEntry[]> => {
+  const upstream = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    signal,
+    body: JSON.stringify({
+      model,
+      stream: true,
+      temperature: 0,
+      messages: [
+        {
+          role: "system",
+          content: `Extract recurring names, places, titles, organizations, fictional terms, and other translation-specific terms from the source text. The source/original term language is ${originalLanguage}; the translated/preferred term language is ${translatedLanguage}. Return ONLY a JSON array of objects with exactly original_word and replacement_word. Only return original_word values with 2 to 6 characters inclusive. Preserve original_word in ${originalLanguage} and provide replacement_word in ${translatedLanguage}. For novel characters, append a gender tag to replacement_word in this exact format when the story clearly identifies the character's gender: "Name (Male)", "Name (Female)", or "Name (Unknown)" only when gender is genuinely unclear. Do not add gender tags to non-character terms. Do not guess gender from the name alone. Do not include ordinary common words, full sentences, or explanations. Return [] when no glossary terms are useful.`,
+        },
+        { role: "user", content: text },
+      ],
+    }),
+  });
+  if (!upstream.ok) throw new Error(`Provider error (${upstream.status})`);
+  const content = await readProviderContent(upstream);
+  return parseEntries(content);
 };
 
 const readProviderContent = async (response: Response): Promise<string> => {
@@ -120,7 +148,6 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const userClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
     });
@@ -140,8 +167,6 @@ Deno.serve(async (req) => {
         ? body.translatedLanguage
         : "translated language";
     if (!text.trim()) return json({ error: "Text is required" }, 400);
-    if (text.length > MAX_CHARS)
-      return json({ error: `Text exceeds ${MAX_CHARS} characters` }, 400);
     const apiKey = Deno.env.get("AI_API_KEY");
     const configuredEndpoint = Deno.env.get("AI_API_ENDPOINT");
     const model = Deno.env.get("AI_API_MODEL");
@@ -155,51 +180,40 @@ Deno.serve(async (req) => {
     const endpoint = baseUrl.endsWith("/chat/completions")
       ? baseUrl
       : `${baseUrl}/chat/completions`;
-    const upstream = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model,
-        stream: true,
-        temperature: 0,
-        messages: [
-          {
-            role: "system",
-            content: `Extract recurring names, places, titles, organizations, fictional terms, and other translation-specific terms from the source text. The source/original term language is ${originalLanguage}; the translated/preferred term language is ${translatedLanguage}. Return ONLY a JSON array of objects with exactly original_word and replacement_word. Preserve original_word in ${originalLanguage} and provide replacement_word in ${translatedLanguage}. Do not include ordinary common words, full sentences, or explanations. Return [] when no glossary terms are useful.`,
-          },
-          { role: "user", content: text },
-        ],
-      }),
-    });
-
-    if (!upstream.ok) {
-      const detail = await upstream.text().catch(() => "");
-      let providerMessage = detail.slice(0, 300);
-      try {
-        const parsed = JSON.parse(detail);
-        providerMessage =
-          parsed?.error?.message ??
-          parsed?.error ??
-          parsed?.message ??
-          providerMessage;
-      } catch {
-        // Keep the raw provider response when it is not JSON.
-      }
-      return json(
-        {
-          error: `Provider error (${upstream.status}): ${providerMessage}`,
-        },
-        upstream.status === 429 ? 429 : 502,
+    const lines = text.split(/\r?\n/);
+    const parts = Array.from({ length: 3 }, (_, index) =>
+      lines.slice(
+        Math.floor((index * lines.length) / 3),
+        Math.floor(((index + 1) * lines.length) / 3),
+      ).join("\n"),
+    ).filter((part) => part.trim());
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), EXTRACTION_TIMEOUT_MS);
+    try {
+      const results = await Promise.all(
+        parts.map((part) =>
+          extractPart(
+            endpoint,
+            apiKey,
+            model,
+            part,
+            originalLanguage,
+            translatedLanguage,
+            controller.signal,
+          ),
+        ),
       );
+      const seen = new Set<string>();
+      const entries = results.flat().filter((entry) => {
+        const key = entry.original_word.toLocaleLowerCase();
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+      return json({ entries });
+    } finally {
+      clearTimeout(timeout);
     }
-
-    const content = await readProviderContent(upstream);
-    if (!content.trim())
-      return json({ error: "AI returned no glossary content" }, 502);
-    return json({ entries: parseEntries(content) });
   } catch (error) {
     console.error("ai-glossary-extract error", error);
     return json(

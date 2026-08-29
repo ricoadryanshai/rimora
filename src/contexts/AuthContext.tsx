@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 const configuredInactivityTimeout = Number(
   import.meta.env.VITE_AUTH_INACTIVITY_TIMEOUT_MS,
 );
+const inactivityLogoutDisabled = configuredInactivityTimeout === 0;
 const authInactivityTimeout =
   Number.isFinite(configuredInactivityTimeout) &&
   configuredInactivityTimeout > 0
@@ -100,7 +101,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   }, []);
 
   useEffect(() => {
-    if (!session?.user) return;
+    if (!session?.user || inactivityLogoutDisabled) return;
 
     let inactivityTimer: ReturnType<typeof setTimeout>;
     const resetInactivityTimer = () => {

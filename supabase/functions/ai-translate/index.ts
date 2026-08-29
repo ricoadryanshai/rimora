@@ -13,9 +13,7 @@ const json = (body: unknown, status = 200) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
-const MAX_CHARS = 60000;
-const MAX_LINES_PER_REQUEST = 100;
-const UPSTREAM_TIMEOUT_MS = 45000;
+const UPSTREAM_TIMEOUT_MS = 60 * 60 * 1000; // Increased timeout
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS")
@@ -41,11 +39,6 @@ Deno.serve(async (req) => {
           (line: unknown): line is string => typeof line === "string",
         )
       : [];
-    const contextLines = Array.isArray(body?.contextLines)
-      ? body.contextLines
-          .filter((line: unknown): line is string => typeof line === "string")
-          .slice(-10)
-      : [];
     const text = lines.join("\n");
     const originalLanguage =
       typeof body?.originalLanguage === "string"
@@ -57,23 +50,8 @@ Deno.serve(async (req) => {
         : "English";
 
     if (!text.trim()) return json({ error: "Text is required" }, 400);
-    if (text.length > MAX_CHARS) {
-      return json(
-        {
-          error: `Text exceeds ${MAX_CHARS} characters. Translate card by card.`,
-        },
-        400,
-      );
-    }
     if (!lines.length)
       return json({ error: "At least one line is required" }, 400);
-    if (lines.length > MAX_LINES_PER_REQUEST)
-      return json(
-        {
-          error: `Translate at most ${MAX_LINES_PER_REQUEST} lines per request.`,
-        },
-        400,
-      );
     const apiKey = Deno.env.get("AI_API_KEY");
     const configuredEndpoint = Deno.env.get("AI_API_ENDPOINT");
     const model = Deno.env.get("AI_API_MODEL");
@@ -93,9 +71,7 @@ Deno.serve(async (req) => {
       "- Output ONLY the translation. No preamble, no notes, no explanations.",
       `- Return exactly ${lines.length} lines, one translation for each input line in the same order.`,
       "- Never merge, split, reorder, omit, or add lines. Preserve empty lines as empty lines.",
-      contextLines.length
-        ? `- Previous-line context (do not output separately):\n${contextLines.map((line, index) => `${index + 1}\t${line}`).join("\n")}`
-        : "- Use the supplied lines as context, but output only the translations.",
+      "- Use the entire chapter as context while translating each numbered line.",
       "- Keep names and already-translated terms exactly as written in the input.",
       "- Remove artifacts such as gender tags, TL notes, ads, and chapter navigation text.",
       "- Produce natural, fluent prose suitable for reading.",

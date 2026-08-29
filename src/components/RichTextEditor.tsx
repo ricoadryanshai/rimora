@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   Bold,
+  Check,
   Italic,
   List,
   ListOrdered,
@@ -129,11 +130,12 @@ const RichTextEditor = ({
             variant="ghost"
             size="icon"
             aria-label="Copy chapter content"
-            title={copied ? "Copied" : "Copy chapter content"}
+            title={copied ? "Copied to clipboard" : "Copy chapter content"}
+            className={copied ? "bg-success/15 text-success hover:bg-success/20 hover:text-success" : undefined}
             onMouseDown={(event) => event.preventDefault()}
             onClick={() => void copyContent()}
           >
-            <Copy />
+            {copied ? <Check /> : <Copy />}
           </Button>
         )}
       </div>

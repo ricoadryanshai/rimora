@@ -101,8 +101,10 @@ const UrlImport: React.FC<UrlImportProps> = ({
         .replace(/\n{3,}/g, "\n\n") // excessive newlines
         .trim();
 
-      if (Number.isInteger(data.chapterNumber)) onChapterNumberReady?.(data.chapterNumber);
-      if (typeof data.chapterTitle === "string" && data.chapterTitle.trim()) onTitleReady?.(data.chapterTitle.trim());
+      if (Number.isInteger(data.chapterNumber))
+        onChapterNumberReady?.(data.chapterNumber);
+      if (typeof data.chapterTitle === "string" && data.chapterTitle.trim())
+        onTitleReady?.(data.chapterTitle.trim());
       onContentReady(plainText.replace(/\r?\n/g, "<br>"));
       toast({
         title: "Content imported",
