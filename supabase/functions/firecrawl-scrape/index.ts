@@ -1,3 +1,5 @@
+import { getAiProviders, providerEndpoint, type AiProvider } from "../_shared/ai-provider.ts";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -30,20 +32,56 @@ const extractChapterMetadata = (value: string) => {
       .trim(),
   };
 };
+const readAiContent = async (response: Response): Promise<string> => {
+  const contentType = response.headers.get("content-type") ?? "";
+  if (!contentType.includes("text/event-stream")) {
+    const payload = await response.json();
+    return payload?.choices?.[0]?.message?.content ?? "";
+  }
+  if (!response.body) return "";
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let content = "";
+  const consume = (events: string[]) => {
+    for (const event of events) {
+      const data = event.split("\n").find((line) => line.trimStart().startsWith("data:"))?.replace(/^\s*data:\s?/, "").trim();
+      if (!data || data === "[DONE]") continue;
+      try {
+        const payload = JSON.parse(data);
+        const delta = payload?.choices?.[0]?.delta?.content;
+        const message = payload?.choices?.[0]?.message?.content;
+        if (typeof delta === "string") content += delta;
+        else if (typeof message === "string") content += message;
+      } catch {
+        // Ignore incomplete or non-JSON SSE frames.
+      }
+    }
+  };
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const events = buffer.split("\n\n");
+    buffer = events.pop() ?? "";
+    consume(events);
+  }
+  consume(buffer ? [buffer] : []);
+  return content;
+};
+
 const trimChunk = async (
-  endpoint: string,
-  apiKey: string,
-  model: string,
+  providers: AiProvider[],
   chunk: string,
 ) => {
-  const response = await fetch(endpoint, {
+  const request = (provider: AiProvider) => fetch(providerEndpoint(provider.endpoint), {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${apiKey}`,
+      Authorization: `Bearer ${provider.apiKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model,
+      model: provider.model,
       temperature: 0,
       messages: [
         {
@@ -55,9 +93,10 @@ const trimChunk = async (
       ],
     }),
   });
-  const payload = await response.json();
+  let response = await request(providers[0]);
+  if (!response.ok && providers[1]) response = await request(providers[1]);
   if (!response.ok) throw new Error(`AI cleanup failed (${response.status})`);
-  const result = payload?.choices?.[0]?.message?.content;
+  const result = await readAiContent(response);
   if (typeof result !== "string" || !result.trim())
     throw new Error("AI returned empty cleanup");
   return result.trim();
@@ -175,10 +214,8 @@ Deno.serve(async (req) => {
     let metadata = extractChapterMetadata(markdown.slice(0, 10000));
 
     if (cleanWithAi && markdown.trim()) {
-      const aiKey = Deno.env.get("AI_API_KEY_1") || Deno.env.get("AI_API_KEY_2");
-      const aiEndpoint = Deno.env.get("AI_API_ENDPOINT_1") || Deno.env.get("AI_API_ENDPOINT_2");
-      const aiModel = Deno.env.get("AI_API_MODEL_1") || Deno.env.get("AI_API_MODEL_2");
-      if (!aiKey || !aiEndpoint || !aiModel) {
+      const providers = getAiProviders();
+      if (!providers.length) {
         return new Response(
           JSON.stringify({
             success: false,
@@ -190,20 +227,16 @@ Deno.serve(async (req) => {
           },
         );
       }
-      const baseEndpoint = aiEndpoint.replace(/\/+$/, "");
-      const endpoint = baseEndpoint.endsWith("/chat/completions")
-        ? baseEndpoint
-        : `${baseEndpoint}/chat/completions`;
       const firstChunk = markdown.slice(0, 10000);
       const remainingContent = markdown.slice(10000);
-      const aiResponse = await fetch(endpoint, {
+      const requestCleanup = (provider: AiProvider) => fetch(providerEndpoint(provider.endpoint), {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${aiKey}`,
+          Authorization: `Bearer ${provider.apiKey}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: aiModel,
+          model: provider.model,
           temperature: 0,
           messages: [
             {
@@ -215,7 +248,8 @@ Deno.serve(async (req) => {
           ],
         }),
       });
-      const aiData = await aiResponse.json();
+      let aiResponse = await requestCleanup(providers[0]);
+      if (!aiResponse.ok && providers[1]) aiResponse = await requestCleanup(providers[1]);
       if (!aiResponse.ok)
         return new Response(
           JSON.stringify({
@@ -227,7 +261,7 @@ Deno.serve(async (req) => {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           },
         );
-      const cleaned = aiData?.choices?.[0]?.message?.content;
+      const cleaned = await readAiContent(aiResponse);
       if (typeof cleaned === "string" && cleaned.trim()) {
         const cleanedFirstChunk = cleaned.trim();
         metadata = extractChapterMetadata(cleanedFirstChunk);
@@ -240,7 +274,7 @@ Deno.serve(async (req) => {
         const cleanedRemaining = [];
         for (const chunk of remainingChunks)
           cleanedRemaining.push(
-            await trimChunk(endpoint, aiKey, aiModel, chunk),
+            await trimChunk(providers, chunk),
           );
         markdown = [firstChunkContent, ...cleanedRemaining]
           .filter(Boolean)
