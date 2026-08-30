@@ -10,6 +10,7 @@ const ThemeProvider = ({ children }: ThemeProviderProps) => {
     <NextThemesProvider
       attribute="class"
       defaultTheme="light"
+      storageKey="rimora-theme"
       enableSystem={false}
       disableTransitionOnChange
     >

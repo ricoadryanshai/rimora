@@ -49,7 +49,11 @@ export const RimoraShell = ({
       .select("username,avatar_url,theme")
       .eq("id", user.id)
       .maybeSingle()
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        if (error) {
+          console.error("Could not load saved theme:", error);
+          return;
+        }
         setProfileUsername(data?.username ?? null);
         setProfileAvatar(data?.avatar_url ?? null);
         if (data?.theme === "light" || data?.theme === "dark")
@@ -121,10 +125,15 @@ export const RimoraShell = ({
                   onClick={() => {
                     const nextTheme = isDarkTheme ? "light" : "dark";
                     setTheme(nextTheme);
+                    window.localStorage.setItem("rimora-theme", nextTheme);
                     void supabase
                       .from("profiles")
                       .update({ theme: nextTheme })
-                      .eq("id", user.id);
+                      .eq("id", user.id)
+                      .then(({ error }) => {
+                        if (error)
+                          console.error("Could not save theme preference:", error);
+                      });
                   }}
                   className="grid h-10 w-10 place-items-center rounded-full border border-primary/30 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   aria-label={isDarkTheme ? "Switch to light theme" : "Switch to dark theme"}
