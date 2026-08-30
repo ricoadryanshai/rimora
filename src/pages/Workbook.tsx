@@ -555,7 +555,7 @@ const Workbook = () => {
         typeof translatedChapter.authorThoughts !== "string"
       )
         throw new Error(
-          "Translation returned an invalid chapter structure. Your content was not changed.",
+          "Translation returned an invalid chapter structure or line count. Your content was not changed.",
         );
       const escapeHtml = (line: string) =>
         line

@@ -6,9 +6,28 @@ const json = (body: unknown, status = 200) => new Response(JSON.stringify(body),
 const TIMEOUT_MS = 3 * 60 * 1000;
 type Chapter = { chapterNumber: number; title: string; content: string[]; authorThoughts: string };
 const parseChapter = (value: string): Chapter => {
-  const parsed = JSON.parse(value.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, ""));
-  if (!parsed || !Number.isInteger(parsed.chapterNumber) || typeof parsed.title !== "string" || !Array.isArray(parsed.content) || !parsed.content.every((line: unknown) => typeof line === "string") || typeof parsed.authorThoughts !== "string") throw new Error("AI returned an invalid chapter structure");
-  return parsed as Chapter;
+  const cleaned = value.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
+  let parsed: Record<string, unknown>;
+  try {
+    parsed = JSON.parse(cleaned) as Record<string, unknown>;
+  } catch {
+    const objectText = cleaned.match(/\{[\s\S]*\}/)?.[0];
+    if (!objectText) throw new Error("AI returned invalid JSON");
+    parsed = JSON.parse(objectText) as Record<string, unknown>;
+  }
+  const chapterNumber = parsed.chapterNumber ?? parsed.chapter_number;
+  const title = parsed.title;
+  const rawContent = parsed.content;
+  const rawThoughts = parsed.authorThoughts ?? parsed.author_thoughts ?? "";
+  const content = Array.isArray(rawContent)
+    ? rawContent
+    : typeof rawContent === "string"
+      ? rawContent.split(/\r?\n/)
+      : null;
+  const authorThoughts = typeof rawThoughts === "string" ? rawThoughts : null;
+  if (!Number.isInteger(chapterNumber) || typeof title !== "string" || !content || !content.every((line: unknown) => typeof line === "string") || authorThoughts === null)
+    throw new Error("AI returned an invalid chapter structure");
+  return { chapterNumber, title, content, authorThoughts };
 };
 const translate = async (provider: AiProvider, chapter: Chapter, originalLanguage: string, targetLanguage: string, signal: AbortSignal) => {
   const response = await fetch(providerEndpoint(provider.endpoint), {
