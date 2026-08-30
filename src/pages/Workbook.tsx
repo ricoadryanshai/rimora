@@ -528,32 +528,50 @@ const Workbook = () => {
     }
     setTranslating(true);
     try {
-      const lines = content
+      const contentLines = content
         .replace(/<br\s*\/?>/gi, "\n")
         .replace(/<[^>]*>/g, "")
         .split("\n");
       const { data, error } = await supabase.functions.invoke("ai-translate", {
-        body: { lines, targetLanguage: translationLanguage || "English", originalLanguage: originalLanguage || "source language" },
+        body: {
+          chapterNumber,
+          title,
+          content: contentLines,
+          authorThoughts,
+          targetLanguage: translationLanguage || "English",
+          originalLanguage: originalLanguage || "source language",
+        },
       });
       if (error) throw error;
-      if (!Array.isArray(data?.translations) || data.translations.length !== lines.length)
+      if (
+        !data?.chapterNumber ||
+        typeof data.title !== "string" ||
+        !Array.isArray(data.content) ||
+        data.content.length !== contentLines.length ||
+        typeof data.authorThoughts !== "string"
+      )
         throw new Error(
-          "Translation returned a different number of lines. Your content was not changed.",
+          "Translation returned an invalid chapter structure. Your content was not changed.",
         );
+      const escapeHtml = (line: string) =>
+        line
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
       setContent(
-        data.translations
-          .map((line: string) =>
-            line
-              .replace(/&/g, "&amp;")
-              .replace(/</g, "&lt;")
-              .replace(/>/g, "&gt;"),
-          )
+        data.content.map((line: string) => escapeHtml(line)).join("<br>"),
+      );
+      setTitle(data.title);
+      setAuthorThoughts(
+        data.authorThoughts
+          .split("\n")
+          .map((line: string) => escapeHtml(line))
           .join("<br>"),
       );
       setTranslateOpen(false);
       toast({
         title: "Translation complete",
-        description: `${lines.length} lines translated without changing their order.`,
+        description: "Chapter number, title, content, and author thoughts translated.",
       });
     } catch (error) {
       toast({
