@@ -172,8 +172,6 @@ Deno.serve(async (req) => {
         500,
       );
 
-    const provider = providers[0];
-    const endpoint = providerEndpoint(provider.endpoint);
     const lines = text.split(/\r?\n/);
     const parts = Array.from({ length: 3 }, (_, index) =>
       lines.slice(
@@ -187,9 +185,7 @@ Deno.serve(async (req) => {
       const results = await Promise.all(
         parts.map((part) =>
           extractPart(
-            endpoint,
-            provider.apiKey,
-            provider.model,
+            providers,
             part,
             originalLanguage,
             translatedLanguage,

@@ -543,12 +543,16 @@ const Workbook = () => {
         },
       });
       if (error) throw error;
+      const translatedChapter = data?.chapter;
       if (
-        !data?.chapterNumber ||
-        typeof data.title !== "string" ||
-        !Array.isArray(data.content) ||
-        data.content.length !== contentLines.length ||
-        typeof data.authorThoughts !== "string"
+        !translatedChapter ||
+        !Number.isInteger(translatedChapter.chapterNumber) ||
+        translatedChapter.chapterNumber !== chapterNumber ||
+        typeof translatedChapter.title !== "string" ||
+        !Array.isArray(translatedChapter.content) ||
+        translatedChapter.content.length !== contentLines.length ||
+        !translatedChapter.content.every((line: unknown) => typeof line === "string") ||
+        typeof translatedChapter.authorThoughts !== "string"
       )
         throw new Error(
           "Translation returned an invalid chapter structure. Your content was not changed.",
@@ -559,11 +563,13 @@ const Workbook = () => {
           .replace(/</g, "&lt;")
           .replace(/>/g, "&gt;");
       setContent(
-        data.content.map((line: string) => escapeHtml(line)).join("<br>"),
+        translatedChapter.content
+          .map((line: string) => escapeHtml(line))
+          .join("<br>"),
       );
-      setTitle(data.title);
+      setTitle(translatedChapter.title);
       setAuthorThoughts(
-        data.authorThoughts
+        translatedChapter.authorThoughts
           .split("\n")
           .map((line: string) => escapeHtml(line))
           .join("<br>"),
