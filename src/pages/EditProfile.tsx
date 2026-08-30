@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type PointerEvent } from "react";
-import { Camera, Pencil, Upload } from "lucide-react";
+import { Camera, Check, Link2, Pencil, Upload } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -40,7 +40,7 @@ const countries = [
 
 const EditProfile = () => {
   const { userId } = useParams();
-  const { user } = useAuth();
+  const { linkGoogle, user } = useAuth();
   const navigate = useNavigate();
   const [name, setName] = useState("");
   const [username, setUsername] = useState("");
@@ -74,6 +74,10 @@ const EditProfile = () => {
   const [usernameAvailable, setUsernameAvailable] = useState(true);
   const [checkingUsername, setCheckingUsername] = useState(false);
   const [usernameError, setUsernameError] = useState("");
+  const [linkingGoogle, setLinkingGoogle] = useState(false);
+  const googleIdentity = user?.identities?.find(
+    (identity) => identity.provider === "google",
+  );
   const initials =
     name
       .split(/\s+/)
@@ -146,6 +150,15 @@ const EditProfile = () => {
     if (profileResult.error?.code === "23505") setUsernameError("This username is already taken.");
     if (!profileResult.error && !authResult.error)
       navigate(`/profile/${user.id}`);
+  };
+
+  const handleLinkGoogle = async () => {
+    setLinkingGoogle(true);
+    const { error } = await linkGoogle();
+    if (error) {
+      setLinkingGoogle(false);
+      window.alert(error.message);
+    }
   };
 
   const chooseAvatarFile = (file: File | undefined) => {
@@ -303,6 +316,32 @@ const EditProfile = () => {
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
                 />
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-sm border border-border bg-muted/30 px-3 py-3 text-sm">
+                  <div>
+                    <p className="font-medium">Google account</p>
+                    <p className="text-xs text-muted-foreground">
+                      {googleIdentity
+                        ? `Linked: ${googleIdentity.identity_data?.email ?? "Google account"}`
+                        : "Not linked to a Google account"}
+                    </p>
+                  </div>
+                  {googleIdentity ? (
+                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+                      <Check className="h-4 w-4" /> Linked
+                    </span>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => void handleLinkGoogle()}
+                      disabled={linkingGoogle}
+                    >
+                      <Link2 />
+                      {linkingGoogle ? "Linking..." : "Link Google"}
+                    </Button>
+                  )}
+                </div>
               </div>
               <div className="space-y-2">
                 <Label>Gender</Label>

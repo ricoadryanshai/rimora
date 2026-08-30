@@ -17,11 +17,14 @@ interface AuthContextType {
   session: Session | null;
   userRole: string | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: any }>;
+  signIn: (identifier: string, password: string) => Promise<{ error: any }>;
+  signInWithGoogle: () => Promise<{ error: any }>;
+  linkGoogle: () => Promise<{ error: any }>;
   signUp: (
     email: string,
     password: string,
     fullName: string,
+    username: string,
   ) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
 }
@@ -132,7 +135,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     };
   }, [session?.user]);
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (identifier: string, password: string) => {
+    let email = identifier.trim();
+    if (!email.includes("@")) {
+      const { data, error } = await supabase.rpc("get_email_by_username", {
+        username_input: email.toLowerCase(),
+      });
+      if (error) return { error };
+      if (typeof data !== "string" || !data) {
+        return { error: new Error("Invalid username or password") };
+      }
+      email = data;
+    }
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -140,7 +154,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     return { error };
   };
 
-  const signUp = async (email: string, password: string, fullName: string) => {
+  const signInWithGoogle = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: window.location.origin,
+      },
+    });
+    return { error };
+  };
+
+  const linkGoogle = async () => {
+    const { error } = await supabase.auth.linkIdentity({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/profile/${user?.id}/edit`,
+      },
+    });
+    return { error };
+  };
+
+  const signUp = async (
+    email: string,
+    password: string,
+    fullName: string,
+    username: string,
+  ) => {
     const { error } = await supabase.auth.signUp({
       email,
       password,
@@ -148,6 +187,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         emailRedirectTo: `${window.location.origin}/`,
         data: {
           full_name: fullName,
+          username: username.trim().toLowerCase(),
         },
       },
     });
@@ -164,6 +204,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     userRole,
     loading,
     signIn,
+    signInWithGoogle,
+    linkGoogle,
     signUp,
     signOut,
   };

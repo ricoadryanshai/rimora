@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { getAiProviders, providerEndpoint } from "../_shared/ai-provider.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -41,10 +42,8 @@ Deno.serve(async (req) => {
     new URL(url);
 
     const firecrawlKey = Deno.env.get("FIRECRAWL_API_KEY");
-    const endpoint = Deno.env.get("AI_API_ENDPOINT");
-    const apiKey = Deno.env.get("AI_API_KEY");
-    const model = Deno.env.get("AI_API_MODEL");
-    if (!firecrawlKey || !endpoint || !apiKey || !model) {
+    const providers = getAiProviders();
+    if (!firecrawlKey || !providers.length) {
       return json({ success: false, error: "AI import is not configured on the server." }, 500);
     }
 
@@ -60,10 +59,10 @@ Deno.serve(async (req) => {
     if (!markdown.trim()) return json({ success: false, error: "No readable content was found at that URL." }, 422);
 
     const prompt = `Extract form data from the novel information page below. The user's system language is English. Return ONLY valid JSON with string fields title, translationTitle, author, originalLanguage, genre, coverUrl, originalPlatform, abbreviation, length, description, warningNotice, translationLanguage, translator, translatorGroup, plus a string array missingFields. Every field is optional: use an empty string when the page does not provide enough information, and add that field's exact name to missingFields. Never invent details.\n\nRules:\n- title: the title in the source language (Original Title).\n- translationTitle: translate the original title into English.\n- author: the author's name in the original language.\n- leadingGender: infer Male-Oriented or Female-Oriented only when the synopsis supports it; otherwise leave it empty.\n- coverUrl: extract the available book cover image URL.\n- abbreviation: create an abbreviation using translated-language characters, never original-language characters.\n- length: determine Novel, Short Story, or Super-Short Story from the chapter count when available; otherwise leave it empty.\n- description: translate the synopsis into English.\n- warningNotice: determine it from the synopsis only when supported; otherwise leave it empty.\n- originalLanguage, genre, translationLanguage, translator, translatorGroup, and originalPlatform: extract only when explicitly available.\n- Do not auto-submit or omit missingFields.\n\nSOURCE URL: ${url}\n\nPAGE CONTENT:\n${markdown.slice(0, 60000)}`;
-    const aiResponse = await fetch(`${endpoint.replace(/\/+$/, "")}/chat/completions`, {
+    const aiResponse = await fetch(providerEndpoint(providers[0].endpoint), {
       method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ model, stream: false, temperature: 0.1, messages: [{ role: "system", content: "You extract structured novel metadata accurately." }, { role: "user", content: prompt }] }),
+      headers: { Authorization: `Bearer ${providers[0].apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ model: providers[0].model, stream: false, temperature: 0.1, messages: [{ role: "system", content: "You extract structured novel metadata accurately." }, { role: "user", content: prompt }] }),
     });
     const aiData = await aiResponse.json();
     if (!aiResponse.ok) return json({ success: false, error: `AI provider error (${aiResponse.status}).` }, 502);

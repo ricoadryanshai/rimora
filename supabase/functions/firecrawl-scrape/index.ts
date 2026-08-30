@@ -175,9 +175,9 @@ Deno.serve(async (req) => {
     let metadata = extractChapterMetadata(markdown.slice(0, 10000));
 
     if (cleanWithAi && markdown.trim()) {
-      const aiKey = Deno.env.get("AI_API_KEY");
-      const aiEndpoint = Deno.env.get("AI_API_ENDPOINT");
-      const aiModel = Deno.env.get("AI_API_MODEL");
+      const aiKey = Deno.env.get("AI_API_KEY_1") || Deno.env.get("AI_API_KEY_2");
+      const aiEndpoint = Deno.env.get("AI_API_ENDPOINT_1") || Deno.env.get("AI_API_ENDPOINT_2");
+      const aiModel = Deno.env.get("AI_API_MODEL_1") || Deno.env.get("AI_API_MODEL_2");
       if (!aiKey || !aiEndpoint || !aiModel) {
         return new Response(
           JSON.stringify({

@@ -101,11 +101,29 @@ const UrlImport: React.FC<UrlImportProps> = ({
         .replace(/\n{3,}/g, "\n\n") // excessive newlines
         .trim();
 
-      if (Number.isInteger(data.chapterNumber))
-        onChapterNumberReady?.(data.chapterNumber);
-      if (typeof data.chapterTitle === "string" && data.chapterTitle.trim())
-        onTitleReady?.(data.chapterTitle.trim());
-      onContentReady(plainText.replace(/\r?\n/g, "<br>"));
+      let contentToInsert = plainText;
+      let importedTitle = data.chapterTitle;
+      let importedChapterNumber = data.chapterNumber;
+      if (cleanWithAi) {
+        const { data: chapterData, error: chapterError } =
+          await supabase.functions.invoke("ai-chapter-import", {
+            body: { content: plainText },
+          });
+        if (chapterError) throw new Error(chapterError.message);
+        const chapter = Array.isArray(chapterData?.chapters)
+          ? chapterData.chapters[0]
+          : null;
+        if (chapter?.content?.trim()) {
+          contentToInsert = chapter.content;
+          importedTitle = chapter.title || importedTitle;
+          importedChapterNumber = chapter.chapter_number || importedChapterNumber;
+        }
+      }
+      if (Number.isInteger(importedChapterNumber))
+        onChapterNumberReady?.(importedChapterNumber);
+      if (typeof importedTitle === "string" && importedTitle.trim())
+        onTitleReady?.(importedTitle.trim());
+      onContentReady(contentToInsert.replace(/\r?\n/g, "<br>"));
       toast({
         title: "Content imported",
         description:

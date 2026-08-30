@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { getAiProviders, providerEndpoint } from "../_shared/ai-provider.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -13,7 +14,7 @@ const json = (body: unknown, status = 200) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
-const UPSTREAM_TIMEOUT_MS = 60 * 60 * 1000; // Increased timeout
+const UPSTREAM_TIMEOUT_MS = 3 * 60 * 1000;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS")
@@ -52,18 +53,13 @@ Deno.serve(async (req) => {
     if (!text.trim()) return json({ error: "Text is required" }, 400);
     if (!lines.length)
       return json({ error: "At least one line is required" }, 400);
-    const apiKey = Deno.env.get("AI_API_KEY");
-    const configuredEndpoint = Deno.env.get("AI_API_ENDPOINT");
-    const model = Deno.env.get("AI_API_MODEL");
-    if (!apiKey || !configuredEndpoint || !model)
+    const providers = getAiProviders();
+    if (!providers.length)
       return json(
         { error: "AI translation is not configured on the server." },
         500,
       );
-    const baseUrl = configuredEndpoint.replace(/\/+$/, "");
-    const endpoint = baseUrl.endsWith("/chat/completions")
-      ? baseUrl
-      : `${baseUrl}/chat/completions`;
+    const endpoint = providerEndpoint(providers[0].endpoint);
 
     const systemPrompt = [
       `You are a professional literary translator. Translate each input line from ${originalLanguage} into ${targetLanguage}.`,
@@ -85,7 +81,7 @@ Deno.serve(async (req) => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
+          Authorization: `Bearer ${providers[0].apiKey}`,
         },
         body: JSON.stringify({
           model,
@@ -115,6 +111,13 @@ Deno.serve(async (req) => {
       clearTimeout(timeout);
     }
 
+    if (!upstream.ok && providers[1]) {
+      upstream = await fetch(providerEndpoint(providers[1].endpoint), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${providers[1].apiKey}` },
+        body: JSON.stringify({ model: providers[1].model, stream: false, messages: [{ role: "system", content: systemPrompt }, { role: "user", content: lines.map((line, index) => `${index + 1}\t${line}`).join("\n") }] }),
+      });
+    }
     if (!upstream.ok) {
       const detail = await upstream.text().catch(() => "");
       console.error("upstream error", upstream.status, detail.slice(0, 500));

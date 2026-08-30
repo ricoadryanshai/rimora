@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Link,
   useNavigate,
@@ -10,9 +10,12 @@ import {
   BookOpen,
   ChevronLeft,
   ChevronRight,
+  CheckCircle2,
+  Cloud,
   Eye,
   Globe,
   Languages,
+  Loader2,
   Link as LinkIcon,
   Pencil,
   Search,
@@ -89,6 +92,8 @@ const Workbook = () => {
   const [authorUsername, setAuthorUsername] = useState("Author");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [autoSaveState, setAutoSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const autoSaveChapterId = useRef<string | null>(editingChapterId);
   const [editingChapter, setEditingChapter] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [glossaryOpen, setGlossaryOpen] = useState(false);
@@ -142,6 +147,54 @@ const Workbook = () => {
     ? (content.match(/<p\b[^>]*>/gi)?.length ??
       content.split(/\n\s*\n/).filter((paragraph) => paragraph.trim()).length)
     : 0;
+  const canPreview =
+    chapterNumber !== null && title.trim().length > 0 && hasRichText(content);
+
+  useEffect(() => {
+    autoSaveChapterId.current = editingChapterId;
+  }, [editingChapterId]);
+
+  useEffect(() => {
+    if (loading || !novelId || !user || !canPreview) {
+      setAutoSaveState("idle");
+      return;
+    }
+
+    setAutoSaveState("saving");
+    const timeout = window.setTimeout(async () => {
+      const chapterPayload = {
+        novel_id: novelId,
+        title: title.trim(),
+        chapter_number: chapterNumber,
+        content,
+        author_thoughts: authorThoughts,
+        status: "draft" as const,
+        published_at: null,
+      };
+      const result = autoSaveChapterId.current
+        ? await supabase
+            .from("chapters")
+            .update(chapterPayload)
+            .eq("id", autoSaveChapterId.current)
+            .eq("novel_id", novelId)
+            .select("id")
+            .maybeSingle()
+        : await supabase
+            .from("chapters")
+            .insert(chapterPayload)
+            .select("id")
+            .maybeSingle();
+
+      if (result.error || !result.data) {
+        setAutoSaveState("error");
+        return;
+      }
+      autoSaveChapterId.current = result.data.id;
+      setAutoSaveState("saved");
+    }, 1200);
+
+    return () => window.clearTimeout(timeout);
+  }, [loading, novelId, user, canPreview, title, content, chapterNumber, authorThoughts]);
 
   useEffect(() => {
     if (!novelId || !user) return;
@@ -537,11 +590,12 @@ const Workbook = () => {
       status,
       published_at: status === "published" ? new Date().toISOString() : null,
     };
-    const result = editingChapterId
+    const persistedChapterId = autoSaveChapterId.current;
+    const result = persistedChapterId
       ? await supabase
           .from("chapters")
           .update(chapterPayload)
-          .eq("id", editingChapterId)
+          .eq("id", persistedChapterId)
           .eq("novel_id", novelId)
           .select("id")
           .maybeSingle()
@@ -552,7 +606,7 @@ const Workbook = () => {
           .maybeSingle();
     const error =
       result.error ??
-      (editingChapterId && !result.data
+      (persistedChapterId && !result.data
         ? new Error("The chapter could not be found for editing.")
         : null);
     setSaving(false);
@@ -605,7 +659,13 @@ const Workbook = () => {
                 </p>
               )}
             </div>
-            <div className="flex flex-wrap justify-end gap-3">
+            <div className="flex flex-wrap items-center justify-end gap-3">
+              <p className="mr-auto inline-flex items-center gap-1.5 text-xs text-muted-foreground" aria-live="polite">
+                {autoSaveState === "saving" && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                {autoSaveState === "saved" && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />}
+                {autoSaveState === "idle" && <Cloud className="h-3.5 w-3.5" />}
+                {autoSaveState === "error" ? "Auto-save failed" : autoSaveState === "saving" ? "Saving draft..." : autoSaveState === "saved" ? "Draft saved" : "Auto-save ready"}
+              </p>
               <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
                 <DialogTrigger asChild>
                   <Button
@@ -614,6 +674,7 @@ const Workbook = () => {
                     size="icon"
                     aria-label="Preview chapter"
                     className="sm:w-auto sm:px-4"
+                    disabled={!canPreview}
                   >
                     <Eye /> <span className="hidden sm:inline">Preview</span>
                   </Button>

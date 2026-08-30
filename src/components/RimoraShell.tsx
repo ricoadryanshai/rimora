@@ -1,6 +1,15 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
-import { Compass, Inbox, Library, LogIn, LogOut, PenLine } from "lucide-react";
+import {
+  Compass,
+  Inbox,
+  Library,
+  LogIn,
+  LogOut,
+  Moon,
+  PenLine,
+  Sun,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
@@ -30,26 +39,29 @@ export const RimoraShell = ({
   const isImmersiveMobile =
     immersiveMobile || location.pathname.includes("/read");
   const { user, signOut } = useAuth();
-  const { resolvedTheme } = useTheme();
+  const { resolvedTheme, setTheme } = useTheme();
   const [profileUsername, setProfileUsername] = useState<string | null>(null);
   const [profileAvatar, setProfileAvatar] = useState<string | null>(null);
   useEffect(() => {
     if (!user) return;
     void supabase
       .from("profiles")
-      .select("username,avatar_url")
+      .select("username,avatar_url,theme")
       .eq("id", user.id)
       .maybeSingle()
       .then(({ data }) => {
         setProfileUsername(data?.username ?? null);
         setProfileAvatar(data?.avatar_url ?? null);
+        if (data?.theme === "light" || data?.theme === "dark")
+          setTheme(data.theme);
       });
-  }, [user]);
+  }, [user, setTheme]);
   const profileName =
     profileUsername ||
     user?.user_metadata?.full_name ||
     user?.email?.split("@")[0] ||
     "Reader";
+  const isDarkTheme = resolvedTheme === "dark";
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-background text-foreground">
       <header
@@ -59,11 +71,7 @@ export const RimoraShell = ({
           <Link to="/" className="flex items-center gap-4">
             <span className="rounded-lg bg-transparent p-1">
               <img
-                src={
-                  resolvedTheme === "dark"
-                    ? "/logo-rimora-light.svg"
-                    : "/logo-rimora-dark.svg"
-                }
+                src="/logo-rimora-dark.svg"
                 alt="Rimora"
                 className="h-10 w-auto object-contain"
               />
@@ -107,7 +115,24 @@ export const RimoraShell = ({
               ))}
             </nav>
             {user ? (
-              <Popover>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const nextTheme = isDarkTheme ? "light" : "dark";
+                    setTheme(nextTheme);
+                    void supabase
+                      .from("profiles")
+                      .update({ theme: nextTheme })
+                      .eq("id", user.id);
+                  }}
+                  className="grid h-10 w-10 place-items-center rounded-full border border-primary/30 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  aria-label={isDarkTheme ? "Switch to light theme" : "Switch to dark theme"}
+                  title={isDarkTheme ? "Switch to light theme" : "Switch to dark theme"}
+                >
+                  {isDarkTheme ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+                </button>
+                <Popover>
                 <PopoverTrigger asChild>
                   <button
                     type="button"
@@ -161,7 +186,8 @@ export const RimoraShell = ({
                     />
                   </div>
                 </PopoverContent>
-              </Popover>
+                </Popover>
+              </div>
             ) : (
               <Button asChild variant="outline" size="sm">
                 <Link to="/auth">

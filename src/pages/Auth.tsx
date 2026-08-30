@@ -16,8 +16,9 @@ const Auth = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
+  const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(false);
-  const { signIn, signUp, user } = useAuth();
+  const { signIn, signInWithGoogle, signUp, user } = useAuth();
   const { resolvedTheme } = useTheme();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -56,7 +57,7 @@ const Auth = () => {
     e.preventDefault();
     setLoading(true);
 
-    const { error } = await signUp(email, password, fullName);
+    const { error } = await signUp(email, password, fullName, username);
     
     if (error) {
       toast({
@@ -73,9 +74,23 @@ const Auth = () => {
       setEmail('');
       setPassword('');
       setFullName('');
+      setUsername('');
     }
     
     setLoading(false);
+  };
+
+  const handleGoogleSignIn = async () => {
+    setLoading(true);
+    const { error } = await signInWithGoogle();
+    if (error) {
+      toast({
+        title: "Google sign in failed",
+        description: error.message,
+        variant: "destructive",
+      });
+      setLoading(false);
+    }
   };
 
   return (
@@ -111,11 +126,11 @@ const Auth = () => {
               <TabsContent value="signin">
                 <form onSubmit={handleSignIn} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="signin-email">Email</Label>
+                    <Label htmlFor="signin-email">Email or username</Label>
                     <Input
                       id="signin-email"
-                      type="email"
-                      placeholder="Enter your email"
+                      type="text"
+                      placeholder="Enter your email or username"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
@@ -141,11 +156,40 @@ const Auth = () => {
                     <LogIn className="mr-2 h-4 w-4" />
                     Sign In
                   </LoadingButton>
+                  <div className="relative flex items-center justify-center">
+                    <span className="absolute inset-x-0 border-t border-border" />
+                    <span className="relative bg-card px-3 text-xs uppercase tracking-[0.05em] text-muted-foreground">
+                      Or
+                    </span>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => void handleGoogleSignIn()}
+                    disabled={loading}
+                  >
+                    <span className="font-semibold text-base">G</span>
+                    Continue with Google
+                  </Button>
                 </form>
               </TabsContent>
               
               <TabsContent value="signup">
                 <form onSubmit={handleSignUp} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-username">Username</Label>
+                    <Input
+                      id="signup-username"
+                      type="text"
+                      placeholder="Choose a username"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      pattern="[A-Za-z0-9_]{1,40}"
+                      title="Use 1 to 40 letters, numbers, or underscores."
+                      required
+                    />
+                  </div>
                   <div className="space-y-2">
                     <Label htmlFor="signup-name">Full Name</Label>
                     <Input
@@ -188,6 +232,22 @@ const Auth = () => {
                     <UserPlus className="mr-2 h-4 w-4" />
                     Sign Up
                   </LoadingButton>
+                  <div className="relative flex items-center justify-center">
+                    <span className="absolute inset-x-0 border-t border-border" />
+                    <span className="relative bg-card px-3 text-xs uppercase tracking-[0.05em] text-muted-foreground">
+                      Or
+                    </span>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => void handleGoogleSignIn()}
+                    disabled={loading}
+                  >
+                    <span className="font-semibold text-base">G</span>
+                    Sign up with Google
+                  </Button>
                 </form>
               </TabsContent>
             </Tabs>

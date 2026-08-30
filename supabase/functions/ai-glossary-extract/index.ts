@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { getAiProviders, providerEndpoint, type AiProvider } from "../_shared/ai-provider.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -13,7 +14,7 @@ const json = (body: unknown, status = 200) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
-const EXTRACTION_TIMEOUT_MS = 60 * 60 * 1000;
+const EXTRACTION_TIMEOUT_MS = 3 * 60 * 1000;
 
 type GlossaryEntry = {
   original_word: string;
@@ -58,23 +59,18 @@ const parseEntries = (content: string): GlossaryEntry[] => {
 };
 
 const extractPart = async (
-  endpoint: string,
-  apiKey: string,
-  model: string,
+  providers: AiProvider[],
   text: string,
   originalLanguage: string,
   translatedLanguage: string,
   signal: AbortSignal,
 ): Promise<GlossaryEntry[]> => {
-  const upstream = await fetch(endpoint, {
+  const request = (provider: AiProvider) => fetch(providerEndpoint(provider.endpoint), {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${provider.apiKey}` },
     signal,
     body: JSON.stringify({
-      model,
+      model: provider.model,
       stream: true,
       temperature: 0,
       messages: [
@@ -86,6 +82,8 @@ const extractPart = async (
       ],
     }),
   });
+  let upstream = await request(providers[0]);
+  if (!upstream.ok && providers[1]) upstream = await request(providers[1]);
   if (!upstream.ok) throw new Error(`Provider error (${upstream.status})`);
   const content = await readProviderContent(upstream);
   return parseEntries(content);
@@ -167,19 +165,15 @@ Deno.serve(async (req) => {
         ? body.translatedLanguage
         : "translated language";
     if (!text.trim()) return json({ error: "Text is required" }, 400);
-    const apiKey = Deno.env.get("AI_API_KEY");
-    const configuredEndpoint = Deno.env.get("AI_API_ENDPOINT");
-    const model = Deno.env.get("AI_API_MODEL");
-    if (!apiKey || !configuredEndpoint || !model)
+    const providers = getAiProviders();
+    if (!providers.length)
       return json(
         { error: "AI glossary extraction is not configured on the server." },
         500,
       );
 
-    const baseUrl = configuredEndpoint.replace(/\/+$/, "");
-    const endpoint = baseUrl.endsWith("/chat/completions")
-      ? baseUrl
-      : `${baseUrl}/chat/completions`;
+    const provider = providers[0];
+    const endpoint = providerEndpoint(provider.endpoint);
     const lines = text.split(/\r?\n/);
     const parts = Array.from({ length: 3 }, (_, index) =>
       lines.slice(
@@ -194,8 +188,8 @@ Deno.serve(async (req) => {
         parts.map((part) =>
           extractPart(
             endpoint,
-            apiKey,
-            model,
+            provider.apiKey,
+            provider.model,
             part,
             originalLanguage,
             translatedLanguage,
