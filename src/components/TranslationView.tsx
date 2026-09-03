@@ -35,7 +35,7 @@ interface TranslationViewProps {
   onApply?: (translation: string) => void;
 }
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_URL = import.meta.env.SUPABASE_URL;
 
 const TranslationView = ({
   open,
@@ -85,7 +85,7 @@ const TranslationView = ({
           method: "POST",
           headers: {
             Authorization: `Bearer ${token}`,
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? "",
+            apikey: import.meta.env.SUPABASE_PUBLISHABLE_KEY ?? "",
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
