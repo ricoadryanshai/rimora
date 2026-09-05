@@ -57,6 +57,7 @@ export const GlossaryManager = ({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingSource, setEditingSource] = useState("");
   const [editingPreferred, setEditingPreferred] = useState("");
+  const [termFeedback, setTermFeedback] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
   const pageSize = 5;
   const filtered = useMemo(
@@ -92,18 +93,19 @@ export const GlossaryManager = ({
   const addEntry = async () => {
     const source = sourceTerm.trim();
     const preferred = preferredTerm.trim();
-    if (
-      !source ||
-      !preferred ||
-      source.length < 2 ||
-      source.length > 6 ||
-      entries.some(
-        (entry) =>
-          entry.source_term.toLocaleLowerCase() === source.toLocaleLowerCase(),
-      )
-    )
+    if (!source || !preferred) {
+      setTermFeedback("Enter both an original term and a translated term.");
       return;
-    const { data } = await supabase
+    }
+    if (source.length < 2 || source.length > 6) {
+      setTermFeedback("Original terms must contain between 2 and 6 characters.");
+      return;
+    }
+    if (entries.some((entry) => entry.source_term.trim().toLocaleLowerCase() === source.toLocaleLowerCase())) {
+      setTermFeedback("This original term already exists in the glossary.");
+      return;
+    }
+    const { data, error } = await supabase
       .from("glossary_entries")
       .insert({
         owner_id: userId,
@@ -117,15 +119,31 @@ export const GlossaryManager = ({
       setEntries((current) => [...current, data as GlossaryEntry]);
       setSourceTerm("");
       setPreferredTerm("");
+      setTermFeedback("Glossary entry added.");
+    } else if (error?.code === "23505") {
+      setTermFeedback("This original term already exists in the glossary.");
     }
   };
   const updateEntry = async (id: string) => {
-    if (!editingSource.trim() || !editingPreferred.trim()) return;
+    const source = editingSource.trim();
+    const preferred = editingPreferred.trim();
+    if (!source || !preferred) {
+      setTermFeedback("Enter both an original term and a translated term.");
+      return;
+    }
+    if (source.length < 2 || source.length > 6) {
+      setTermFeedback("Original terms must contain between 2 and 6 characters.");
+      return;
+    }
+    if (entries.some((entry) => entry.id !== id && entry.source_term.trim().toLocaleLowerCase() === source.toLocaleLowerCase())) {
+      setTermFeedback("This original term already exists in the glossary.");
+      return;
+    }
     const { error } = await supabase
       .from("glossary_entries")
       .update({
-        source_term: editingSource.trim(),
-        preferred_term: editingPreferred.trim(),
+        source_term: source,
+        preferred_term: preferred,
       })
       .eq("id", id);
     if (!error) {
@@ -134,13 +152,16 @@ export const GlossaryManager = ({
           entry.id === id
             ? {
                 ...entry,
-                source_term: editingSource.trim(),
-                preferred_term: editingPreferred.trim(),
+                source_term: source,
+                preferred_term: preferred,
               }
             : entry,
         ),
       );
       setEditingId(null);
+      setTermFeedback("Glossary entry updated.");
+    } else if (error.code === "23505") {
+      setTermFeedback("This original term already exists in the glossary.");
     }
   };
   const removeEntries = async (ids: string[]) => {
@@ -259,6 +280,11 @@ export const GlossaryManager = ({
               Add
             </Button>
           </div>
+          {termFeedback && (
+            <p className="text-xs text-muted-foreground" role="status">
+              {termFeedback}
+            </p>
+          )}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
