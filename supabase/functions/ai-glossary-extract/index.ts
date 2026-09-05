@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { getAiProviders, providerEndpoint, type AiProvider } from "../_shared/ai-provider.ts";
+import { providerEndpoint, type AiProvider } from "../_shared/ai-provider.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -15,6 +15,17 @@ const json = (body: unknown, status = 200) =>
   });
 
 const EXTRACTION_TIMEOUT_MS = 3 * 60 * 1000;
+
+const getGlossaryProviders = (): AiProvider[] => {
+  const providers: AiProvider[] = [];
+  for (const suffix of ["_2", "_1"]) {
+    const endpoint = Deno.env.get(`AI_API_ENDPOINT${suffix}`);
+    const apiKey = Deno.env.get(`AI_API_KEY${suffix}`);
+    const model = Deno.env.get(`AI_API_MODEL${suffix}`);
+    if (endpoint && apiKey && model) providers.push({ endpoint, apiKey, model });
+  }
+  return providers;
+};
 
 type GlossaryEntry = {
   original_word: string;
@@ -165,7 +176,7 @@ Deno.serve(async (req) => {
         ? body.translatedLanguage
         : "translated language";
     if (!text.trim()) return json({ error: "Text is required" }, 400);
-    const providers = getAiProviders();
+    const providers = getGlossaryProviders();
     if (!providers.length)
       return json(
         { error: "AI glossary extraction is not configured on the server." },

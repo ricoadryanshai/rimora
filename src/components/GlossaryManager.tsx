@@ -23,6 +23,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
+import { ConfirmationDialog } from "@/components/ConfirmationDialog";
 
 type GlossaryEntry = {
   id: string;
@@ -194,26 +195,42 @@ export const GlossaryManager = ({
           )}
           {entries.length > 0 && (
             <div className="flex justify-end gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={!selected.length}
-                onClick={() => void removeEntries(selected)}
-              >
-                Delete selected ({selected.length})
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="text-destructive"
-                onClick={() =>
+              <ConfirmationDialog
+                trigger={
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={!selected.length}
+                  >
+                    Delete selected ({selected.length})
+                  </Button>
+                }
+                title="Delete selected glossary entries?"
+                description="The selected glossary entries will be permanently removed."
+                confirmLabel="Delete selected"
+                destructive
+                onConfirm={() => void removeEntries(selected)}
+              />
+              <ConfirmationDialog
+                trigger={
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="text-destructive"
+                  >
+                    Delete all
+                  </Button>
+                }
+                title="Delete all glossary entries?"
+                description="All glossary entries for this novel will be permanently removed."
+                confirmLabel="Delete all"
+                destructive
+                onConfirm={() =>
                   void removeEntries(entries.map((entry) => entry.id))
                 }
-              >
-                Delete all
-              </Button>
+              />
             </div>
           )}
           <div className="grid grid-cols-[1fr_1fr_auto] items-end gap-2">
@@ -342,16 +359,24 @@ export const GlossaryManager = ({
                       >
                         <Pencil />
                       </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="text-destructive"
-                        aria-label={`Delete ${entry.source_term}`}
-                        onClick={() => void removeEntries([entry.id])}
-                      >
-                        <Trash2 />
-                      </Button>
+                      <ConfirmationDialog
+                        trigger={
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive"
+                            aria-label={`Delete ${entry.source_term}`}
+                          >
+                            <Trash2 />
+                          </Button>
+                        }
+                        title={`Delete ${entry.source_term}?`}
+                        description="This glossary entry will be permanently removed."
+                        confirmLabel="Delete"
+                        destructive
+                        onConfirm={() => void removeEntries([entry.id])}
+                      />
                     </div>
                   </div>
                 ),

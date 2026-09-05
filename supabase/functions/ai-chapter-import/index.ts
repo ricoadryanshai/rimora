@@ -27,6 +27,10 @@ Deno.serve(async (req) => {
     if (!req.headers.get("Authorization"))
       return json({ success: false, error: "Unauthorized" }, 401);
     const body = await req.json().catch(() => ({}));
+    const chapterFrom = Number.isInteger(body?.chapterFrom) ? body.chapterFrom : null;
+    const chapterTo = Number.isInteger(body?.chapterTo) ? body.chapterTo : null;
+    if ((chapterFrom !== null && chapterFrom < 1) || (chapterTo !== null && chapterTo < 1) || (chapterFrom !== null && chapterTo !== null && chapterTo < chapterFrom))
+      return json({ success: false, error: "Invalid chapter range" }, 400);
     const providedContent =
       typeof body?.content === "string" ? body.content.trim() : "";
     const url = typeof body?.url === "string" ? body.url.trim() : "";
@@ -108,9 +112,15 @@ Deno.serve(async (req) => {
         ? aiData.choices[0].message.content
         : "",
     );
+    const filteredChapters = Array.isArray(chapters)
+      ? chapters.filter((chapter) =>
+          (chapterFrom === null || chapter.chapter_number >= chapterFrom) &&
+          (chapterTo === null || chapter.chapter_number <= chapterTo),
+        )
+      : [];
     return json({
       success: true,
-      chapters: Array.isArray(chapters) ? chapters : [],
+      chapters: filteredChapters,
     });
   } catch (error) {
     return json(
