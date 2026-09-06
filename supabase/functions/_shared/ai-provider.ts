@@ -10,7 +10,8 @@ export const getAiProviders = (): AiProvider[] => {
     const endpoint = Deno.env.get(`AI_API_ENDPOINT${suffix}`);
     const apiKey = Deno.env.get(`AI_API_KEY${suffix}`);
     const model = Deno.env.get(`AI_API_MODEL${suffix}`);
-    if (endpoint && apiKey && model) providers.push({ endpoint, apiKey, model });
+    if (endpoint && apiKey && model)
+      providers.push({ endpoint, apiKey, model });
   }
   return providers;
 };

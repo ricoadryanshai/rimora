@@ -98,10 +98,18 @@ export const GlossaryManager = ({
       return;
     }
     if (source.length < 2 || source.length > 6) {
-      setTermFeedback("Original terms must contain between 2 and 6 characters.");
+      setTermFeedback(
+        "Original terms must contain between 2 and 6 characters.",
+      );
       return;
     }
-    if (entries.some((entry) => entry.source_term.trim().toLocaleLowerCase() === source.toLocaleLowerCase())) {
+    if (
+      entries.some(
+        (entry) =>
+          entry.source_term.trim().toLocaleLowerCase() ===
+          source.toLocaleLowerCase(),
+      )
+    ) {
       setTermFeedback("This original term already exists in the glossary.");
       return;
     }
@@ -132,10 +140,19 @@ export const GlossaryManager = ({
       return;
     }
     if (source.length < 2 || source.length > 6) {
-      setTermFeedback("Original terms must contain between 2 and 6 characters.");
+      setTermFeedback(
+        "Original terms must contain between 2 and 6 characters.",
+      );
       return;
     }
-    if (entries.some((entry) => entry.id !== id && entry.source_term.trim().toLocaleLowerCase() === source.toLocaleLowerCase())) {
+    if (
+      entries.some(
+        (entry) =>
+          entry.id !== id &&
+          entry.source_term.trim().toLocaleLowerCase() ===
+            source.toLocaleLowerCase(),
+      )
+    ) {
       setTermFeedback("This original term already exists in the glossary.");
       return;
     }
@@ -208,7 +225,11 @@ export const GlossaryManager = ({
                   onClick={onAiExtract}
                   disabled={aiLoading}
                 >
-                  {aiLoading ? <Loader2 className="animate-spin" /> : <Sparkles />}
+                  {aiLoading ? (
+                    <Loader2 className="animate-spin" />
+                  ) : (
+                    <Sparkles />
+                  )}
                   <span>{aiLoading ? "Extracting..." : "AI extract"}</span>
                 </Button>
               )}
@@ -220,7 +241,7 @@ export const GlossaryManager = ({
                 trigger={
                   <Button
                     type="button"
-                    variant="outline"
+                    variant="destructive"
                     size="sm"
                     disabled={!selected.length}
                   >
@@ -237,9 +258,8 @@ export const GlossaryManager = ({
                 trigger={
                   <Button
                     type="button"
-                    variant="outline"
+                    variant="destructive"
                     size="sm"
-                    className="text-destructive"
                   >
                     Delete all
                   </Button>
@@ -391,7 +411,7 @@ export const GlossaryManager = ({
                             type="button"
                             variant="ghost"
                             size="icon"
-                            className="text-destructive"
+                            className="text-red-600 hover:bg-red-100 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-950/40 dark:hover:text-red-300"
                             aria-label={`Delete ${entry.source_term}`}
                           >
                             <Trash2 />

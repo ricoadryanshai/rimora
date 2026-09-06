@@ -116,7 +116,8 @@ const UrlImport: React.FC<UrlImportProps> = ({
         if (chapter?.content?.trim()) {
           contentToInsert = chapter.content;
           importedTitle = chapter.title || importedTitle;
-          importedChapterNumber = chapter.chapter_number || importedChapterNumber;
+          importedChapterNumber =
+            chapter.chapter_number || importedChapterNumber;
         }
       }
       if (Number.isInteger(importedChapterNumber))

@@ -8,6 +8,8 @@ import {
   Quote,
   Underline,
   Copy,
+  Redo2,
+  Undo2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -58,6 +60,28 @@ const RichTextEditor = ({
         role="toolbar"
         aria-label="Synopsis formatting"
       >
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          aria-label="Undo"
+          title="Undo"
+          onMouseDown={(event) => event.preventDefault()}
+          onClick={() => applyFormat("undo")}
+        >
+          <Undo2 />
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          aria-label="Redo"
+          title="Redo"
+          onMouseDown={(event) => event.preventDefault()}
+          onClick={() => applyFormat("redo")}
+        >
+          <Redo2 />
+        </Button>
         <Button
           type="button"
           variant="ghost"
@@ -131,7 +155,11 @@ const RichTextEditor = ({
             size="icon"
             aria-label="Copy chapter content"
             title={copied ? "Copied to clipboard" : "Copy chapter content"}
-            className={copied ? "bg-success/15 text-success hover:bg-success/20 hover:text-success" : undefined}
+            className={
+              copied
+                ? "bg-success/15 text-success hover:bg-success/20 hover:text-success"
+                : undefined
+            }
             onMouseDown={(event) => event.preventDefault()}
             onClick={() => void copyContent()}
           >

@@ -1,4 +1,8 @@
-import { getAiProviders, providerEndpoint, type AiProvider } from "../_shared/ai-provider.ts";
+import {
+  getAiProviders,
+  providerEndpoint,
+  type AiProvider,
+} from "../_shared/ai-provider.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -45,7 +49,11 @@ const readAiContent = async (response: Response): Promise<string> => {
   let content = "";
   const consume = (events: string[]) => {
     for (const event of events) {
-      const data = event.split("\n").find((line) => line.trimStart().startsWith("data:"))?.replace(/^\s*data:\s?/, "").trim();
+      const data = event
+        .split("\n")
+        .find((line) => line.trimStart().startsWith("data:"))
+        ?.replace(/^\s*data:\s?/, "")
+        .trim();
       if (!data || data === "[DONE]") continue;
       try {
         const payload = JSON.parse(data);
@@ -70,29 +78,27 @@ const readAiContent = async (response: Response): Promise<string> => {
   return content;
 };
 
-const trimChunk = async (
-  providers: AiProvider[],
-  chunk: string,
-) => {
-  const request = (provider: AiProvider) => fetch(providerEndpoint(provider.endpoint), {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${provider.apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: provider.model,
-      temperature: 0,
-      messages: [
-        {
-          role: "system",
-          content:
-            "Remove ads, navigation, and unrelated website text from this novel chapter section. Preserve the chapter heading, story content, and paragraph breaks. Return only the cleaned text.",
-        },
-        { role: "user", content: chunk },
-      ],
-    }),
-  });
+const trimChunk = async (providers: AiProvider[], chunk: string) => {
+  const request = (provider: AiProvider) =>
+    fetch(providerEndpoint(provider.endpoint), {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${provider.apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: provider.model,
+        temperature: 0,
+        messages: [
+          {
+            role: "system",
+            content:
+              "Remove ads, navigation, and unrelated website text from this novel chapter section. Preserve the chapter heading, story content, and paragraph breaks. Return only the cleaned text.",
+          },
+          { role: "user", content: chunk },
+        ],
+      }),
+    });
   let response = await request(providers[0]);
   if (!response.ok && providers[1]) response = await request(providers[1]);
   if (!response.ok) throw new Error(`AI cleanup failed (${response.status})`);
@@ -229,27 +235,29 @@ Deno.serve(async (req) => {
       }
       const firstChunk = markdown.slice(0, 10000);
       const remainingContent = markdown.slice(10000);
-      const requestCleanup = (provider: AiProvider) => fetch(providerEndpoint(provider.endpoint), {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${provider.apiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: provider.model,
-          temperature: 0,
-          messages: [
-            {
-              role: "system",
-              content:
-                "Clean scraped web content for a novel chapter. Remove advertisements, navigation, menus, cookie notices, comments, recommendations, author/site tools, and unrelated page text. Preserve only the chapter title and chapter narrative. Preserve paragraph boundaries and line breaks. Return only the cleaned chapter text, with no explanation.",
-            },
-            { role: "user", content: firstChunk },
-          ],
-        }),
-      });
+      const requestCleanup = (provider: AiProvider) =>
+        fetch(providerEndpoint(provider.endpoint), {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${provider.apiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: provider.model,
+            temperature: 0,
+            messages: [
+              {
+                role: "system",
+                content:
+                  "Clean scraped web content for a novel chapter. Remove advertisements, navigation, menus, cookie notices, comments, recommendations, author/site tools, and unrelated page text. Preserve only the chapter title and chapter narrative. Preserve paragraph boundaries and line breaks. Return only the cleaned chapter text, with no explanation.",
+              },
+              { role: "user", content: firstChunk },
+            ],
+          }),
+        });
       let aiResponse = await requestCleanup(providers[0]);
-      if (!aiResponse.ok && providers[1]) aiResponse = await requestCleanup(providers[1]);
+      if (!aiResponse.ok && providers[1])
+        aiResponse = await requestCleanup(providers[1]);
       if (!aiResponse.ok)
         return new Response(
           JSON.stringify({
@@ -273,9 +281,7 @@ Deno.serve(async (req) => {
           remainingContent.match(/[\s\S]{1,10000}(?:\n|$)/g) ?? [];
         const cleanedRemaining = [];
         for (const chunk of remainingChunks)
-          cleanedRemaining.push(
-            await trimChunk(providers, chunk),
-          );
+          cleanedRemaining.push(await trimChunk(providers, chunk));
         markdown = [firstChunkContent, ...cleanedRemaining]
           .filter(Boolean)
           .join("\n\n");

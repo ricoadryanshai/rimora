@@ -22,7 +22,8 @@ const getGlossaryProviders = (): AiProvider[] => {
     const endpoint = Deno.env.get(`AI_API_ENDPOINT${suffix}`);
     const apiKey = Deno.env.get(`AI_API_KEY${suffix}`);
     const model = Deno.env.get(`AI_API_MODEL${suffix}`);
-    if (endpoint && apiKey && model) providers.push({ endpoint, apiKey, model });
+    if (endpoint && apiKey && model)
+      providers.push({ endpoint, apiKey, model });
   }
   return providers;
 };
@@ -76,23 +77,27 @@ const extractPart = async (
   translatedLanguage: string,
   signal: AbortSignal,
 ): Promise<GlossaryEntry[]> => {
-  const request = (provider: AiProvider) => fetch(providerEndpoint(provider.endpoint), {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${provider.apiKey}` },
-    signal,
-    body: JSON.stringify({
-      model: provider.model,
-      stream: true,
-      temperature: 0,
-      messages: [
-        {
-          role: "system",
-          content: `Extract recurring names, places, titles, organizations, fictional terms, and other translation-specific terms from the source text. The source/original term language is ${originalLanguage}; the translated/preferred term language is ${translatedLanguage}. Return ONLY a JSON array of objects with exactly original_word and replacement_word. Only return original_word values with 2 to 6 characters inclusive. Preserve original_word in ${originalLanguage} and provide replacement_word in ${translatedLanguage}. For novel characters, append a gender tag to replacement_word in this exact format when the story clearly identifies the character's gender: "Name (Male)", "Name (Female)", or "Name (Unknown)" only when gender is genuinely unclear. Do not add gender tags to non-character terms. Do not guess gender from the name alone. Do not include ordinary common words, full sentences, or explanations. Return [] when no glossary terms are useful.`,
-        },
-        { role: "user", content: text },
-      ],
-    }),
-  });
+  const request = (provider: AiProvider) =>
+    fetch(providerEndpoint(provider.endpoint), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${provider.apiKey}`,
+      },
+      signal,
+      body: JSON.stringify({
+        model: provider.model,
+        stream: true,
+        temperature: 0,
+        messages: [
+          {
+            role: "system",
+            content: `Extract recurring names, places, titles, organizations, fictional terms, and other translation-specific terms from the source text. The source/original term language is ${originalLanguage}; the translated/preferred term language is ${translatedLanguage}. Return ONLY a JSON array of objects with exactly original_word and replacement_word. Only return original_word values with 2 to 6 characters inclusive. Preserve original_word in ${originalLanguage} and provide replacement_word in ${translatedLanguage}. For novel characters, append a gender tag to replacement_word in this exact format when the story clearly identifies the character's gender: "Name (Male)", "Name (Female)", or "Name (Unknown)" only when gender is genuinely unclear. Do not add gender tags to non-character terms. Do not guess gender from the name alone. Do not include ordinary common words, full sentences, or explanations. Return [] when no glossary terms are useful.`,
+          },
+          { role: "user", content: text },
+        ],
+      }),
+    });
   let upstream = await request(providers[0]);
   if (!upstream.ok && providers[1]) upstream = await request(providers[1]);
   if (!upstream.ok) throw new Error(`Provider error (${upstream.status})`);
@@ -185,10 +190,12 @@ Deno.serve(async (req) => {
 
     const lines = text.split(/\r?\n/);
     const parts = Array.from({ length: 3 }, (_, index) =>
-      lines.slice(
-        Math.floor((index * lines.length) / 3),
-        Math.floor(((index + 1) * lines.length) / 3),
-      ).join("\n"),
+      lines
+        .slice(
+          Math.floor((index * lines.length) / 3),
+          Math.floor(((index + 1) * lines.length) / 3),
+        )
+        .join("\n"),
     ).filter((part) => part.trim());
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), EXTRACTION_TIMEOUT_MS);

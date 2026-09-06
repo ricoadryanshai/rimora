@@ -6,6 +6,8 @@ import { RimoraShell } from "@/components/RimoraShell";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { ViewModeToggle, type ViewMode } from "@/components/ViewModeToggle";
+import { NovelListCard } from "@/components/NovelListCard";
 
 type SavedNovel = {
   id: string;
@@ -13,6 +15,7 @@ type SavedNovel = {
   translation_title: string | null;
   novel_type: string;
   cover_url: string | null;
+  description: string | null;
   chapters: { count: number }[];
 };
 type ReadingProgress = { novel_id: string; chapter_id: string };
@@ -24,6 +27,10 @@ const Library = () => {
   const [readingProgress, setReadingProgress] = useState<ReadingProgress[]>([]);
   const [chapterNumbers, setChapterNumbers] = useState<ChapterNumber[]>([]);
   const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    const saved = window.localStorage.getItem("rimora-library-view");
+    return saved === "list" ? "list" : "grid";
+  });
   useEffect(() => {
     if (!user) {
       setSavedNovels([]);
@@ -33,7 +40,7 @@ const Library = () => {
     void supabase
       .from("library_entries")
       .select(
-        "novels(id,title,translation_title,novel_type,cover_url,chapters(count))",
+        "novels(id,title,translation_title,novel_type,cover_url,description,chapters(count))",
       )
       .eq("user_id", user.id)
       .eq("entry_type", "saved")
@@ -68,16 +75,19 @@ const Library = () => {
   return (
     <RimoraShell>
       <div className="page-container max-w-6xl space-y-8">
-        <header className="flex items-center gap-4">
-          <div className="grid h-12 w-12 place-items-center rounded-xl bg-primary/10 text-primary">
-            <LibraryIcon className="h-6 w-6" />
+        <header className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="grid h-12 w-12 place-items-center rounded-xl bg-primary/10 text-primary">
+              <LibraryIcon className="h-6 w-6" />
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+                Your reading space
+              </p>
+              <h1 className="font-display text-4xl font-semibold">Library</h1>
+            </div>
           </div>
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
-              Your reading space
-            </p>
-            <h1 className="font-display text-4xl font-semibold">Library</h1>
-          </div>
+          <ViewModeToggle value={viewMode} onChange={setViewMode} storageKey="rimora-library-view" />
         </header>
         <Tabs defaultValue="bookmark" className="space-y-6">
           <TabsList className="grid h-auto w-full grid-cols-2 border-b border-border bg-transparent p-0">
@@ -105,7 +115,7 @@ const Library = () => {
                 description="Save stories from across Rimora and find them here."
               />
             ) : (
-              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              <div className={viewMode === "grid" ? "grid grid-cols-2 gap-5 lg:grid-cols-3 xl:grid-cols-4" : "space-y-3"}>
                 {savedNovels.map((novel) => {
                   const title =
                     novel.novel_type === "Translation" &&
@@ -127,13 +137,25 @@ const Library = () => {
                       )?.chapter_number
                     : undefined;
                   const totalChapters = novel.chapters?.[0]?.count ?? 0;
+                  if (viewMode === "list")
+                    return (
+                      <NovelListCard
+                        key={novel.id}
+                        title={title}
+                        synopsis={novel.description}
+                        novelType={novel.novel_type}
+                        coverUrl={novel.cover_url}
+                        metadata={chapterNumber ? `Last read: Chapter ${chapterNumber} of ${totalChapters}` : "Not started"}
+                        href={`/novels/${novel.id}`}
+                      />
+                    );
                   return (
                     <Link
                       key={novel.id}
                       to={`/novels/${novel.id}`}
-                      className="overflow-hidden rounded-sm border bg-card/60 transition-shadow hover:shadow-lg"
+                      className={viewMode === "grid" ? "overflow-hidden rounded-sm border bg-card/60 transition-shadow hover:shadow-lg" : "flex items-center gap-4 overflow-hidden rounded-sm border bg-card/60 p-3 transition-shadow hover:shadow-lg"}
                     >
-                      <div className="relative aspect-[3/4] bg-muted">
+                      <div className={viewMode === "grid" ? "relative aspect-[3/4] bg-muted" : "relative h-24 w-16 shrink-0 bg-muted"}>
                         <span
                           className={`absolute left-3 top-3 z-10 rounded-full px-2.5 py-1 text-xs font-semibold shadow-sm ${typeBadgeClass}`}
                         >
@@ -151,7 +173,7 @@ const Library = () => {
                           </div>
                         )}
                       </div>
-                      <div className="p-4">
+                      <div className={viewMode === "grid" ? "p-4" : "min-w-0 flex-1 p-1"}>
                         <h2 className="line-clamp-2 font-display font-semibold">
                           {title}
                         </h2>

@@ -27,9 +27,15 @@ Deno.serve(async (req) => {
     if (!req.headers.get("Authorization"))
       return json({ success: false, error: "Unauthorized" }, 401);
     const body = await req.json().catch(() => ({}));
-    const chapterFrom = Number.isInteger(body?.chapterFrom) ? body.chapterFrom : null;
+    const chapterFrom = Number.isInteger(body?.chapterFrom)
+      ? body.chapterFrom
+      : null;
     const chapterTo = Number.isInteger(body?.chapterTo) ? body.chapterTo : null;
-    if ((chapterFrom !== null && chapterFrom < 1) || (chapterTo !== null && chapterTo < 1) || (chapterFrom !== null && chapterTo !== null && chapterTo < chapterFrom))
+    if (
+      (chapterFrom !== null && chapterFrom < 1) ||
+      (chapterTo !== null && chapterTo < 1) ||
+      (chapterFrom !== null && chapterTo !== null && chapterTo < chapterFrom)
+    )
       return json({ success: false, error: "Invalid chapter range" }, 400);
     const providedContent =
       typeof body?.content === "string" ? body.content.trim() : "";
@@ -69,7 +75,10 @@ Deno.serve(async (req) => {
       const scraped = await scrape.json();
       if (!scrape.ok)
         return json(
-          { success: false, error: scraped?.error || "Firecrawl scrape failed." },
+          {
+            success: false,
+            error: scraped?.error || "Firecrawl scrape failed.",
+          },
           502,
         );
       markdown = scraped?.data?.markdown || scraped?.markdown || "";
@@ -80,26 +89,23 @@ Deno.serve(async (req) => {
         422,
       );
     const prompt = `Extract every chapter from this novel page. Return ONLY a JSON array. Each item must have chapter_number (positive integer), title (string, use empty string when absent), and content (string). Remove unrelated webpage content including advertisements, navigation, comments, recommendations, site controls, headers, footers, and metadata. Preserve only the actual chapter title and narrative content. Do not invent, summarize, translate, merge, or rewrite the story. Preserve paragraph boundaries and line breaks.\n\nSOURCE URL: ${normalizedUrl}\n\nPAGE CONTENT:\n${markdown}`;
-    const aiResponse = await fetch(
-      providerEndpoint(providers[0].endpoint),
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${providers[0].apiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: providers[0].model,
-          stream: false,
-          temperature: 0.1,
-          messages: [
-            { role: "system", content: "You extract chapter data accurately." },
-            { role: "user", content: prompt },
-          ],
-        }),
-        signal: controller.signal,
+    const aiResponse = await fetch(providerEndpoint(providers[0].endpoint), {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${providers[0].apiKey}`,
+        "Content-Type": "application/json",
       },
-    );
+      body: JSON.stringify({
+        model: providers[0].model,
+        stream: false,
+        temperature: 0.1,
+        messages: [
+          { role: "system", content: "You extract chapter data accurately." },
+          { role: "user", content: prompt },
+        ],
+      }),
+      signal: controller.signal,
+    });
     clearTimeout(timeout);
     const aiData = await aiResponse.json();
     if (!aiResponse.ok)
@@ -113,9 +119,10 @@ Deno.serve(async (req) => {
         : "",
     );
     const filteredChapters = Array.isArray(chapters)
-      ? chapters.filter((chapter) =>
-          (chapterFrom === null || chapter.chapter_number >= chapterFrom) &&
-          (chapterTo === null || chapter.chapter_number <= chapterTo),
+      ? chapters.filter(
+          (chapter) =>
+            (chapterFrom === null || chapter.chapter_number >= chapterFrom) &&
+            (chapterTo === null || chapter.chapter_number <= chapterTo),
         )
       : [];
     return json({

@@ -130,7 +130,8 @@ const NovelWorkspace = () => {
 
   const importChapterJob = async () => {
     if (!novelId || !user || !aiImportUrl.trim()) return;
-    const from = chapterRangeEnabled && chapterFrom ? Number(chapterFrom) : null;
+    const from =
+      chapterRangeEnabled && chapterFrom ? Number(chapterFrom) : null;
     const to = chapterRangeEnabled && chapterTo ? Number(chapterTo) : null;
     if (
       chapterRangeEnabled &&
@@ -138,110 +139,263 @@ const NovelWorkspace = () => {
         (to !== null && (!Number.isInteger(to) || to < 1)) ||
         (from !== null && to !== null && to < from))
     ) {
-      toast({ title: "Invalid chapter range", description: "Enter a valid chapter range.", variant: "destructive" });
+      toast({
+        title: "Invalid chapter range",
+        description: "Enter a valid chapter range.",
+        variant: "destructive",
+      });
       return;
     }
     setAiImporting(true);
     let jobId: string | null = null;
     try {
-      const jobResult = await supabase.from("chapter_import_jobs").insert({
-        novel_id: novelId, user_id: user.id, source_url: aiImportUrl.trim(),
-        range_from: from, range_to: to, skip_glossary: skipGlossaryExtraction,
-        skip_translation: skipTranslation, status: "discovering_links",
-      }).select("id").single();
+      const jobResult = await supabase
+        .from("chapter_import_jobs")
+        .insert({
+          novel_id: novelId,
+          user_id: user.id,
+          source_url: aiImportUrl.trim(),
+          range_from: from,
+          range_to: to,
+          skip_glossary: skipGlossaryExtraction,
+          skip_translation: skipTranslation,
+          status: "discovering_links",
+        })
+        .select("id")
+        .single();
       if (jobResult.error) throw jobResult.error;
       jobId = jobResult.data.id;
-      const discovery = await supabase.functions.invoke("ai-discover-chapter-links", {
-        body: {
-          url: aiImportUrl.trim(),
-          ...(from !== null ? { chapterFrom: from } : {}),
-          ...(to !== null ? { chapterTo: to } : {}),
+      const discovery = await supabase.functions.invoke(
+        "ai-discover-chapter-links",
+        {
+          body: {
+            url: aiImportUrl.trim(),
+            ...(from !== null ? { chapterFrom: from } : {}),
+            ...(to !== null ? { chapterTo: to } : {}),
+          },
         },
-      });
+      );
       if (discovery.error) throw new Error(discovery.error.message);
-      const links = (Array.isArray(discovery.data?.chapters) ? discovery.data.chapters : []).filter((item: { chapter_number?: number }) =>
-        (from === null || item.chapter_number! >= from) && (to === null || item.chapter_number! <= to),
+      const links = (
+        Array.isArray(discovery.data?.chapters) ? discovery.data.chapters : []
+      ).filter(
+        (item: { chapter_number?: number }) =>
+          (from === null || item.chapter_number! >= from) &&
+          (to === null || item.chapter_number! <= to),
       );
       if (!links.length) {
         const message = "No chapter links were found in the selected range.";
-        await supabase.from("chapter_import_jobs").update({ status: "completed_with_errors", error_message: message }).eq("id", jobId);
+        await supabase
+          .from("chapter_import_jobs")
+          .update({ status: "completed_with_errors", error_message: message })
+          .eq("id", jobId);
         throw new Error(message);
       }
-      const items = links.map((item: { chapter_number: number; title: string; url: string }) => ({ job_id: jobId, novel_id: novelId, chapter_number: item.chapter_number, source_url: item.url, discovered_title: item.title || "", status: "pending" }));
+      const items = links.map(
+        (item: { chapter_number: number; title: string; url: string }) => ({
+          job_id: jobId,
+          novel_id: novelId,
+          chapter_number: item.chapter_number,
+          source_url: item.url,
+          discovered_title: item.title || "",
+          status: "pending",
+        }),
+      );
       if (items.length) {
-        const itemResult = await supabase.from("chapter_import_items").insert(items);
+        const itemResult = await supabase
+          .from("chapter_import_items")
+          .insert(items);
         if (itemResult.error) throw itemResult.error;
       }
-      await supabase.from("chapter_import_jobs").update({ status: "processing", total_chapters: items.length }).eq("id", jobId);
+      await supabase
+        .from("chapter_import_jobs")
+        .update({ status: "processing", total_chapters: items.length })
+        .eq("id", jobId);
       let completed = 0;
       let failed = 0;
       for (const item of items) {
         try {
-          await supabase.from("chapter_import_items").update({ status: "processing", attempts: 1, started_at: new Date().toISOString() }).eq("job_id", jobId).eq("chapter_number", item.chapter_number);
-          const scraped = await supabase.functions.invoke("firecrawl-scrape", { body: { url: item.source_url, cleanWithAi: true } });
-          if (scraped.error || !scraped.data?.success) throw new Error(scraped.error?.message || scraped.data?.error || "Chapter scrape failed");
-          const structured = await supabase.functions.invoke("ai-chapter-import", { body: { content: scraped.data.content || scraped.data.markdown || "" } });
-          if (structured.error || !structured.data?.success || !structured.data.chapters?.[0]) throw new Error(structured.error?.message || structured.data?.error || "Chapter extraction failed");
+          await supabase
+            .from("chapter_import_items")
+            .update({
+              status: "processing",
+              attempts: 1,
+              started_at: new Date().toISOString(),
+            })
+            .eq("job_id", jobId)
+            .eq("chapter_number", item.chapter_number);
+          const scraped = await supabase.functions.invoke("firecrawl-scrape", {
+            body: { url: item.source_url, cleanWithAi: true },
+          });
+          if (scraped.error || !scraped.data?.success)
+            throw new Error(
+              scraped.error?.message ||
+                scraped.data?.error ||
+                "Chapter scrape failed",
+            );
+          const structured = await supabase.functions.invoke(
+            "ai-chapter-import",
+            {
+              body: {
+                content: scraped.data.content || scraped.data.markdown || "",
+              },
+            },
+          );
+          if (
+            structured.error ||
+            !structured.data?.success ||
+            !structured.data.chapters?.[0]
+          )
+            throw new Error(
+              structured.error?.message ||
+                structured.data?.error ||
+                "Chapter extraction failed",
+            );
           const chapter = structured.data.chapters[0];
-          let finalTitle = chapter.title || item.discovered_title || `Chapter ${item.chapter_number}`;
+          let finalTitle =
+            chapter.title ||
+            item.discovered_title ||
+            `Chapter ${item.chapter_number}`;
           let finalContent = String(chapter.content);
           if (!skipGlossaryExtraction) {
-            const extracted = await supabase.functions.invoke("ai-glossary-extract", {
-              body: {
-                text: finalContent,
-                originalLanguage: novel?.language || "original language",
-                translatedLanguage: novel?.translation_language || "translated language",
+            const extracted = await supabase.functions.invoke(
+              "ai-glossary-extract",
+              {
+                body: {
+                  text: finalContent,
+                  originalLanguage: novel?.language || "original language",
+                  translatedLanguage:
+                    novel?.translation_language || "translated language",
+                },
               },
-            });
+            );
             if (extracted.error) throw new Error(extracted.error.message);
             const entries = Array.isArray(extracted.data?.entries)
               ? extracted.data.entries
-                  .filter((entry: { original_word?: string; replacement_word?: string }) =>
-                    typeof entry.original_word === "string" &&
-                    typeof entry.replacement_word === "string" &&
-                    entry.original_word.trim().length >= 2 &&
-                    entry.original_word.trim().length <= 6 &&
-                    entry.replacement_word.trim(),
+                  .filter(
+                    (entry: {
+                      original_word?: string;
+                      replacement_word?: string;
+                    }) =>
+                      typeof entry.original_word === "string" &&
+                      typeof entry.replacement_word === "string" &&
+                      entry.original_word.trim().length >= 2 &&
+                      entry.original_word.trim().length <= 6 &&
+                      entry.replacement_word.trim(),
                   )
-                  .map((entry: { original_word: string; replacement_word: string }) => ({
-                    owner_id: user.id,
-                    novel_id: novelId,
-                    source_term: entry.original_word.trim(),
-                    preferred_term: entry.replacement_word.trim(),
-                    source_language: novel?.language || "original language",
-                    target_language: novel?.translation_language || "translated language",
-                  }))
+                  .map(
+                    (entry: {
+                      original_word: string;
+                      replacement_word: string;
+                    }) => ({
+                      owner_id: user.id,
+                      novel_id: novelId,
+                      source_term: entry.original_word.trim(),
+                      preferred_term: entry.replacement_word.trim(),
+                      source_language: novel?.language || "original language",
+                      target_language:
+                        novel?.translation_language || "translated language",
+                    }),
+                  )
               : [];
             if (entries.length) {
-              const glossaryResult = await supabase.from("glossary_entries").insert(entries);
+              const glossaryResult = await supabase
+                .from("glossary_entries")
+                .insert(entries);
               if (glossaryResult.error && glossaryResult.error.code !== "23505")
                 throw glossaryResult.error;
             }
           }
           if (!skipTranslation) {
-            const translated = await supabase.functions.invoke("ai-translate", { body: { chapterNumber: item.chapter_number, title: finalTitle, content: finalContent.split(/\r?\n/), authorThoughts: "", originalLanguage: novel?.language || "source language", targetLanguage: novel?.translation_language || "English" } });
-            if (translated.error || !translated.data?.chapter) throw new Error(translated.error?.message || "Translation failed");
+            const translated = await supabase.functions.invoke("ai-translate", {
+              body: {
+                chapterNumber: item.chapter_number,
+                title: finalTitle,
+                content: finalContent.split(/\r?\n/),
+                authorThoughts: "",
+                originalLanguage: novel?.language || "source language",
+                targetLanguage: novel?.translation_language || "English",
+              },
+            });
+            if (translated.error || !translated.data?.chapter)
+              throw new Error(
+                translated.error?.message || "Translation failed",
+              );
             finalTitle = translated.data.chapter.title;
             finalContent = translated.data.chapter.content.join("\n");
           }
-          const insert = await supabase.from("chapters").upsert({ novel_id: novelId, chapter_number: item.chapter_number, title: finalTitle, content: finalContent, status: "draft", published_at: null }, { onConflict: "novel_id,chapter_number" });
+          const insert = await supabase.from("chapters").upsert(
+            {
+              novel_id: novelId,
+              chapter_number: item.chapter_number,
+              title: finalTitle,
+              content: finalContent,
+              status: "draft",
+              published_at: null,
+            },
+            { onConflict: "novel_id,chapter_number" },
+          );
           if (insert.error) throw insert.error;
           completed += 1;
-          await supabase.from("chapter_import_items").update({ status: "completed", completed_at: new Date().toISOString() }).eq("job_id", jobId).eq("chapter_number", item.chapter_number);
+          await supabase
+            .from("chapter_import_items")
+            .update({
+              status: "completed",
+              completed_at: new Date().toISOString(),
+            })
+            .eq("job_id", jobId)
+            .eq("chapter_number", item.chapter_number);
         } catch (error) {
           failed += 1;
-          await supabase.from("chapter_import_items").update({ status: "failed", error_message: error instanceof Error ? error.message : "Chapter processing failed" }).eq("job_id", jobId).eq("chapter_number", item.chapter_number);
+          await supabase
+            .from("chapter_import_items")
+            .update({
+              status: "failed",
+              error_message:
+                error instanceof Error
+                  ? error.message
+                  : "Chapter processing failed",
+            })
+            .eq("job_id", jobId)
+            .eq("chapter_number", item.chapter_number);
         }
-        await supabase.from("chapter_import_jobs").update({ completed_chapters: completed, failed_chapters: failed }).eq("id", jobId);
-        toast({ title: "Import progress", description: `${completed + failed} of ${items.length} chapters processed.` });
+        await supabase
+          .from("chapter_import_jobs")
+          .update({ completed_chapters: completed, failed_chapters: failed })
+          .eq("id", jobId);
+        toast({
+          title: "Import progress",
+          description: `${completed + failed} of ${items.length} chapters processed.`,
+        });
       }
-      await supabase.from("chapter_import_jobs").update({ status: failed ? "completed_with_errors" : "completed", completed_at: new Date().toISOString() }).eq("id", jobId);
+      await supabase
+        .from("chapter_import_jobs")
+        .update({
+          status: failed ? "completed_with_errors" : "completed",
+          completed_at: new Date().toISOString(),
+        })
+        .eq("id", jobId);
       setAiImportOpen(false);
       window.location.reload();
     } catch (error) {
-      if (jobId) await supabase.from("chapter_import_jobs").update({ status: "completed_with_errors", error_message: error instanceof Error ? error.message : "Import failed" }).eq("id", jobId);
-      toast({ title: "AI chapter import failed", description: error instanceof Error ? error.message : "Could not import chapters.", variant: "destructive" });
-    } finally { setAiImporting(false); }
+      if (jobId)
+        await supabase
+          .from("chapter_import_jobs")
+          .update({
+            status: "completed_with_errors",
+            error_message:
+              error instanceof Error ? error.message : "Import failed",
+          })
+          .eq("id", jobId);
+      toast({
+        title: "AI chapter import failed",
+        description:
+          error instanceof Error ? error.message : "Could not import chapters.",
+        variant: "destructive",
+      });
+    } finally {
+      setAiImporting(false);
+    }
   };
 
   const importChaptersWithAi = async () => {
@@ -250,11 +404,15 @@ const NovelWorkspace = () => {
     const to = chapterTo ? Number(chapterTo) : null;
     if (
       chapterRangeEnabled &&
-      (!Number.isInteger(from) || !Number.isInteger(to) || from < 1 || to < from)
+      (!Number.isInteger(from) ||
+        !Number.isInteger(to) ||
+        from < 1 ||
+        to < from)
     ) {
       toast({
         title: "Invalid chapter range",
-        description: "Enter valid chapter numbers with From less than or equal to To.",
+        description:
+          "Enter valid chapter numbers with From less than or equal to To.",
         variant: "destructive",
       });
       return;
@@ -737,19 +895,54 @@ const NovelWorkspace = () => {
                           onCheckedChange={setChapterRangeEnabled}
                           disabled={aiImporting}
                         />
-                        <label htmlFor="chapter-range" className="cursor-pointer text-sm font-medium">
+                        <label
+                          htmlFor="chapter-range"
+                          className="cursor-pointer text-sm font-medium"
+                        >
                           Import a specific chapter range
                         </label>
                       </div>
                       {chapterRangeEnabled && (
                         <div className="grid grid-cols-2 gap-3">
                           <div className="space-y-1">
-                            <label htmlFor="chapter-from" className="text-xs text-muted-foreground">From</label>
-                            <Input id="chapter-from" type="number" min="1" step="1" value={chapterFrom} onChange={(event) => setChapterFrom(event.target.value)} disabled={aiImporting} placeholder="1" />
+                            <label
+                              htmlFor="chapter-from"
+                              className="text-xs text-muted-foreground"
+                            >
+                              From
+                            </label>
+                            <Input
+                              id="chapter-from"
+                              type="number"
+                              min="1"
+                              step="1"
+                              value={chapterFrom}
+                              onChange={(event) =>
+                                setChapterFrom(event.target.value)
+                              }
+                              disabled={aiImporting}
+                              placeholder="1"
+                            />
                           </div>
                           <div className="space-y-1">
-                            <label htmlFor="chapter-to" className="text-xs text-muted-foreground">To</label>
-                            <Input id="chapter-to" type="number" min="1" step="1" value={chapterTo} onChange={(event) => setChapterTo(event.target.value)} disabled={aiImporting} placeholder="10" />
+                            <label
+                              htmlFor="chapter-to"
+                              className="text-xs text-muted-foreground"
+                            >
+                              To
+                            </label>
+                            <Input
+                              id="chapter-to"
+                              type="number"
+                              min="1"
+                              step="1"
+                              value={chapterTo}
+                              onChange={(event) =>
+                                setChapterTo(event.target.value)
+                              }
+                              disabled={aiImporting}
+                              placeholder="10"
+                            />
                           </div>
                         </div>
                       )}
@@ -760,7 +953,10 @@ const NovelWorkspace = () => {
                           onCheckedChange={setSkipGlossaryExtraction}
                           disabled={aiImporting}
                         />
-                        <label htmlFor="skip-glossary-extraction" className="cursor-pointer text-sm font-medium">
+                        <label
+                          htmlFor="skip-glossary-extraction"
+                          className="cursor-pointer text-sm font-medium"
+                        >
                           Skip glossary extraction
                         </label>
                       </div>
@@ -771,7 +967,10 @@ const NovelWorkspace = () => {
                           onCheckedChange={setSkipTranslation}
                           disabled={aiImporting}
                         />
-                        <label htmlFor="skip-translation" className="cursor-pointer text-sm font-medium">
+                        <label
+                          htmlFor="skip-translation"
+                          className="cursor-pointer text-sm font-medium"
+                        >
                           Skip translation
                         </label>
                       </div>
@@ -783,8 +982,7 @@ const NovelWorkspace = () => {
                         placeholder="https://example.com/novel"
                         disabled={aiImporting}
                         onKeyDown={(event) => {
-                          if (event.key === "Enter")
-                            void importChapterJob();
+                          if (event.key === "Enter") void importChapterJob();
                         }}
                       />
                       <Button
@@ -811,9 +1009,15 @@ const NovelWorkspace = () => {
                     onOpenChange={setGlossaryOpen}
                   />
                 )}
-                <Button variant="outline" size="icon" className="sm:w-auto sm:px-3" asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="sm:w-auto sm:px-3"
+                  asChild
+                >
                   <Link to={`/workbook/${novel.id}`} aria-label="Add chapter">
-                    <Plus /> <span className="hidden sm:inline">Add chapter</span>
+                    <Plus />{" "}
+                    <span className="hidden sm:inline">Add chapter</span>
                   </Link>
                 </Button>
               </div>

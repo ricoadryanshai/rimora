@@ -1,22 +1,21 @@
-
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { LoadingButton } from '@/components/LoadingButton';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { LogIn, UserPlus } from 'lucide-react';
-import { useTheme } from 'next-themes';
-import { useAuth } from '@/contexts/AuthContext';
-import { useToast } from '@/hooks/use-toast';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { LoadingButton } from "@/components/LoadingButton";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { LogIn, UserPlus } from "lucide-react";
+import { useTheme } from "next-themes";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 
 const Auth = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [fullName, setFullName] = useState('');
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [username, setUsername] = useState("");
   const [loading, setLoading] = useState(false);
   const { signIn, signInWithGoogle, signUp, user } = useAuth();
   const { resolvedTheme } = useTheme();
@@ -26,7 +25,7 @@ const Auth = () => {
   // Redirect if already authenticated
   useEffect(() => {
     if (user) {
-      navigate('/');
+      navigate("/");
     }
   }, [user, navigate]);
 
@@ -35,7 +34,7 @@ const Auth = () => {
     setLoading(true);
 
     const { error } = await signIn(email, password);
-    
+
     if (error) {
       toast({
         title: "Sign In Failed",
@@ -47,9 +46,9 @@ const Auth = () => {
         title: "Welcome back!",
         description: "You have successfully signed in.",
       });
-      navigate('/');
+      navigate("/");
     }
-    
+
     setLoading(false);
   };
 
@@ -58,7 +57,7 @@ const Auth = () => {
     setLoading(true);
 
     const { error } = await signUp(email, password, fullName, username);
-    
+
     if (error) {
       toast({
         title: "Sign Up Failed",
@@ -71,12 +70,12 @@ const Auth = () => {
         description: "Please check your email to verify your account.",
       });
       // Reset form
-      setEmail('');
-      setPassword('');
-      setFullName('');
-      setUsername('');
+      setEmail("");
+      setPassword("");
+      setFullName("");
+      setUsername("");
     }
-    
+
     setLoading(false);
   };
 
@@ -100,12 +99,18 @@ const Auth = () => {
           <div className="flex items-center justify-center gap-3 mb-4">
             <span className="rounded-lg bg-transparent p-1">
               <img
-                src={resolvedTheme === "dark" ? "/logo-rimora-light.svg" : "/logo-rimora-dark.svg"}
+                src={
+                  resolvedTheme === "dark"
+                    ? "/logo-rimora-light.svg"
+                    : "/logo-rimora-dark.svg"
+                }
                 alt="Rimora"
                 className="h-10 w-auto object-contain"
               />
             </span>
-            <h1 className="font-display text-3xl font-semibold uppercase tracking-[0.12em] text-foreground">RIMORA</h1>
+            <h1 className="font-display text-3xl font-semibold uppercase tracking-[0.12em] text-foreground">
+              RIMORA
+            </h1>
           </div>
           <p className="text-muted-foreground">
             Write, translate, and read stories in one literary workspace.
@@ -114,7 +119,9 @@ const Auth = () => {
 
         <Card className="shadow-lg border-0 bg-card/80 backdrop-blur-sm">
           <CardHeader>
-            <CardTitle className="text-center text-xl">Authentication</CardTitle>
+            <CardTitle className="text-center text-xl">
+              Authentication
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="signin" className="w-full">
@@ -122,7 +129,7 @@ const Auth = () => {
                 <TabsTrigger value="signin">Sign In</TabsTrigger>
                 <TabsTrigger value="signup">Sign Up</TabsTrigger>
               </TabsList>
-              
+
               <TabsContent value="signin">
                 <form onSubmit={handleSignIn} className="space-y-4">
                   <div className="space-y-2">
@@ -148,7 +155,7 @@ const Auth = () => {
                     />
                   </div>
                   <LoadingButton
-                    type="submit" 
+                    type="submit"
                     className="w-full"
                     loading={loading}
                     loadingLabel="Signing In..."
@@ -174,7 +181,7 @@ const Auth = () => {
                   </Button>
                 </form>
               </TabsContent>
-              
+
               <TabsContent value="signup">
                 <form onSubmit={handleSignUp} className="space-y-4">
                   <div className="space-y-2">
@@ -224,7 +231,7 @@ const Auth = () => {
                     />
                   </div>
                   <LoadingButton
-                    type="submit" 
+                    type="submit"
                     className="w-full"
                     loading={loading}
                     loadingLabel="Creating Account..."

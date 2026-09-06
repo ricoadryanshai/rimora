@@ -92,7 +92,9 @@ const Workbook = () => {
   const [authorUsername, setAuthorUsername] = useState("Author");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [autoSaveState, setAutoSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [autoSaveState, setAutoSaveState] = useState<
+    "idle" | "saving" | "saved" | "error"
+  >("idle");
   const autoSaveChapterId = useRef<string | null>(editingChapterId);
   const [editingChapter, setEditingChapter] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
@@ -194,7 +196,16 @@ const Workbook = () => {
     }, 1200);
 
     return () => window.clearTimeout(timeout);
-  }, [loading, novelId, user, canPreview, title, content, chapterNumber, authorThoughts]);
+  }, [
+    loading,
+    novelId,
+    user,
+    canPreview,
+    title,
+    content,
+    chapterNumber,
+    authorThoughts,
+  ]);
 
   useEffect(() => {
     if (!novelId || !user) return;
@@ -551,17 +562,16 @@ const Workbook = () => {
         typeof translatedChapter.title !== "string" ||
         !Array.isArray(translatedChapter.content) ||
         translatedChapter.content.length !== contentLines.length ||
-        !translatedChapter.content.every((line: unknown) => typeof line === "string") ||
+        !translatedChapter.content.every(
+          (line: unknown) => typeof line === "string",
+        ) ||
         typeof translatedChapter.authorThoughts !== "string"
       )
         throw new Error(
           "Translation returned an invalid chapter structure or line count. Your content was not changed.",
         );
       const escapeHtml = (line: string) =>
-        line
-          .replace(/&/g, "&amp;")
-          .replace(/</g, "&lt;")
-          .replace(/>/g, "&gt;");
+        line.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
       setContent(
         translatedChapter.content
           .map((line: string) => escapeHtml(line))
@@ -577,7 +587,8 @@ const Workbook = () => {
       setTranslateOpen(false);
       toast({
         title: "Translation complete",
-        description: "Chapter number, title, content, and author thoughts translated.",
+        description:
+          "Chapter number, title, content, and author thoughts translated.",
       });
     } catch (error) {
       toast({
@@ -684,11 +695,24 @@ const Workbook = () => {
               )}
             </div>
             <div className="flex flex-wrap items-center justify-end gap-3">
-              <p className="mr-auto inline-flex items-center gap-1.5 text-xs text-muted-foreground" aria-live="polite">
-                {autoSaveState === "saving" && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-                {autoSaveState === "saved" && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />}
+              <p
+                className="mr-auto inline-flex items-center gap-1.5 text-xs text-muted-foreground"
+                aria-live="polite"
+              >
+                {autoSaveState === "saving" && (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                )}
+                {autoSaveState === "saved" && (
+                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                )}
                 {autoSaveState === "idle" && <Cloud className="h-3.5 w-3.5" />}
-                {autoSaveState === "error" ? "Auto-save failed" : autoSaveState === "saving" ? "Saving draft..." : autoSaveState === "saved" ? "Draft saved" : "Auto-save ready"}
+                {autoSaveState === "error"
+                  ? "Auto-save failed"
+                  : autoSaveState === "saving"
+                    ? "Saving draft..."
+                    : autoSaveState === "saved"
+                      ? "Draft saved"
+                      : "Auto-save ready"}
               </p>
               <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
                 <DialogTrigger asChild>
@@ -827,63 +851,392 @@ const Workbook = () => {
               workspace after saving.
             </div>
           </div>
-          {novelType === "Translation" && <aside className="order-last hidden space-y-4 lg:sticky lg:top-6 lg:block">
-            <Card>
-              <CardContent className="space-y-4 p-5">
-                <p className="text-xs font-semibold uppercase tracking-[0.05em] text-muted-foreground">
-                  Translation Tools
-                </p>
-                <TooltipProvider>
-                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                    <Dialog open={importOpen} onOpenChange={setImportOpen}>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="icon"
-                            aria-label="Import chapter from webpage"
-                            onClick={() => setImportOpen(true)}
-                          >
-                            <LinkIcon />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Import from webpage</TooltipContent>
-                      </Tooltip>
-                      <DialogContent className="max-w-2xl">
-                        <DialogHeader>
-                          <DialogTitle>Import chapter from webpage</DialogTitle>
-                          <DialogDescription>
-                            Fetch chapter content from a webpage and add it to
-                            the editor.
-                          </DialogDescription>
-                        </DialogHeader>
-                        <UrlImport
-                          onContentReady={(scrapedContent) => {
-                            setContent(scrapedContent);
-                            setImportOpen(false);
-                          }}
-                          onTitleReady={(importedTitle) =>
-                            setTitle(importedTitle)
-                          }
-                          onChapterNumberReady={setChapterNumber}
-                        />
-                      </DialogContent>
-                    </Dialog>
-                    <GlossaryTrigger onClick={() => setGlossaryOpen(true)} />
-                    <GlossaryManager
-                      novelId={novelId!}
-                      userId={user!.id}
-                      open={glossaryOpen}
-                      onOpenChange={setGlossaryOpen}
-                      onApply={applyGlossary}
-                      onAiExtract={() => void extractGlossaryWithAi()}
-                      aiLoading={glossaryAiLoading}
-                    />
-                    {false && (
-                      <Dialog
+          {novelType === "Translation" && (
+            <aside className="order-last hidden space-y-4 lg:sticky lg:top-6 lg:block">
+              <Card>
+                <CardContent className="space-y-4 p-5">
+                  <p className="text-xs font-semibold uppercase tracking-[0.05em] text-muted-foreground">
+                    Translation Tools
+                  </p>
+                  <TooltipProvider>
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                      <Dialog open={importOpen} onOpenChange={setImportOpen}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              aria-label="Import chapter from webpage"
+                              onClick={() => setImportOpen(true)}
+                            >
+                              <LinkIcon />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Import from webpage</TooltipContent>
+                        </Tooltip>
+                        <DialogContent className="max-w-2xl">
+                          <DialogHeader>
+                            <DialogTitle>
+                              Import chapter from webpage
+                            </DialogTitle>
+                            <DialogDescription>
+                              Fetch chapter content from a webpage and add it to
+                              the editor.
+                            </DialogDescription>
+                          </DialogHeader>
+                          <UrlImport
+                            onContentReady={(scrapedContent) => {
+                              setContent(scrapedContent);
+                              setImportOpen(false);
+                            }}
+                            onTitleReady={(importedTitle) =>
+                              setTitle(importedTitle)
+                            }
+                            onChapterNumberReady={setChapterNumber}
+                          />
+                        </DialogContent>
+                      </Dialog>
+                      <GlossaryTrigger onClick={() => setGlossaryOpen(true)} />
+                      <GlossaryManager
+                        novelId={novelId!}
+                        userId={user!.id}
                         open={glossaryOpen}
                         onOpenChange={setGlossaryOpen}
+                        onApply={applyGlossary}
+                        onAiExtract={() => void extractGlossaryWithAi()}
+                        aiLoading={glossaryAiLoading}
+                      />
+                      {false && (
+                        <Dialog
+                          open={glossaryOpen}
+                          onOpenChange={setGlossaryOpen}
+                        >
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="icon"
+                                aria-label="Open glossary"
+                                onClick={() => setGlossaryOpen(true)}
+                              >
+                                <BookOpen />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Glossary</TooltipContent>
+                          </Tooltip>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Glossary</DialogTitle>
+                              <DialogDescription>
+                                Add original and translated terms for this
+                                novel.
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4">
+                              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-3">
+                                <div className="flex gap-2">
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={applyGlossary}
+                                  >
+                                    <BookOpen /> Apply
+                                  </Button>
+                                </div>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => void extractGlossaryWithAi()}
+                                  disabled={glossaryAiLoading}
+                                >
+                                  <Sparkles />{" "}
+                                  {glossaryAiLoading
+                                    ? "Extracting..."
+                                    : "AI extract"}
+                                </Button>
+                              </div>
+                              {glossaryEntries.length > 0 && (
+                                <div className="flex justify-end gap-2">
+                                  <ConfirmationDialog
+                                    trigger={
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        disabled={!selectedGlossaryIds.length}
+                                      >
+                                        Delete selected (
+                                        {selectedGlossaryIds.length})
+                                      </Button>
+                                    }
+                                    title="Delete selected glossary entries?"
+                                    description={`This will permanently delete ${selectedGlossaryIds.length} selected entries.`}
+                                    confirmLabel="Delete selected"
+                                    destructive
+                                    onConfirm={() =>
+                                      void deleteGlossaryEntries(
+                                        selectedGlossaryIds,
+                                      )
+                                    }
+                                  />
+                                  <ConfirmationDialog
+                                    trigger={
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                      >
+                                        Delete all
+                                      </Button>
+                                    }
+                                    title="Delete all glossary entries?"
+                                    description={`This will permanently delete all ${glossaryEntries.length} entries.`}
+                                    confirmLabel="Delete all"
+                                    destructive
+                                    onConfirm={() =>
+                                      void deleteGlossaryEntries(
+                                        glossaryEntries.map(
+                                          (entry) => entry.id,
+                                        ),
+                                      )
+                                    }
+                                  />
+                                </div>
+                              )}
+                              <div className="grid grid-cols-[1fr_1fr_auto] items-end gap-2">
+                                <div className="space-y-1">
+                                  <Label htmlFor="glossary-original">
+                                    Original term
+                                  </Label>
+                                  <Input
+                                    id="glossary-original"
+                                    value={originalTerm}
+                                    onChange={(event) =>
+                                      setOriginalTerm(event.target.value)
+                                    }
+                                    maxLength={6}
+                                  />
+                                </div>
+                                <div className="space-y-1">
+                                  <Label htmlFor="glossary-translated">
+                                    Translated term
+                                  </Label>
+                                  <Input
+                                    id="glossary-translated"
+                                    value={translatedTerm}
+                                    onChange={(event) =>
+                                      setTranslatedTerm(event.target.value)
+                                    }
+                                  />
+                                </div>
+                                <Button
+                                  type="button"
+                                  onClick={() => void addGlossaryEntry()}
+                                  disabled={
+                                    !originalTerm.trim() ||
+                                    !translatedTerm.trim()
+                                  }
+                                >
+                                  Add
+                                </Button>
+                              </div>
+                              <div className="relative">
+                                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                                <Input
+                                  value={glossarySearch}
+                                  onChange={(event) => {
+                                    setGlossarySearch(event.target.value);
+                                    setGlossaryPage(1);
+                                  }}
+                                  placeholder="Search glossary"
+                                  className="pl-9"
+                                  aria-label="Search glossary"
+                                />
+                              </div>
+                              <div className="max-h-64 overflow-y-auto rounded-sm border border-border">
+                                {glossaryEntries.length === 0 ? (
+                                  <p className="p-4 text-sm text-muted-foreground">
+                                    No glossary entries yet.
+                                  </p>
+                                ) : visibleGlossaryEntries.length === 0 ? (
+                                  <p className="p-4 text-sm text-muted-foreground">
+                                    No matching glossary entries.
+                                  </p>
+                                ) : (
+                                  visibleGlossaryEntries.map((entry) =>
+                                    editingGlossaryId === entry.id ? (
+                                      <div
+                                        key={entry.id}
+                                        className="grid grid-cols-[1fr_1fr_auto] items-center gap-2 border-b border-border p-3 last:border-0"
+                                      >
+                                        <Input
+                                          value={editingOriginal}
+                                          onChange={(event) =>
+                                            setEditingOriginal(
+                                              event.target.value,
+                                            )
+                                          }
+                                          aria-label="Edit original term"
+                                        />
+                                        <Input
+                                          value={editingTranslated}
+                                          onChange={(event) =>
+                                            setEditingTranslated(
+                                              event.target.value,
+                                            )
+                                          }
+                                          aria-label="Edit translated term"
+                                        />
+                                        <div className="flex gap-1">
+                                          <Button
+                                            type="button"
+                                            size="icon"
+                                            aria-label="Save glossary edit"
+                                            onClick={() =>
+                                              void saveGlossaryEntry(entry.id)
+                                            }
+                                          >
+                                            <Save />
+                                          </Button>
+                                          <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            aria-label="Cancel glossary edit"
+                                            onClick={() =>
+                                              setEditingGlossaryId(null)
+                                            }
+                                          >
+                                            <X />
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <div
+                                        key={entry.id}
+                                        className="grid grid-cols-[auto_1fr_auto_1fr_auto] items-center gap-2 border-b border-border p-3 last:border-0"
+                                      >
+                                        <Checkbox
+                                          checked={selectedGlossaryIds.includes(
+                                            entry.id,
+                                          )}
+                                          onCheckedChange={(checked) =>
+                                            setSelectedGlossaryIds((current) =>
+                                              checked
+                                                ? [...current, entry.id]
+                                                : current.filter(
+                                                    (id) => id !== entry.id,
+                                                  ),
+                                            )
+                                          }
+                                          aria-label={`Select ${entry.source_term}`}
+                                        />
+                                        <span className="truncate text-sm">
+                                          {entry.source_term}
+                                        </span>
+                                        <span className="text-xs text-muted-foreground">
+                                          {entry.source_term.length}
+                                        </span>
+                                        <span className="truncate text-sm text-muted-foreground">
+                                          {entry.preferred_term}
+                                        </span>
+                                        <div className="flex gap-1">
+                                          <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            aria-label="Edit glossary entry"
+                                            onClick={() => {
+                                              setEditingGlossaryId(entry.id);
+                                              setEditingOriginal(
+                                                entry.source_term,
+                                              );
+                                              setEditingTranslated(
+                                                entry.preferred_term,
+                                              );
+                                            }}
+                                          >
+                                            <Pencil />
+                                          </Button>
+                                          <ConfirmationDialog
+                                            trigger={
+                                              <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                                aria-label="Delete glossary entry"
+                                              >
+                                                <Trash2 />
+                                              </Button>
+                                            }
+                                            title="Delete glossary entry?"
+                                            description="This glossary entry will be permanently deleted."
+                                            confirmLabel="Delete permanently"
+                                            destructive
+                                            onConfirm={() =>
+                                              void deleteGlossaryEntry(entry.id)
+                                            }
+                                          />
+                                        </div>
+                                      </div>
+                                    ),
+                                  )
+                                )}
+                              </div>
+                              {filteredGlossaryEntries.length >
+                                glossaryPageSize && (
+                                <div className="flex items-center justify-between pt-2">
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    aria-label="Previous glossary page"
+                                    onClick={() =>
+                                      setGlossaryPage((current) =>
+                                        Math.max(1, current - 1),
+                                      )
+                                    }
+                                    disabled={glossaryPage === 1}
+                                  >
+                                    <ChevronLeft />
+                                  </Button>
+                                  <span className="text-xs text-muted-foreground">
+                                    Page {glossaryPage} of {glossaryPageCount}
+                                  </span>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    aria-label="Next glossary page"
+                                    onClick={() =>
+                                      setGlossaryPage((current) =>
+                                        Math.min(
+                                          glossaryPageCount,
+                                          current + 1,
+                                        ),
+                                      )
+                                    }
+                                    disabled={
+                                      glossaryPage === glossaryPageCount
+                                    }
+                                  >
+                                    <ChevronRight />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                      )}
+                      <Dialog
+                        open={translateOpen}
+                        onOpenChange={setTranslateOpen}
                       >
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -891,422 +1244,110 @@ const Workbook = () => {
                               type="button"
                               variant="outline"
                               size="icon"
-                              aria-label="Open glossary"
-                              onClick={() => setGlossaryOpen(true)}
+                              aria-label="AI Translate"
+                              onClick={() => setTranslateOpen(true)}
+                              disabled={translating || !hasRichText(content)}
                             >
-                              <BookOpen />
+                              <Languages />
                             </Button>
                           </TooltipTrigger>
-                          <TooltipContent>Glossary</TooltipContent>
+                          <TooltipContent>AI Translate</TooltipContent>
                         </Tooltip>
                         <DialogContent>
                           <DialogHeader>
-                            <DialogTitle>Glossary</DialogTitle>
+                            <DialogTitle>Translate chapter?</DialogTitle>
                             <DialogDescription>
-                              Add original and translated terms for this novel.
+                              Translate all {contentLines.toLocaleString()}{" "}
+                              lines from{" "}
+                              {originalLanguage || "the original language"} into{" "}
+                              {translationLanguage || "English"}. The original
+                              line order and count will be preserved.
                             </DialogDescription>
                           </DialogHeader>
-                          <div className="space-y-4">
-                            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-3">
-                              <div className="flex gap-2">
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={applyGlossary}
-                                >
-                                  <BookOpen /> Apply
-                                </Button>
-                              </div>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => void extractGlossaryWithAi()}
-                                disabled={glossaryAiLoading}
-                              >
-                                <Sparkles />{" "}
-                                {glossaryAiLoading
-                                  ? "Extracting..."
-                                  : "AI extract"}
-                              </Button>
-                            </div>
-                            {glossaryEntries.length > 0 && (
-                              <div className="flex justify-end gap-2">
-                                <ConfirmationDialog
-                                  trigger={
-                                    <Button
-                                      type="button"
-                                      variant="outline"
-                                      size="sm"
-                                      disabled={!selectedGlossaryIds.length}
-                                    >
-                                      Delete selected (
-                                      {selectedGlossaryIds.length})
-                                    </Button>
-                                  }
-                                  title="Delete selected glossary entries?"
-                                  description={`This will permanently delete ${selectedGlossaryIds.length} selected entries.`}
-                                  confirmLabel="Delete selected"
-                                  destructive
-                                  onConfirm={() =>
-                                    void deleteGlossaryEntries(
-                                      selectedGlossaryIds,
-                                    )
-                                  }
-                                />
-                                <ConfirmationDialog
-                                  trigger={
-                                    <Button
-                                      type="button"
-                                      variant="outline"
-                                      size="sm"
-                                      className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                                    >
-                                      Delete all
-                                    </Button>
-                                  }
-                                  title="Delete all glossary entries?"
-                                  description={`This will permanently delete all ${glossaryEntries.length} entries.`}
-                                  confirmLabel="Delete all"
-                                  destructive
-                                  onConfirm={() =>
-                                    void deleteGlossaryEntries(
-                                      glossaryEntries.map((entry) => entry.id),
-                                    )
-                                  }
-                                />
-                              </div>
-                            )}
-                            <div className="grid grid-cols-[1fr_1fr_auto] items-end gap-2">
-                              <div className="space-y-1">
-                                <Label htmlFor="glossary-original">
-                                  Original term
-                                </Label>
-                                <Input
-                                  id="glossary-original"
-                                  value={originalTerm}
-                                  onChange={(event) =>
-                                    setOriginalTerm(event.target.value)
-                                  }
-                                  maxLength={6}
-                                />
-                              </div>
-                              <div className="space-y-1">
-                                <Label htmlFor="glossary-translated">
-                                  Translated term
-                                </Label>
-                                <Input
-                                  id="glossary-translated"
-                                  value={translatedTerm}
-                                  onChange={(event) =>
-                                    setTranslatedTerm(event.target.value)
-                                  }
-                                />
-                              </div>
-                              <Button
-                                type="button"
-                                onClick={() => void addGlossaryEntry()}
-                                disabled={
-                                  !originalTerm.trim() || !translatedTerm.trim()
-                                }
-                              >
-                                Add
-                              </Button>
-                            </div>
-                            <div className="relative">
-                              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                              <Input
-                                value={glossarySearch}
-                                onChange={(event) => {
-                                  setGlossarySearch(event.target.value);
-                                  setGlossaryPage(1);
-                                }}
-                                placeholder="Search glossary"
-                                className="pl-9"
-                                aria-label="Search glossary"
-                              />
-                            </div>
-                            <div className="max-h-64 overflow-y-auto rounded-sm border border-border">
-                              {glossaryEntries.length === 0 ? (
-                                <p className="p-4 text-sm text-muted-foreground">
-                                  No glossary entries yet.
-                                </p>
-                              ) : visibleGlossaryEntries.length === 0 ? (
-                                <p className="p-4 text-sm text-muted-foreground">
-                                  No matching glossary entries.
-                                </p>
-                              ) : (
-                                visibleGlossaryEntries.map((entry) =>
-                                  editingGlossaryId === entry.id ? (
-                                    <div
-                                      key={entry.id}
-                                      className="grid grid-cols-[1fr_1fr_auto] items-center gap-2 border-b border-border p-3 last:border-0"
-                                    >
-                                      <Input
-                                        value={editingOriginal}
-                                        onChange={(event) =>
-                                          setEditingOriginal(event.target.value)
-                                        }
-                                        aria-label="Edit original term"
-                                      />
-                                      <Input
-                                        value={editingTranslated}
-                                        onChange={(event) =>
-                                          setEditingTranslated(
-                                            event.target.value,
-                                          )
-                                        }
-                                        aria-label="Edit translated term"
-                                      />
-                                      <div className="flex gap-1">
-                                        <Button
-                                          type="button"
-                                          size="icon"
-                                          aria-label="Save glossary edit"
-                                          onClick={() =>
-                                            void saveGlossaryEntry(entry.id)
-                                          }
-                                        >
-                                          <Save />
-                                        </Button>
-                                        <Button
-                                          type="button"
-                                          variant="ghost"
-                                          size="icon"
-                                          aria-label="Cancel glossary edit"
-                                          onClick={() =>
-                                            setEditingGlossaryId(null)
-                                          }
-                                        >
-                                          <X />
-                                        </Button>
-                                      </div>
-                                    </div>
-                                  ) : (
-                                    <div
-                                      key={entry.id}
-                                      className="grid grid-cols-[auto_1fr_auto_1fr_auto] items-center gap-2 border-b border-border p-3 last:border-0"
-                                    >
-                                      <Checkbox
-                                        checked={selectedGlossaryIds.includes(
-                                          entry.id,
-                                        )}
-                                        onCheckedChange={(checked) =>
-                                          setSelectedGlossaryIds((current) =>
-                                            checked
-                                              ? [...current, entry.id]
-                                              : current.filter(
-                                                  (id) => id !== entry.id,
-                                                ),
-                                          )
-                                        }
-                                        aria-label={`Select ${entry.source_term}`}
-                                      />
-                                      <span className="truncate text-sm">
-                                        {entry.source_term}
-                                      </span>
-                                      <span className="text-xs text-muted-foreground">
-                                        {entry.source_term.length}
-                                      </span>
-                                      <span className="truncate text-sm text-muted-foreground">
-                                        {entry.preferred_term}
-                                      </span>
-                                      <div className="flex gap-1">
-                                        <Button
-                                          type="button"
-                                          variant="ghost"
-                                          size="icon"
-                                          aria-label="Edit glossary entry"
-                                          onClick={() => {
-                                            setEditingGlossaryId(entry.id);
-                                            setEditingOriginal(
-                                              entry.source_term,
-                                            );
-                                            setEditingTranslated(
-                                              entry.preferred_term,
-                                            );
-                                          }}
-                                        >
-                                          <Pencil />
-                                        </Button>
-                                        <ConfirmationDialog
-                                          trigger={
-                                            <Button
-                                              type="button"
-                                              variant="ghost"
-                                              size="icon"
-                                              className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                                              aria-label="Delete glossary entry"
-                                            >
-                                              <Trash2 />
-                                            </Button>
-                                          }
-                                          title="Delete glossary entry?"
-                                          description="This glossary entry will be permanently deleted."
-                                          confirmLabel="Delete permanently"
-                                          destructive
-                                          onConfirm={() =>
-                                            void deleteGlossaryEntry(entry.id)
-                                          }
-                                        />
-                                      </div>
-                                    </div>
-                                  ),
-                                )
-                              )}
-                            </div>
-                            {filteredGlossaryEntries.length >
-                              glossaryPageSize && (
-                              <div className="flex items-center justify-between pt-2">
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  aria-label="Previous glossary page"
-                                  onClick={() =>
-                                    setGlossaryPage((current) =>
-                                      Math.max(1, current - 1),
-                                    )
-                                  }
-                                  disabled={glossaryPage === 1}
-                                >
-                                  <ChevronLeft />
-                                </Button>
-                                <span className="text-xs text-muted-foreground">
-                                  Page {glossaryPage} of {glossaryPageCount}
-                                </span>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  aria-label="Next glossary page"
-                                  onClick={() =>
-                                    setGlossaryPage((current) =>
-                                      Math.min(glossaryPageCount, current + 1),
-                                    )
-                                  }
-                                  disabled={glossaryPage === glossaryPageCount}
-                                >
-                                  <ChevronRight />
-                                </Button>
-                              </div>
-                            )}
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => setTranslateOpen(false)}
+                            >
+                              Cancel
+                            </Button>
+                            <Button
+                              type="button"
+                              onClick={() => void translateChapter()}
+                              disabled={translating}
+                            >
+                              <Languages />{" "}
+                              {translating ? "Translating..." : "Translate"}
+                            </Button>
                           </div>
                         </DialogContent>
                       </Dialog>
-                    )}
-                    <Dialog
-                      open={translateOpen}
-                      onOpenChange={setTranslateOpen}
-                    >
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="icon"
-                            aria-label="AI Translate"
-                            onClick={() => setTranslateOpen(true)}
-                            disabled={translating || !hasRichText(content)}
-                          >
-                            <Languages />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>AI Translate</TooltipContent>
-                      </Tooltip>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Translate chapter?</DialogTitle>
-                          <DialogDescription>
-                            Translate all{" "}
-                            {contentLines.toLocaleString()} lines from{" "}
-                            {originalLanguage || "the original language"} into{" "}
-                            {translationLanguage || "English"}. The original line
-                            order and count will be preserved.
-                          </DialogDescription>
-                        </DialogHeader>
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => setTranslateOpen(false)}
-                          >
-                            Cancel
-                          </Button>
-                          <Button
-                            type="button"
-                            onClick={() => void translateChapter()}
-                            disabled={translating}
-                          >
-                            <Languages />{" "}
-                            {translating ? "Translating..." : "Translate"}
-                          </Button>
-                        </div>
-                      </DialogContent>
-                    </Dialog>
-                  </div>
-                </TooltipProvider>
-              </CardContent>
-            </Card>
-          </aside>}
+                    </div>
+                  </TooltipProvider>
+                </CardContent>
+              </Card>
+            </aside>
+          )}
         </div>
-        {novelType === "Translation" && <div className="fixed bottom-20 right-4 z-40 lg:hidden">
-          <Popover open={mobileToolsOpen} onOpenChange={setMobileToolsOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="h-12 w-12 rounded-full bg-background shadow-lg"
-                aria-label="Open writing tools"
-              >
-                <Settings />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent align="end" side="top" className="w-auto p-3">
-              <div className="grid grid-cols-3 gap-2">
+        {novelType === "Translation" && (
+          <div className="fixed bottom-20 right-4 z-40 lg:hidden">
+            <Popover open={mobileToolsOpen} onOpenChange={setMobileToolsOpen}>
+              <PopoverTrigger asChild>
                 <Button
                   type="button"
                   variant="outline"
                   size="icon"
-                  aria-label="Import chapter from webpage"
-                  onClick={() => {
-                    setMobileToolsOpen(false);
-                    setImportOpen(true);
-                  }}
+                  className="h-12 w-12 rounded-full bg-background shadow-lg"
+                  aria-label="Open writing tools"
                 >
-                  <LinkIcon />
+                  <Settings />
                 </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  aria-label="Open glossary"
-                  onClick={() => {
-                    setMobileToolsOpen(false);
-                    setGlossaryOpen(true);
-                  }}
-                >
-                  <BookOpen />
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  aria-label="AI Translate"
-                  disabled={translating || !hasRichText(content)}
-                  onClick={() => {
-                    setMobileToolsOpen(false);
-                    setTranslateOpen(true);
-                  }}
-                >
-                  <Languages />
-                </Button>
-              </div>
-            </PopoverContent>
-          </Popover>
-        </div>}
+              </PopoverTrigger>
+              <PopoverContent align="end" side="top" className="w-auto p-3">
+                <div className="grid grid-cols-3 gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    aria-label="Import chapter from webpage"
+                    onClick={() => {
+                      setMobileToolsOpen(false);
+                      setImportOpen(true);
+                    }}
+                  >
+                    <LinkIcon />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    aria-label="Open glossary"
+                    onClick={() => {
+                      setMobileToolsOpen(false);
+                      setGlossaryOpen(true);
+                    }}
+                  >
+                    <BookOpen />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    aria-label="AI Translate"
+                    disabled={translating || !hasRichText(content)}
+                    onClick={() => {
+                      setMobileToolsOpen(false);
+                      setTranslateOpen(true);
+                    }}
+                  >
+                    <Languages />
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
+        )}
       </div>
     </RimoraShell>
   );

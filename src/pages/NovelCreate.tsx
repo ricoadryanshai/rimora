@@ -34,6 +34,8 @@ import { MessageAlert } from "@/components/MessageAlert";
 import { useAuth } from "@/contexts/AuthContext";
 import { rimora } from "@/lib/rimora";
 import { supabase } from "@/integrations/supabase/client";
+import { ViewModeToggle, type ViewMode } from "@/components/ViewModeToggle";
+import { NovelListCard } from "@/components/NovelListCard";
 
 const NovelCreate = () => {
   const { user, session, loading: authLoading } = useAuth();
@@ -46,6 +48,7 @@ const NovelCreate = () => {
     Array<{
       id: string;
       title: string;
+      description: string | null;
       translation_title: string | null;
       cover_url: string | null;
       novel_type: string;
@@ -53,6 +56,10 @@ const NovelCreate = () => {
     }>
   >([]);
   const [novelsLoading, setNovelsLoading] = useState(true);
+  const [novelView, setNovelView] = useState<ViewMode>(() => {
+    const saved = window.localStorage.getItem("rimora-novel-view");
+    return saved === "list" ? "list" : "grid";
+  });
   const [title, setTitle] = useState("");
   const [author, setAuthor] = useState("");
   const [novelType, setNovelType] = useState("Novel");
@@ -87,7 +94,7 @@ const NovelCreate = () => {
     if (!user) return;
     void supabase
       .from("novels")
-      .select("id,title,translation_title,cover_url,novel_type,status")
+      .select("id,title,description,translation_title,cover_url,novel_type,status")
       .eq("owner_id", user.id)
       .order("updated_at", { ascending: false })
       .then(({ data }) => {
@@ -95,6 +102,7 @@ const NovelCreate = () => {
           (data ?? []) as Array<{
             id: string;
             title: string;
+            description: string | null;
             translation_title: string | null;
             cover_url: string | null;
             novel_type: string;
@@ -415,10 +423,17 @@ const NovelCreate = () => {
                 </h1>
               </div>
             </div>
-            <Button onClick={() => navigate("/novel/new")}>
-              <Plus />
-              Create novel
-            </Button>
+            <div className="flex items-center gap-2">
+              <ViewModeToggle
+                value={novelView}
+                onChange={setNovelView}
+                storageKey="rimora-novel-view"
+              />
+              <Button onClick={() => navigate("/novel/new")}>
+                <Plus />
+                Create novel
+              </Button>
+            </div>
           </header>
           {novelsLoading ? (
             <p className="text-sm text-muted-foreground">
@@ -437,7 +452,7 @@ const NovelCreate = () => {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <div className={novelView === "grid" ? "grid grid-cols-2 gap-5 lg:grid-cols-3 xl:grid-cols-4" : "space-y-3"}>
               {ownedNovels.map((novel) => {
                 const displayTitle =
                   novel.novel_type === "Translation" &&
@@ -450,17 +465,28 @@ const NovelCreate = () => {
                     : novel.novel_type === "Fanfic"
                       ? "bg-fuchsia-600 text-white"
                       : "bg-emerald-600 text-white";
+                if (novelView === "list")
+                  return (
+                    <NovelListCard
+                      key={novel.id}
+                      title={displayTitle}
+                      synopsis={novel.description}
+                      novelType={novel.novel_type}
+                      coverUrl={novel.cover_url}
+                      onClick={() => navigate(`/workspace/${novel.id}`)}
+                    />
+                  );
                 return (
                   <Card
                     key={novel.id}
-                    className="overflow-hidden transition-shadow hover:shadow-lg"
+                    className={novelView === "grid" ? "overflow-hidden transition-shadow hover:shadow-lg" : "overflow-hidden transition-shadow hover:shadow-lg"}
                   >
                     <button
                       type="button"
                       onClick={() => navigate(`/workspace/${novel.id}`)}
                       className="block w-full text-left"
                     >
-                      <div className="relative aspect-[3/4] overflow-hidden bg-muted">
+                      <div className={novelView === "grid" ? "relative aspect-[3/4] overflow-hidden bg-muted" : "flex items-center gap-4 bg-muted/30"}>
                         <div className="absolute left-3 top-3 z-10 flex flex-wrap gap-2">
                           <span
                             className={`rounded-full px-2.5 py-1 text-xs font-semibold shadow-sm ${typeBadgeClass}`}
@@ -472,15 +498,15 @@ const NovelCreate = () => {
                           <img
                             src={novel.cover_url}
                             alt={`${displayTitle} cover`}
-                            className="h-full w-full object-cover"
+                            className={novelView === "grid" ? "h-full w-full object-cover" : "h-24 w-16 shrink-0 object-cover"}
                           />
                         ) : (
-                          <div className="grid h-full place-items-center text-muted-foreground">
+                          <div className={novelView === "grid" ? "grid h-full place-items-center text-muted-foreground" : "grid h-24 w-16 shrink-0 place-items-center text-muted-foreground"}>
                             <BookOpen className="h-10 w-10" />
                           </div>
                         )}
                       </div>
-                      <CardContent className="p-4">
+                      <CardContent className={novelView === "grid" ? "p-4" : "flex-1 p-4"}>
                         <h2 className="line-clamp-2 font-display font-semibold">
                           {displayTitle}
                         </h2>

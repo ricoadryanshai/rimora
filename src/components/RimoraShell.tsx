@@ -132,69 +132,84 @@ export const RimoraShell = ({
                       .eq("id", user.id)
                       .then(({ error }) => {
                         if (error)
-                          console.error("Could not save theme preference:", error);
+                          console.error(
+                            "Could not save theme preference:",
+                            error,
+                          );
                       });
                   }}
                   className="grid h-10 w-10 place-items-center rounded-full border border-primary/30 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  aria-label={isDarkTheme ? "Switch to light theme" : "Switch to dark theme"}
-                  title={isDarkTheme ? "Switch to light theme" : "Switch to dark theme"}
+                  aria-label={
+                    isDarkTheme
+                      ? "Switch to light theme"
+                      : "Switch to dark theme"
+                  }
+                  title={
+                    isDarkTheme
+                      ? "Switch to light theme"
+                      : "Switch to dark theme"
+                  }
                 >
-                  {isDarkTheme ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+                  {isDarkTheme ? (
+                    <Moon className="h-4 w-4" />
+                  ) : (
+                    <Sun className="h-4 w-4" />
+                  )}
                 </button>
                 <Popover>
-                <PopoverTrigger asChild>
-                  <button
-                    type="button"
-                    className="cursor-pointer rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                    aria-label="Open profile menu"
-                  >
-                    <ProfileAvatar
-                      name={profileName}
-                      avatarUrl={profileAvatar}
-                      className="h-10 w-10 border border-primary/30"
-                    />
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent align="end" className="w-64 p-2">
-                  <div className="flex flex-col gap-1">
-                    <Link
-                      to={`/profile/${user.id}`}
-                      className="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-accent hover:text-accent-foreground"
+                  <PopoverTrigger asChild>
+                    <button
+                      type="button"
+                      className="cursor-pointer rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      aria-label="Open profile menu"
                     >
                       <ProfileAvatar
                         name={profileName}
                         avatarUrl={profileAvatar}
-                        className="h-9 w-9"
+                        className="h-10 w-10 border border-primary/30"
                       />
-                      <span className="min-w-0 truncate font-medium">
-                        {profileName}
-                      </span>
-                    </Link>
-                    <button
-                      type="button"
-                      className="flex w-full cursor-pointer items-center gap-3 rounded-md px-3 py-2 text-left text-sm transition-colors hover:bg-accent hover:text-accent-foreground"
-                    >
-                      <Inbox className="h-4 w-4" />
-                      Inbox
                     </button>
-                    <ConfirmationDialog
-                      trigger={
-                        <button
-                          type="button"
-                          className="flex w-full cursor-pointer items-center gap-3 rounded-md px-3 py-2 text-left text-sm text-destructive transition-colors hover:bg-destructive/10"
-                        >
-                          <LogOut className="h-4 w-4" />
-                          Sign Out
-                        </button>
-                      }
-                      title="Sign out?"
-                      description="Are you sure you want to sign out of your account?"
-                      confirmLabel="Sign Out"
-                      destructive
-                      onConfirm={() => void signOut()}
-                    />
-                  </div>
-                </PopoverContent>
+                  </PopoverTrigger>
+                  <PopoverContent align="end" className="w-64 p-2">
+                    <div className="flex flex-col gap-1">
+                      <Link
+                        to={`/profile/${user.id}`}
+                        className="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-accent hover:text-accent-foreground"
+                      >
+                        <ProfileAvatar
+                          name={profileName}
+                          avatarUrl={profileAvatar}
+                          className="h-9 w-9"
+                        />
+                        <span className="min-w-0 truncate font-medium">
+                          {profileName}
+                        </span>
+                      </Link>
+                      <button
+                        type="button"
+                        className="flex w-full cursor-pointer items-center gap-3 rounded-md px-3 py-2 text-left text-sm transition-colors hover:bg-accent hover:text-accent-foreground"
+                      >
+                        <Inbox className="h-4 w-4" />
+                        Inbox
+                      </button>
+                      <ConfirmationDialog
+                        trigger={
+                          <button
+                            type="button"
+                            className="flex w-full cursor-pointer items-center gap-3 rounded-md px-3 py-2 text-left text-sm text-destructive transition-colors hover:bg-destructive/10"
+                          >
+                            <LogOut className="h-4 w-4" />
+                            Sign Out
+                          </button>
+                        }
+                        title="Sign out?"
+                        description="Are you sure you want to sign out of your account?"
+                        confirmLabel="Sign Out"
+                        destructive
+                        onConfirm={() => void signOut()}
+                      />
+                    </div>
+                  </PopoverContent>
                 </Popover>
               </div>
             ) : (
