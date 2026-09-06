@@ -24,6 +24,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
+import { ProcessProgress } from "@/components/ProcessProgress";
 
 type GlossaryEntry = {
   id: string;
@@ -205,6 +206,14 @@ export const GlossaryManager = ({
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
+          {aiLoading && (
+            <ProcessProgress
+              label="Extracting glossary"
+              completed={0}
+              total={0}
+              indeterminate
+            />
+          )}
           {(onApply || onAiExtract) && (
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-3">
               {onApply && (

@@ -20,6 +20,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { ProcessProgress } from "@/components/ProcessProgress";
 import { GlossaryManager, GlossaryTrigger } from "@/components/GlossaryManager";
 import {
   Dialog,
@@ -127,6 +128,7 @@ const NovelWorkspace = () => {
   const [chapterTo, setChapterTo] = useState("");
   const [skipGlossaryExtraction, setSkipGlossaryExtraction] = useState(false);
   const [skipTranslation, setSkipTranslation] = useState(false);
+  const [importProgress, setImportProgress] = useState({ completed: 0, failed: 0, total: 0, current: "" });
 
   const importChapterJob = async () => {
     if (!novelId || !user || !aiImportUrl.trim()) return;
@@ -191,7 +193,7 @@ const NovelWorkspace = () => {
           .eq("id", jobId);
         throw new Error(message);
       }
-      const items = links.map(
+        const items = links.map(
         (item: { chapter_number: number; title: string; url: string }) => ({
           job_id: jobId,
           novel_id: novelId,
@@ -201,6 +203,7 @@ const NovelWorkspace = () => {
           status: "pending",
         }),
       );
+      setImportProgress({ completed: 0, failed: 0, total: items.length, current: "Preparing chapters" });
       if (items.length) {
         const itemResult = await supabase
           .from("chapter_import_items")
@@ -215,6 +218,7 @@ const NovelWorkspace = () => {
       let failed = 0;
       for (const item of items) {
         try {
+          setImportProgress((progress) => ({ ...progress, current: `Chapter ${item.chapter_number}` }));
           await supabase
             .from("chapter_import_items")
             .update({
@@ -337,6 +341,7 @@ const NovelWorkspace = () => {
           );
           if (insert.error) throw insert.error;
           completed += 1;
+                    setImportProgress({ completed, failed, total: items.length, current: "" });
           await supabase
             .from("chapter_import_items")
             .update({
@@ -347,6 +352,7 @@ const NovelWorkspace = () => {
             .eq("chapter_number", item.chapter_number);
         } catch (error) {
           failed += 1;
+          setImportProgress({ completed, failed, total: items.length, current: "" });
           await supabase
             .from("chapter_import_items")
             .update({
@@ -887,6 +893,15 @@ const NovelWorkspace = () => {
                         saved as drafts in batches.
                       </DialogDescription>
                     </DialogHeader>
+                    {aiImporting && (
+                      <ProcessProgress
+                        label="Importing chapters"
+                        completed={importProgress.completed}
+                        failed={importProgress.failed}
+                        total={importProgress.total}
+                        current={importProgress.current}
+                      />
+                    )}
                     <div className="space-y-3 rounded-sm border border-border bg-muted/30 p-3">
                       <div className="flex items-center gap-2">
                         <Switch

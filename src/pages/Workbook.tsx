@@ -57,6 +57,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Checkbox } from "@/components/ui/checkbox";
 import { GlossaryManager, GlossaryTrigger } from "@/components/GlossaryManager";
+import { ProcessProgress } from "@/components/ProcessProgress";
 import type { WordReplacementInput } from "@/lib/word-replacements-csv";
 
 const hasRichText = (value: string) =>
@@ -1264,6 +1265,14 @@ const Workbook = () => {
                               line order and count will be preserved.
                             </DialogDescription>
                           </DialogHeader>
+                          {translating && (
+                            <ProcessProgress
+                              label="Translating chapter"
+                              completed={0}
+                              total={0}
+                              indeterminate
+                            />
+                          )}
                           <div className="flex justify-end gap-2">
                             <Button
                               type="button"
