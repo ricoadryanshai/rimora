@@ -10,6 +10,7 @@ import { LogIn, UserPlus } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { isSupabaseConfigured } from "@/integrations/supabase/client";
 
 const Auth = () => {
   const [email, setEmail] = useState("");
@@ -124,6 +125,11 @@ const Auth = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
+            {!isSupabaseConfigured && (
+              <p role="alert" className="mb-4 text-sm text-destructive">
+                Sign-in is temporarily unavailable. The site administrator needs to configure the Supabase connection.
+              </p>
+            )}
             <Tabs defaultValue="signin" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="signin">Sign In</TabsTrigger>
@@ -136,6 +142,7 @@ const Auth = () => {
                     <Label htmlFor="signin-email">Email or username</Label>
                     <Input
                       id="signin-email"
+                      autoComplete="username"
                       type="text"
                       placeholder="Enter your email or username"
                       value={email}
@@ -147,6 +154,7 @@ const Auth = () => {
                     <Label htmlFor="signin-password">Password</Label>
                     <Input
                       id="signin-password"
+                      autoComplete="current-password"
                       type="password"
                       placeholder="Enter your password"
                       value={password}
@@ -158,6 +166,7 @@ const Auth = () => {
                     type="submit"
                     className="w-full"
                     loading={loading}
+                    disabled={!isSupabaseConfigured}
                     loadingLabel="Signing In..."
                   >
                     <LogIn className="mr-2 h-4 w-4" />
@@ -174,7 +183,7 @@ const Auth = () => {
                     variant="outline"
                     className="w-full"
                     onClick={() => void handleGoogleSignIn()}
-                    disabled={loading}
+                    disabled={loading || !isSupabaseConfigured}
                   >
                     <span className="font-semibold text-base">G</span>
                     Continue with Google
@@ -235,6 +244,7 @@ const Auth = () => {
                     className="w-full"
                     loading={loading}
                     loadingLabel="Creating Account..."
+                    disabled={!isSupabaseConfigured}
                   >
                     <UserPlus className="mr-2 h-4 w-4" />
                     Sign Up
@@ -250,7 +260,7 @@ const Auth = () => {
                     variant="outline"
                     className="w-full"
                     onClick={() => void handleGoogleSignIn()}
-                    disabled={loading}
+                    disabled={loading || !isSupabaseConfigured}
                   >
                     <span className="font-semibold text-base">G</span>
                     Sign up with Google

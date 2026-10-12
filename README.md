@@ -33,6 +33,10 @@ npm run build
 
 Create a local `.env` file for the Supabase and application settings required by your environment. Never commit real credentials, database passwords, or API keys. Use `.env.example` for a safe list of variable names when sharing configuration.
 
+Copy `.env.example` to `.env.local`, then set `VITE_SUPABASE_PUBLISHABLE_KEY` to the public publishable key from the Supabase dashboard for project `lsmmpperermqmpfmwmkv`. The legacy public anon key is also supported through `VITE_SUPABASE_ANON_KEY`. Never use a service-role key in the browser. Restart `npm run dev` after changing these settings; production builds must have them set at build time. Vite only exposes variables prefixed with `VITE_` to the browser.
+
+Email/password sign-in uses Supabase Auth. Username sign-in also requires the `get_email_by_username` function from the database migrations. For Google sign-in and email verification, configure the provider and allow your application URL (including `http://localhost:8080` for local development) in Supabase Authentication's redirect URLs.
+
 ## Project Structure
 
 - `src/` contains the React application and pages.

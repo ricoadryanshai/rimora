@@ -25,6 +25,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
 import { ProcessProgress } from "@/components/ProcessProgress";
+import { fetchNovelGlossary } from "@/lib/novel-glossary";
 
 type GlossaryEntry = {
   id: string;
@@ -38,6 +39,7 @@ type Props = {
   onOpenChange: (open: boolean) => void;
   onApply?: () => void;
   onAiExtract?: () => void;
+  onAiStop?: () => void;
   aiLoading?: boolean;
 };
 
@@ -48,6 +50,7 @@ export const GlossaryManager = ({
   onOpenChange,
   onApply,
   onAiExtract,
+  onAiStop,
   aiLoading = false,
 }: Props) => {
   const [entries, setEntries] = useState<GlossaryEntry[]>([]);
@@ -60,6 +63,9 @@ export const GlossaryManager = ({
   const [editingPreferred, setEditingPreferred] = useState("");
   const [termFeedback, setTermFeedback] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState("");
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const pageSize = 5;
   const filtered = useMemo(
     () =>
@@ -80,13 +86,24 @@ export const GlossaryManager = ({
 
   useEffect(() => {
     if (!open) return;
-    void supabase
-      .from("glossary_entries")
-      .select("id,source_term,preferred_term")
-      .eq("novel_id", novelId)
-      .order("created_at", { ascending: true })
-      .then(({ data }) => setEntries((data ?? []) as GlossaryEntry[]));
-  }, [novelId, open]);
+    const controller = new AbortController();
+    setLoading(true);
+    setLoadError("");
+    setEntries([]);
+    setSelected([]);
+    setPage(1);
+    void fetchNovelGlossary(novelId, controller.signal)
+      .then((data) => {
+        if (!controller.signal.aborted) setEntries(data);
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setLoadError("Could not load the glossary. Please try again.");
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
+    return () => controller.abort();
+  }, [novelId, open, loadAttempt]);
   useEffect(() => {
     setPage((current) => Math.min(current, pageCount));
   }, [pageCount]);
@@ -184,16 +201,37 @@ export const GlossaryManager = ({
   };
   const removeEntries = async (ids: string[]) => {
     if (!ids.length) return;
+    // Keep selected IDs below URL-length limits for large glossaries.
+    for (let offset = 0; offset < ids.length; offset += 100) {
+      const batch = ids.slice(offset, offset + 100);
+      const { error } = await supabase
+        .from("glossary_entries")
+        .delete()
+        .eq("novel_id", novelId)
+        .in("id", batch);
+      if (error) {
+        setTermFeedback("Could not delete some glossary entries. Please try again.");
+        return;
+      }
+      setEntries((current) =>
+        current.filter((entry) => !batch.includes(entry.id)),
+      );
+      setSelected((current) => current.filter((id) => !batch.includes(id)));
+    }
+  };
+
+  const removeAllEntries = async () => {
     const { error } = await supabase
       .from("glossary_entries")
       .delete()
-      .in("id", ids);
-    if (!error) {
-      setEntries((current) =>
-        current.filter((entry) => !ids.includes(entry.id)),
-      );
-      setSelected([]);
+      .eq("novel_id", novelId)
+      .eq("owner_id", userId);
+    if (error) {
+      setTermFeedback("Could not delete glossary entries. Please try again.");
+      return;
     }
+    setEntries([]);
+    setSelected([]);
   };
 
   return (
@@ -229,17 +267,17 @@ export const GlossaryManager = ({
               {onAiExtract && (
                 <Button
                   type="button"
-                  variant="outline"
                   size="sm"
-                  onClick={onAiExtract}
-                  disabled={aiLoading}
+                  onClick={aiLoading ? onAiStop : onAiExtract}
+                  disabled={aiLoading && !onAiStop}
+                  variant={aiLoading ? "destructive" : "outline"}
                 >
                   {aiLoading ? (
                     <Loader2 className="animate-spin" />
                   ) : (
                     <Sparkles />
                   )}
-                  <span>{aiLoading ? "Extracting..." : "AI extract"}</span>
+                  <span>{aiLoading ? "Stop" : "AI extract"}</span>
                 </Button>
               )}
             </div>
@@ -277,9 +315,7 @@ export const GlossaryManager = ({
                 description="All glossary entries for this novel will be permanently removed."
                 confirmLabel="Delete all"
                 destructive
-                onConfirm={() =>
-                  void removeEntries(entries.map((entry) => entry.id))
-                }
+                onConfirm={() => void removeAllEntries()}
               />
             </div>
           )}
@@ -304,7 +340,7 @@ export const GlossaryManager = ({
             <Button
               type="button"
               onClick={() => void addEntry()}
-              disabled={!sourceTerm.trim() || !preferredTerm.trim()}
+              disabled={loading || Boolean(loadError) || !sourceTerm.trim() || !preferredTerm.trim()}
             >
               Add
             </Button>
@@ -328,7 +364,14 @@ export const GlossaryManager = ({
             />
           </div>
           <div className="max-h-64 overflow-y-auto rounded-sm border border-border">
-            {entries.length === 0 ? (
+            {loading ? (
+              <p className="p-4 text-sm text-muted-foreground" role="status">Loading glossary entries...</p>
+            ) : loadError ? (
+              <div className="p-4 space-y-2" role="alert">
+                <p className="text-sm text-destructive">{loadError}</p>
+                <Button variant="outline" onClick={() => setLoadAttempt((current) => current + 1)}>Try again</Button>
+              </div>
+            ) : entries.length === 0 ? (
               <p className="p-4 text-sm text-muted-foreground">
                 No glossary entries yet.
               </p>
@@ -451,7 +494,7 @@ export const GlossaryManager = ({
                 <ChevronLeft />
               </Button>
               <span className="text-xs text-muted-foreground">
-                Page {page} of {pageCount}
+                Page {page} of {pageCount} · {filtered.length} entries
               </span>
               <Button
                 type="button"

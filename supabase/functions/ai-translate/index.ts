@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { createRequestAbort } from "../_shared/request-abort.ts";
 import {
   getAiProviders,
   providerEndpoint,
@@ -132,8 +133,8 @@ Deno.serve(async (req) => {
         { error: "AI translation is not configured on the server." },
         500,
       );
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
+    const requestAbort = createRequestAbort(req, TIMEOUT_MS);
+    const { controller } = requestAbort;
     try {
       let translated: Chapter;
       try {
@@ -145,6 +146,7 @@ Deno.serve(async (req) => {
           controller.signal,
         );
       } catch (error) {
+        if (controller.signal.aborted) throw error;
         if (!providers[1]) throw error;
         translated = await translate(
           providers[1],
@@ -167,7 +169,7 @@ Deno.serve(async (req) => {
         );
       return json({ chapter: translated });
     } finally {
-      clearTimeout(timeout);
+      requestAbort.dispose();
     }
   } catch (error) {
     return json(

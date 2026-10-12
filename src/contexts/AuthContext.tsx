@@ -1,6 +1,25 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { User, Session } from "@supabase/supabase-js";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
+
+// Return a usable error for every auth failure, including thrown network errors.
+const runAuthRequest = async (request: () => Promise<{ error: unknown }>) => {
+  if (!isSupabaseConfigured) {
+    return { error: new Error("Sign-in is unavailable because Supabase is not configured. Contact the site administrator.") };
+  }
+  try {
+    const result = await request();
+    if (result.error) throw result.error;
+    return { error: null };
+  } catch (error) {
+    const message = error && typeof error === "object" && "message" in error
+      ? String(error.message)
+      : "Authentication failed. Please try again.";
+    return { error: new Error(/failed to fetch|fetch failed|networkerror|network request failed/i.test(message)
+      ? "Unable to connect to the sign-in service. Check your connection and try again."
+      : message) };
+  }
+};
 
 const configuredInactivityTimeout = Number(
   import.meta.env.VITE_AUTH_INACTIVITY_TIMEOUT_MS,
@@ -17,15 +36,15 @@ interface AuthContextType {
   session: Session | null;
   userRole: string | null;
   loading: boolean;
-  signIn: (identifier: string, password: string) => Promise<{ error: any }>;
-  signInWithGoogle: () => Promise<{ error: any }>;
-  linkGoogle: () => Promise<{ error: any }>;
+  signIn: (identifier: string, password: string) => Promise<{ error: Error | null }>;
+  signInWithGoogle: () => Promise<{ error: Error | null }>;
+  linkGoogle: () => Promise<{ error: Error | null }>;
   signUp: (
     email: string,
     password: string,
     fullName: string,
     username: string,
-  ) => Promise<{ error: any }>;
+  ) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -68,6 +87,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   useEffect(() => {
+    if (!isSupabaseConfigured) {
+      setLoading(false);
+      return;
+    }
     // Set up auth state listener
     const {
       data: { subscription },
@@ -97,6 +120,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         fetchUserRole(session.user.id).then(setUserRole);
       }
 
+      setLoading(false);
+    }).catch(() => {
       setLoading(false);
     });
 
@@ -135,7 +160,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     };
   }, [session?.user]);
 
-  const signIn = async (identifier: string, password: string) => {
+  const signIn = (identifier: string, password: string) => runAuthRequest(async () => {
     let email = identifier.trim();
     if (!email.includes("@")) {
       const { data, error } = await supabase.rpc("get_email_by_username", {
@@ -152,9 +177,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       password,
     });
     return { error };
-  };
+  });
 
-  const signInWithGoogle = async () => {
+  const signInWithGoogle = () => runAuthRequest(async () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
@@ -162,9 +187,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       },
     });
     return { error };
-  };
+  });
 
-  const linkGoogle = async () => {
+  const linkGoogle = () => runAuthRequest(async () => {
     const { error } = await supabase.auth.linkIdentity({
       provider: "google",
       options: {
@@ -172,16 +197,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       },
     });
     return { error };
-  };
+  });
 
-  const signUp = async (
+  const signUp = (
     email: string,
     password: string,
     fullName: string,
     username: string,
-  ) => {
+  ) => runAuthRequest(async () => {
     const { error } = await supabase.auth.signUp({
-      email,
+      email: email.trim(),
       password,
       options: {
         emailRedirectTo: `${window.location.origin}/`,
@@ -192,7 +217,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       },
     });
     return { error };
-  };
+  });
 
   const signOut = async () => {
     await supabase.auth.signOut();

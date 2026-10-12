@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { createRequestAbort } from "../_shared/request-abort.ts";
 import {
   getAiProviders,
   providerEndpoint,
@@ -61,7 +62,7 @@ const readAiContent = async (response: Response): Promise<string> => {
   return content;
 };
 
-const parseLinks = (value: string): ChapterLink[] => {
+const parseLinks = (value: string, baseUrl: string): ChapterLink[] => {
   const cleaned = value
     .trim()
     .replace(/^```(?:json)?\s*/i, "")
@@ -75,7 +76,11 @@ const parseLinks = (value: string): ChapterLink[] => {
       const chapterNumber = Number(raw.chapter_number ?? raw.chapterNumber);
       const url = typeof raw.url === "string" ? raw.url.trim() : "";
       const title = typeof raw.title === "string" ? raw.title.trim() : "";
-      return { chapter_number: chapterNumber, title, url };
+      try {
+        const resolved = new URL(url, baseUrl);
+        if (!url || !["http:", "https:"].includes(resolved.protocol)) return null;
+        return { chapter_number: chapterNumber, title, url: resolved.href };
+      } catch { return null; }
     })
     .filter((item: ChapterLink | null): item is ChapterLink => {
       if (!item) return false;
@@ -85,9 +90,11 @@ const parseLinks = (value: string): ChapterLink[] => {
         !item.url
       )
         return false;
-      const key = item.url;
-      if (!key || seen.has(key)) return false;
+      const key = `chapter:${item.chapter_number}`;
+      const urlKey = `url:${item.url}`;
+      if (seen.has(key) || seen.has(urlKey)) return false;
       seen.add(key);
+      seen.add(urlKey);
       return true;
     })
     .map((item) => ({
@@ -98,8 +105,8 @@ const parseLinks = (value: string): ChapterLink[] => {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers });
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  const requestAbort = createRequestAbort(req, TIMEOUT_MS);
+  const { controller } = requestAbort;
   try {
     const auth = req.headers.get("Authorization");
     if (!auth) return json({ error: "Unauthorized" }, 401);
@@ -172,7 +179,7 @@ Deno.serve(async (req) => {
     );
     if (!html.trim() && !markdown.trim())
       return json({ error: "Index page contained no readable content" }, 422);
-    const prompt = `Extract every individual chapter link from the raw HTML of this novel index page. Return ONLY a JSON array with objects containing chapter_number (positive integer), title (string), and url (absolute URL copied from an anchor href). Read the actual <a href="..."> elements; never invent URLs. Include only links to individual chapters. Do not include navigation, metadata, advertisements, or unrelated links. ${chapterFrom !== null || chapterTo !== null ? `Only include chapters from ${chapterFrom ?? 1} to ${chapterTo ?? "the last chapter"}.` : "Include all chapters."}\n\nRAW INDEX HTML:\n${html.slice(0, MAX_INDEX_CHARS)}`;
+    const prompt = `Extract every individual chapter link from this raw scraped novel index page. Return ONLY a JSON array with objects containing chapter_number (positive integer), title (string), and url (link copied from the page). Read the actual anchor hrefs or markdown links; never invent URLs. Resolve relative links against SOURCE URL. Include only links to individual chapters, with one link per chapter number. Do not include navigation, metadata, advertisements, or unrelated links. ${chapterFrom !== null || chapterTo !== null ? `Only include chapters from ${chapterFrom ?? 1} to ${chapterTo ?? "the last chapter"}, inclusive.` : "Include all chapters."}\n\nSOURCE URL: ${normalizedUrl}\n\nRAW INDEX CONTENT:\n${(html.trim() ? html : markdown).slice(0, MAX_INDEX_CHARS)}`;
     const requestAi = (provider: AiProvider) =>
       fetch(providerEndpoint(provider.endpoint), {
         method: "POST",
@@ -199,12 +206,12 @@ Deno.serve(async (req) => {
     if (!ai.ok && providers[1]) ai = await requestAi(providers[1]);
     if (!ai.ok)
       return json({ error: `AI link extraction failed (${ai.status})` }, 502);
-    const links = parseLinks(await readAiContent(ai)).filter(
+    const links = parseLinks(await readAiContent(ai), normalizedUrl).filter(
       (link) =>
         (chapterFrom === null || link.chapter_number >= chapterFrom) &&
         (chapterTo === null || link.chapter_number <= chapterTo),
-    );
-    return json({ chapters: links });
+    ).sort((left, right) => left.chapter_number - right.chapter_number);
+    return json({ chapters: links, chapter_count: links.length });
   } catch (error) {
     const message =
       error instanceof DOMException && error.name === "AbortError"
@@ -214,6 +221,6 @@ Deno.serve(async (req) => {
           : "Link discovery failed";
     return json({ error: message }, 504);
   } finally {
-    clearTimeout(timeout);
+    requestAbort.dispose();
   }
 });

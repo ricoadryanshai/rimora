@@ -3,6 +3,7 @@ import {
   providerEndpoint,
   type AiProvider,
 } from "../_shared/ai-provider.ts";
+import { createRequestAbort } from "../_shared/request-abort.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -78,10 +79,11 @@ const readAiContent = async (response: Response): Promise<string> => {
   return content;
 };
 
-const trimChunk = async (providers: AiProvider[], chunk: string) => {
+const trimChunk = async (providers: AiProvider[], chunk: string, signal: AbortSignal) => {
   const request = (provider: AiProvider) =>
     fetch(providerEndpoint(provider.endpoint), {
       method: "POST",
+      signal,
       headers: {
         Authorization: `Bearer ${provider.apiKey}`,
         "Content-Type": "application/json",
@@ -113,6 +115,8 @@ Deno.serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  const requestAbort = createRequestAbort(req, 3 * 60 * 1000);
+  const signal = requestAbort.controller.signal;
   try {
     const { url, cleanWithAi } = await req.json();
 
@@ -167,6 +171,7 @@ Deno.serve(async (req) => {
 
     const response = await fetch("https://api.firecrawl.dev/v1/scrape", {
       method: "POST",
+      signal,
       headers: {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
@@ -238,6 +243,7 @@ Deno.serve(async (req) => {
       const requestCleanup = (provider: AiProvider) =>
         fetch(providerEndpoint(provider.endpoint), {
           method: "POST",
+          signal,
           headers: {
             Authorization: `Bearer ${provider.apiKey}`,
             "Content-Type": "application/json",
@@ -281,7 +287,7 @@ Deno.serve(async (req) => {
           remainingContent.match(/[\s\S]{1,10000}(?:\n|$)/g) ?? [];
         const cleanedRemaining = [];
         for (const chunk of remainingChunks)
-          cleanedRemaining.push(await trimChunk(providers, chunk));
+          cleanedRemaining.push(await trimChunk(providers, chunk, signal));
         markdown = [firstChunkContent, ...cleanedRemaining]
           .filter(Boolean)
           .join("\n\n");
@@ -315,5 +321,7 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       },
     );
+  } finally {
+    requestAbort.dispose();
   }
 });

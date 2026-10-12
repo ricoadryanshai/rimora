@@ -130,7 +130,13 @@ const NovelCreate = () => {
         setNovelType(data.novel_type ?? "Novel");
         setLeadingGender(data.leading_gender ?? "");
         setGenre(data.genre ?? "");
-        setLanguage(data.language ?? "");
+        // For translations, language is the reading language; the source
+        // language is stored separately and must survive editing.
+        setLanguage(
+          data.novel_type === "Translation"
+            ? data.original_language ?? ""
+            : data.language ?? "",
+        );
         setCoverUrl(data.cover_url ?? "");
         setCoverPreview(data.cover_url ?? "");
         setAbbreviation(data.abbreviation ?? "");

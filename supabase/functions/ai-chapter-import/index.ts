@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { getAiProviders, providerEndpoint } from "../_shared/ai-provider.ts";
+import { createRequestAbort } from "../_shared/request-abort.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -23,6 +24,8 @@ const extractJson = (value: string) => {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS")
     return new Response("ok", { headers: corsHeaders });
+  const requestAbort = createRequestAbort(req, AI_TIMEOUT_MS);
+  const { controller } = requestAbort;
   try {
     if (!req.headers.get("Authorization"))
       return json({ success: false, error: "Unauthorized" }, 401);
@@ -55,8 +58,6 @@ Deno.serve(async (req) => {
         { success: false, error: "AI import is not configured on the server." },
         500,
       );
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
     let markdown = providedContent;
     if (!markdown) {
       const scrape = await fetch("https://api.firecrawl.dev/v1/scrape", {
@@ -88,7 +89,10 @@ Deno.serve(async (req) => {
         { success: false, error: "No readable chapter content was found." },
         422,
       );
-    const prompt = `Extract every chapter from this novel page. Return ONLY a JSON array. Each item must have chapter_number (positive integer), title (string, use empty string when absent), and content (string). Remove unrelated webpage content including advertisements, navigation, comments, recommendations, site controls, headers, footers, and metadata. Preserve only the actual chapter title and narrative content. Do not invent, summarize, translate, merge, or rewrite the story. Preserve paragraph boundaries and line breaks.\n\nSOURCE URL: ${normalizedUrl}\n\nPAGE CONTENT:\n${markdown}`;
+    const requestedChapters = chapterFrom !== null && chapterFrom === chapterTo
+      ? `Extract only chapter ${chapterFrom}. Return exactly one item when that chapter is present, or [] if it is not present. Never substitute a different chapter.`
+      : `Extract chapters ${chapterFrom ?? "from the beginning"} through ${chapterTo ?? "the end"} from this novel page.`;
+    const prompt = `${requestedChapters} Return ONLY a JSON array. Each item must have chapter_number (positive integer), title (string, use empty string when absent), and content (string). Remove unrelated webpage content including advertisements, navigation, comments, recommendations, site controls, headers, footers, and metadata. Preserve only the actual chapter title and narrative content. Do not invent, summarize, translate, merge, or rewrite the story. Preserve paragraph boundaries and line breaks.\n\nSOURCE URL: ${normalizedUrl}\n\nRAW SCRAPED CONTENT:\n${markdown}`;
     const aiResponse = await fetch(providerEndpoint(providers[0].endpoint), {
       method: "POST",
       headers: {
@@ -106,7 +110,6 @@ Deno.serve(async (req) => {
       }),
       signal: controller.signal,
     });
-    clearTimeout(timeout);
     const aiData = await aiResponse.json();
     if (!aiResponse.ok)
       return json(
@@ -121,6 +124,11 @@ Deno.serve(async (req) => {
     const filteredChapters = Array.isArray(chapters)
       ? chapters.filter(
           (chapter) =>
+            Number.isInteger(chapter?.chapter_number) &&
+            chapter.chapter_number > 0 &&
+            typeof chapter.title === "string" &&
+            typeof chapter.content === "string" &&
+            chapter.content.trim() &&
             (chapterFrom === null || chapter.chapter_number >= chapterFrom) &&
             (chapterTo === null || chapter.chapter_number <= chapterTo),
         )
@@ -138,5 +146,7 @@ Deno.serve(async (req) => {
       },
       500,
     );
+  } finally {
+    requestAbort.dispose();
   }
 });

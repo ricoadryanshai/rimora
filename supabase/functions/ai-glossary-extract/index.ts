@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { createRequestAbort } from "../_shared/request-abort.ts";
 import { providerEndpoint, type AiProvider } from "../_shared/ai-provider.ts";
 
 const corsHeaders = {
@@ -197,8 +198,8 @@ Deno.serve(async (req) => {
         )
         .join("\n"),
     ).filter((part) => part.trim());
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), EXTRACTION_TIMEOUT_MS);
+    const requestAbort = createRequestAbort(req, EXTRACTION_TIMEOUT_MS);
+    const { controller } = requestAbort;
     try {
       const results = await Promise.all(
         parts.map((part) =>
@@ -220,7 +221,7 @@ Deno.serve(async (req) => {
       });
       return json({ entries });
     } finally {
-      clearTimeout(timeout);
+      requestAbort.dispose();
     }
   } catch (error) {
     console.error("ai-glossary-extract error", error);

@@ -15,8 +15,9 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useOnline } from "@/hooks/use-online";
-import { supabase } from "@/integrations/supabase/client";
 import { Switch } from "@/components/ui/switch";
+import { useAiTask } from "@/hooks/use-ai-task";
+import { invokeAiFunction } from "@/lib/ai-request";
 
 interface UrlImportProps {
   onContentReady: (content: string) => void;
@@ -36,16 +37,19 @@ const UrlImport: React.FC<UrlImportProps> = ({
   onGlossaryEntries,
 }) => {
   const [url, setUrl] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const extractionTask = useAiTask();
+  const isLoading = extractionTask.isRunning;
   const [extractedContent, setExtractedContent] = useState("");
   const [pageTitle, setPageTitle] = useState("");
   const [step, setStep] = useState<"input" | "preview">("input");
-  const [isExtractingGlossary, setIsExtractingGlossary] = useState(false);
+  const glossaryTask = useAiTask();
+  const isExtractingGlossary = glossaryTask.isRunning;
   const [cleanWithAi, setCleanWithAi] = useState(false);
   const { toast } = useToast();
   const isOnline = useOnline();
 
   const handleFetch = async () => {
+    if (isLoading) return;
     if (!isOnline) {
       toast({
         title: "You're offline",
@@ -63,15 +67,16 @@ const UrlImport: React.FC<UrlImportProps> = ({
       return;
     }
 
-    setIsLoading(true);
+    const controller = extractionTask.start();
     try {
-      const { data, error } = await supabase.functions.invoke(
+      const { data, error } = await invokeAiFunction(
         "firecrawl-scrape",
         {
           body: { url: url.trim(), cleanWithAi },
-        },
+        }, controller.signal,
       );
 
+      controller.signal.throwIfAborted();
       if (error) throw new Error(error.message);
       if (!data?.success)
         throw new Error(data?.error || "Failed to extract content");
@@ -106,9 +111,9 @@ const UrlImport: React.FC<UrlImportProps> = ({
       let importedChapterNumber = data.chapterNumber;
       if (cleanWithAi) {
         const { data: chapterData, error: chapterError } =
-          await supabase.functions.invoke("ai-chapter-import", {
+          await invokeAiFunction("ai-chapter-import", {
             body: { content: plainText },
-          });
+          }, controller.signal);
         if (chapterError) throw new Error(chapterError.message);
         const chapter = Array.isArray(chapterData?.chapters)
           ? chapterData.chapters[0]
@@ -120,6 +125,7 @@ const UrlImport: React.FC<UrlImportProps> = ({
             chapter.chapter_number || importedChapterNumber;
         }
       }
+      controller.signal.throwIfAborted();
       if (Number.isInteger(importedChapterNumber))
         onChapterNumberReady?.(importedChapterNumber);
       if (typeof importedTitle === "string" && importedTitle.trim())
@@ -135,6 +141,7 @@ const UrlImport: React.FC<UrlImportProps> = ({
       setPageTitle("");
       setStep("input");
     } catch (error) {
+      if (controller.signal.aborted) return;
       console.error("URL import error:", error);
       toast({
         title: "Extraction Failed",
@@ -145,7 +152,7 @@ const UrlImport: React.FC<UrlImportProps> = ({
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
+      extractionTask.finish(controller);
     }
   };
 
@@ -176,16 +183,17 @@ const UrlImport: React.FC<UrlImportProps> = ({
         description: "Go online to extract glossary terms from imported text.",
       });
     } else {
-      setIsExtractingGlossary(true);
+      const controller = glossaryTask.start();
       try {
-        const { data, error } = await supabase.functions.invoke(
+        const { data, error } = await invokeAiFunction(
           "ai-glossary-extract",
           {
             body: { text: extractedContent, modelRowId },
-          },
+          }, controller.signal,
         );
         if (error) throw new Error(error.message);
         const entries = Array.isArray(data?.entries) ? data.entries : [];
+        controller.signal.throwIfAborted();
         onGlossaryEntries(entries);
         toast({
           title: entries.length
@@ -196,6 +204,7 @@ const UrlImport: React.FC<UrlImportProps> = ({
             : "The chapter text was imported without new glossary terms.",
         });
       } catch (error) {
+        if (controller.signal.aborted) return;
         let description =
           error instanceof Error
             ? error.message
@@ -219,7 +228,7 @@ const UrlImport: React.FC<UrlImportProps> = ({
           variant: "destructive",
         });
       } finally {
-        setIsExtractingGlossary(false);
+        glossaryTask.finish(controller);
       }
     }
 
@@ -311,13 +320,13 @@ const UrlImport: React.FC<UrlImportProps> = ({
               : "Insert into Chapter Text"}
           </Button>
           <Button
-            onClick={handleCancel}
+            onClick={isExtractingGlossary ? () => glossaryTask.stop() : handleCancel}
             variant="outline"
             size="lg"
             className="w-full sm:w-auto py-3 sm:py-4 text-base sm:text-lg font-semibold"
           >
             <X className="mr-2 h-4 w-4" />
-            Cancel
+            {isExtractingGlossary ? "Stop" : "Cancel"}
           </Button>
         </div>
       </div>
@@ -390,6 +399,11 @@ const UrlImport: React.FC<UrlImportProps> = ({
           )}
           {isLoading ? "Extracting..." : "Extract"}
         </Button>
+        {isLoading && (
+          <Button type="button" variant="destructive" onClick={() => extractionTask.stop()}>
+            Stop
+          </Button>
+        )}
       </div>
     </div>
   );

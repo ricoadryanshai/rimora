@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/integrations/supabase/client";
 import type { AiModel, AiSettings } from "@/hooks/use-ai-config";
 
 interface TranslationViewProps {
@@ -34,8 +34,6 @@ interface TranslationViewProps {
   saveSettings: (next: Partial<AiSettings>) => Promise<void> | void;
   onApply?: (translation: string) => void;
 }
-
-const SUPABASE_URL = import.meta.env.SUPABASE_URL;
 
 const TranslationView = ({
   open,
@@ -85,7 +83,7 @@ const TranslationView = ({
           method: "POST",
           headers: {
             Authorization: `Bearer ${token}`,
-            apikey: import.meta.env.SUPABASE_PUBLISHABLE_KEY ?? "",
+            apikey: SUPABASE_PUBLISHABLE_KEY ?? "",
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
