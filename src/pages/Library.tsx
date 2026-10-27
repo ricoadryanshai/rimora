@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { BookOpen, Library as LibraryIcon } from "lucide-react";
+import { Library as LibraryIcon } from "lucide-react";
 import { ComingSoon } from "@/components/ComingSoon";
 import { RimoraShell } from "@/components/RimoraShell";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -8,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { ViewModeToggle, type ViewMode } from "@/components/ViewModeToggle";
 import { NovelListCard } from "@/components/NovelListCard";
+import { NovelGridCard, NovelGridSkeleton } from "@/components/NovelGridCard";
 
 type SavedNovel = {
   id: string;
@@ -106,9 +106,7 @@ const Library = () => {
           </TabsList>
           <TabsContent value="bookmark">
             {loading ? (
-              <p className="text-sm text-muted-foreground">
-                Loading bookmarks...
-              </p>
+              <NovelGridSkeleton />
             ) : savedNovels.length === 0 ? (
               <ComingSoon
                 title="No bookmarks yet"
@@ -122,12 +120,6 @@ const Library = () => {
                     novel.translation_title?.trim()
                       ? novel.translation_title
                       : novel.title;
-                  const typeBadgeClass =
-                    novel.novel_type === "Translation"
-                      ? "bg-sky-600 text-white"
-                      : novel.novel_type === "Fanfic"
-                        ? "bg-fuchsia-600 text-white"
-                        : "bg-emerald-600 text-white";
                   const progress = readingProgress.find(
                     (entry) => entry.novel_id === novel.id,
                   );
@@ -150,40 +142,23 @@ const Library = () => {
                       />
                     );
                   return (
-                    <Link
+                    <NovelGridCard
                       key={novel.id}
                       to={`/novels/${novel.id}`}
-                      className={viewMode === "grid" ? "overflow-hidden rounded-sm border bg-card/60 transition-shadow hover:shadow-lg" : "flex items-center gap-4 overflow-hidden rounded-sm border bg-card/60 p-3 transition-shadow hover:shadow-lg"}
-                    >
-                      <div className={viewMode === "grid" ? "relative aspect-[3/4] bg-muted" : "relative h-24 w-16 shrink-0 bg-muted"}>
-                        <span
-                          className={`absolute left-3 top-3 z-10 rounded-full px-2.5 py-1 text-xs font-semibold shadow-sm ${typeBadgeClass}`}
-                        >
-                          {novel.novel_type}
-                        </span>
-                        {novel.cover_url ? (
-                          <img
-                            src={novel.cover_url}
-                            alt={`${title} cover`}
-                            className="h-full w-full object-cover"
-                          />
-                        ) : (
-                          <div className="grid h-full place-items-center text-muted-foreground">
-                            <BookOpen />
-                          </div>
-                        )}
-                      </div>
-                      <div className={viewMode === "grid" ? "p-4" : "min-w-0 flex-1 p-1"}>
-                        <h2 className="line-clamp-2 font-display font-semibold">
-                          {title}
-                        </h2>
-                        <p className="mt-2 text-xs text-muted-foreground">
-                          {chapterNumber
-                            ? `Last read: Chapter ${chapterNumber} of ${totalChapters}`
-                            : "Not started"}
-                        </p>
-                      </div>
-                    </Link>
+                      title={title}
+                      novelType={novel.novel_type}
+                      coverUrl={novel.cover_url}
+                      subtitle={
+                        chapterNumber
+                          ? `Last read: Chapter ${chapterNumber} of ${totalChapters}`
+                          : "Not started"
+                      }
+                      progress={
+                        chapterNumber && totalChapters
+                          ? chapterNumber / totalChapters
+                          : undefined
+                      }
+                    />
                   );
                 })}
               </div>

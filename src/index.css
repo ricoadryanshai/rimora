@@ -31,13 +31,13 @@
     --accent-foreground: 266 18% 28%;
     --accent-glow: 36 53% 72%;
 
-    --success: 0 0% 30%;
+    --success: 152 48% 26%;
     --success-foreground: 0 0% 98%;
 
-    --warning: 0 0% 40%;
+    --warning: 30 88% 30%;
     --warning-foreground: 0 0% 98%;
 
-    --destructive: 0 0% 25%;
+    --destructive: 0 62% 38%;
     --destructive-foreground: 0 0% 98%;
 
     --border: 266 18% 28% / 0.16;
@@ -91,22 +91,17 @@
     --accent-foreground: 267 18% 28%;
     --accent-glow: 33 39% 90%;
 
-    --success: 0 0% 70%;
-    --success-foreground: 0 0% 9%;
+    --success: 152 45% 66%;
+    --success-foreground: 267 25% 14%;
 
-    --warning: 0 0% 60%;
-    --warning-foreground: 0 0% 9%;
+    --warning: 38 85% 66%;
+    --warning-foreground: 267 25% 14%;
 
-    --destructive: 0 0% 75%;
-    --destructive-foreground: 0 0% 9%;
+    --destructive: 0 85% 78%;
+    --destructive-foreground: 267 25% 14%;
 
     --border: 320 10% 79% / 0.22;
     --input: 320 10% 79% / 0.3;
-      --border: 320 10% 81% / 0.22;
-      --input: 320 10% 81% / 0.3;
-      --sidebar-background: 266 18% 28%;
-      --sidebar-accent: 246 13% 36%;
-      --radius: 0.75rem;
     --ring: 36 53% 64%;
 
     /* Custom design tokens for dark mode */
@@ -141,7 +136,28 @@
     @apply bg-background text-foreground;
     font-family: 'Poppins', sans-serif;
     min-width: 320px;
-    transition: var(--transition-smooth);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    transition: background-color 150ms ease-out, color 150ms ease-out;
+  }
+
+  ::selection {
+    background: hsl(var(--accent) / 0.45);
+    color: inherit;
+  }
+
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -164,7 +180,7 @@
 
   .glass-card {
     @apply bg-card/60 backdrop-blur-md border-border;
-    box-shadow: 0 12px 36px hsl(240 10% 2% / 0.28);
+    box-shadow: 0 12px 36px hsl(var(--foreground) / 0.12);
   }
   
   .gradient-primary {
@@ -187,6 +203,10 @@
     box-shadow: var(--shadow-accent);
   }
   
+  .skip-link {
+    @apply sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-primary-foreground;
+  }
+
   .transition-smooth {
     transition: var(--transition-smooth);
   }

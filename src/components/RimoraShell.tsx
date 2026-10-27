@@ -68,11 +68,14 @@ export const RimoraShell = ({
   const isDarkTheme = resolvedTheme === "dark";
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-background text-foreground">
+      <a href="#main-content" className="skip-link">
+        Skip to content
+      </a>
       <header
         className={`${isImmersiveMobile ? "hidden md:flex" : "flex"} z-40 flex-none border-b border-border bg-background/80 backdrop-blur-md`}
       >
         <div className="mx-auto flex h-16 w-full max-w-5xl items-center justify-between px-4 sm:px-8">
-          <Link to="/" className="flex items-center gap-4">
+          <Link to="/" aria-label="Rimora home" className="flex items-center gap-4 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background">
             <span className="rounded-lg bg-transparent p-1">
               <img
                 src="/logo-rimora-dark.svg"
@@ -91,7 +94,7 @@ export const RimoraShell = ({
                 to={to}
                 end={to === "/library"}
                 className={({ isActive }) =>
-                  `flex items-center gap-2 rounded-sm px-3 py-2 text-sm transition-colors ${isActive ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`
+                  `flex min-h-10 items-center gap-2 rounded-sm px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${isActive ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`
                 }
               >
                 <Icon className="h-4 w-4" />
@@ -99,9 +102,9 @@ export const RimoraShell = ({
               </NavLink>
             ))}
           </nav>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4">
             <nav
-              className="flex items-center gap-2 md:hidden"
+              className="flex items-center gap-1 md:hidden"
               aria-label="Primary navigation"
             >
               {links.map(({ to, label, icon: Icon }) => (
@@ -110,11 +113,12 @@ export const RimoraShell = ({
                   to={to}
                   end={to === "/library"}
                   aria-label={label}
+                  title={label}
                   className={({ isActive }) =>
-                    `rounded-sm p-2 transition-colors ${isActive ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`
+                    `grid h-11 w-11 place-items-center rounded-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${isActive ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`
                   }
                 >
-                  <Icon className="h-4 w-4" />
+                  <Icon className="h-5 w-5" />
                 </NavLink>
               ))}
             </nav>
@@ -138,7 +142,7 @@ export const RimoraShell = ({
                           );
                       });
                   }}
-                  className="grid h-10 w-10 place-items-center rounded-full border border-primary/30 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  className="grid h-10 w-10 cursor-pointer place-items-center rounded-full border border-primary/30 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   aria-label={
                     isDarkTheme
                       ? "Switch to light theme"
@@ -187,10 +191,14 @@ export const RimoraShell = ({
                       </Link>
                       <button
                         type="button"
-                        className="flex w-full cursor-pointer items-center gap-3 rounded-md px-3 py-2 text-left text-sm transition-colors hover:bg-accent hover:text-accent-foreground"
+                        disabled
+                        className="flex w-full cursor-not-allowed items-center gap-3 rounded-md px-3 py-2 text-left text-sm opacity-60"
                       >
                         <Inbox className="h-4 w-4" />
                         Inbox
+                        <span className="ml-auto rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                          Soon
+                        </span>
                       </button>
                       <ConfirmationDialog
                         trigger={
@@ -225,7 +233,9 @@ export const RimoraShell = ({
       </header>
       <div className="flex min-h-0 w-full flex-1 overflow-hidden">
         <main
-          className={`min-w-0 flex-1 overflow-y-auto ${isImmersiveMobile ? "px-0 py-0 pb-0 md:px-4 md:py-8 md:pb-24 sm:px-8" : "px-4 py-8 pb-24 sm:px-8"}`}
+          id="main-content"
+          tabIndex={-1}
+          className={`min-w-0 flex-1 overflow-y-auto focus:outline-none ${isImmersiveMobile ? "px-0 py-0 pb-0 md:px-4 md:py-8 md:pb-24 sm:px-8" : "px-4 py-8 pb-24 sm:px-8"}`}
         >
           {children}
         </main>

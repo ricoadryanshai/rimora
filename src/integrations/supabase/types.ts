@@ -188,6 +188,31 @@ export type Database = {
         };
         Relationships: [];
       };
+      mcp_tokens: {
+        Row: {
+          created_at: string;
+          id: string;
+          last_used_at: string | null;
+          name: string;
+          token_hash: string;
+          token_prefix: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          last_used_at?: string | null;
+          name: string;
+          token_hash: string;
+          token_prefix: string;
+          user_id: string;
+        };
+        Update: {
+          last_used_at?: string | null;
+          name?: string;
+        };
+        Relationships: [];
+      };
       profiles: {
         Row: {
           created_at: string;

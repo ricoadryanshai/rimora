@@ -1,5 +1,7 @@
 import { BookOpen } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Card } from "@/components/ui/card";
+import { NovelTypeBadge } from "@/components/NovelGridCard";
 
 const allowedSynopsisTags = new Set([
   "P",
@@ -49,12 +51,6 @@ export const NovelListCard = ({
   onClick,
   href,
 }: NovelListCardProps) => {
-  const typeBadgeClass =
-    novelType === "Translation"
-      ? "bg-sky-600 text-white"
-      : novelType === "Fanfic"
-        ? "bg-fuchsia-600 text-white"
-        : "bg-emerald-600 text-white";
   const content = (
     <div className="grid min-h-40 grid-cols-[112px_minmax(0,1fr)] items-center gap-5 p-4 sm:grid-cols-[144px_minmax(0,1fr)] sm:gap-6 sm:p-5">
       <div className="flex h-32 items-center justify-center sm:h-36">
@@ -72,11 +68,7 @@ export const NovelListCard = ({
       </div>
       <div className="min-w-0 space-y-2">
         <div className="flex flex-wrap items-center gap-2">
-          <span
-            className={`rounded-full px-2.5 py-1 text-xs font-semibold shadow-sm ${typeBadgeClass}`}
-          >
-            {novelType}
-          </span>
+          <NovelTypeBadge novelType={novelType} />
           {metadata && <span className="text-xs text-muted-foreground">{metadata}</span>}
         </div>
         <h2 className="font-display text-lg font-semibold leading-tight">{title}</h2>
@@ -91,7 +83,7 @@ export const NovelListCard = ({
   );
 
   if (href) {
-    return <a href={href} className="block overflow-hidden rounded-sm border bg-card/60 transition-shadow hover:shadow-lg">{content}</a>;
+    return <Link to={href} className="block overflow-hidden rounded-sm border bg-card/60 transition-[box-shadow,border-color] duration-200 hover:border-primary/30 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background">{content}</Link>;
   }
-  return <Card className="overflow-hidden transition-shadow hover:shadow-lg"><button type="button" onClick={onClick} className="block w-full text-left">{content}</button></Card>;
+  return <Card className="overflow-hidden transition-shadow hover:shadow-lg"><button type="button" onClick={onClick} className="block w-full cursor-pointer text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">{content}</button></Card>;
 };

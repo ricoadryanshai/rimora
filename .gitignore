@@ -84,3 +84,6 @@ temp/
 *.bak
 *.orig
 *~
+
+# Claude Code local config and skills
+.claude/

@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { BookOpen, Compass } from "lucide-react";
+import { Compass } from "lucide-react";
 import { RimoraShell } from "@/components/RimoraShell";
 import { NovelListCard } from "@/components/NovelListCard";
+import { NovelGridCard, NovelGridSkeleton } from "@/components/NovelGridCard";
 import { ViewModeToggle, type ViewMode } from "@/components/ViewModeToggle";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -41,7 +41,7 @@ const Explore = () => {
         <ViewModeToggle value={viewMode} onChange={setViewMode} storageKey="rimora-explore-view" />
       </header>
       {isPending ? (
-        <p role="status" className="text-sm text-muted-foreground">Loading published novels...</p>
+        <NovelGridSkeleton />
       ) : isError ? (
         <div role="alert" className="rounded-sm border bg-card/60 p-6 space-y-3">
           <h2 className="font-display text-xl font-semibold">Could not load novels</h2>
@@ -60,9 +60,6 @@ const Explore = () => {
           <div className={viewMode === "grid" ? "grid grid-cols-2 gap-5 lg:grid-cols-3 xl:grid-cols-4" : "space-y-3"}>
             {data.novels.map((novel) => {
               const title = novel.novel_type === "Translation" && novel.translation_title?.trim() ? novel.translation_title : novel.title;
-              const typeBadgeClass = novel.novel_type === "Translation"
-                ? "bg-sky-600 text-white"
-                : novel.novel_type === "Fanfic" ? "bg-fuchsia-600 text-white" : "bg-emerald-600 text-white";
               if (viewMode === "list") return (
               <NovelListCard
                 key={novel.id}
@@ -75,20 +72,14 @@ const Explore = () => {
               />
               );
               return (
-                <Link key={novel.id} to={`/novels/${novel.id}`} className="overflow-hidden rounded-sm border bg-card/60 transition-shadow hover:shadow-lg">
-                  <div className="relative aspect-[3/4] bg-muted">
-                    <span className={`absolute left-3 top-3 z-10 rounded-full px-2.5 py-1 text-xs font-semibold shadow-sm ${typeBadgeClass}`}>{novel.novel_type}</span>
-                    {novel.cover_url ? (
-                      <img src={novel.cover_url} alt={`${title} cover`} loading="lazy" className="h-full w-full object-cover" />
-                    ) : (
-                      <div className="grid h-full place-items-center text-muted-foreground"><BookOpen className="h-10 w-10" /></div>
-                    )}
-                  </div>
-                  <div className="p-4">
-                    <h2 className="line-clamp-2 font-display font-semibold">{title}</h2>
-                    <p className="mt-2 text-xs capitalize text-muted-foreground">{novel.status}</p>
-                  </div>
-                </Link>
+                <NovelGridCard
+                  key={novel.id}
+                  to={`/novels/${novel.id}`}
+                  title={title}
+                  novelType={novel.novel_type}
+                  coverUrl={novel.cover_url}
+                  subtitle={novel.status}
+                />
               );
             })}
           </div>
