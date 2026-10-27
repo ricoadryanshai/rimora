@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { createRequestAbort } from "../_shared/request-abort.ts";
+import { getCaller } from "../_shared/internal-auth.ts";
 import {
   getAiProviders,
   providerEndpoint,
@@ -100,7 +101,7 @@ Deno.serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } },
     );
     const { data: userData, error: userError } =
-      await userClient.auth.getUser();
+      await getCaller(req, userClient);
     if (userError || !userData?.user)
       return json({ error: "Unauthorized" }, 401);
     const body = await req.json().catch(() => null);

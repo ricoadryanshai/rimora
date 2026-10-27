@@ -26,6 +26,7 @@ type Tool = {
   description: string;
   readOnly: boolean;
   destructive?: boolean;
+  openWorld?: boolean;
   inputSchema: Json;
   run: (userId: string, args: Json) => Promise<unknown>;
 };
@@ -83,6 +84,201 @@ async function assertOwnsNovel(userId: string, novelId: string) {
     .maybeSingle();
   check(error);
   if (!data) throw new ToolError("Novel not found");
+}
+
+
+type NovelContext = {
+  id: string;
+  title: string;
+  language: string | null;
+  original_language: string | null;
+  translation_language: string | null;
+};
+
+async function getNovelContext(userId: string, novelId: string): Promise<NovelContext> {
+  const { data, error } = await admin
+    .from("novels")
+    .select("id,title,language,original_language,translation_language")
+    .eq("id", novelId)
+    .eq("owner_id", userId)
+    .maybeSingle();
+  check(error);
+  if (!data) throw new ToolError("Novel not found");
+  return data as NovelContext;
+}
+
+const originalLanguageOf = (n: NovelContext) => n.original_language || n.language || "original language";
+const translatedLanguageOf = (n: NovelContext) => n.translation_language || "translated language";
+
+// Calls another Rimora edge function as an already-verified connector user.
+async function callFunction(name: string, body: Json, timeoutMs = 140_000): Promise<Json> {
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  let response: Response;
+  try {
+    response = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/${name}`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${serviceKey}`,
+        apikey: serviceKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+  } catch (error) {
+    if (error instanceof DOMException && (error.name === "TimeoutError" || error.name === "AbortError")) {
+      throw new ToolError(`${name} timed out. Try a smaller piece of work.`);
+    }
+    throw new ToolError(`${name} could not be reached`);
+  }
+  const text = await response.text();
+  let data: Json = {};
+  try {
+    data = text ? (JSON.parse(text) as Json) : {};
+  } catch {
+    throw new ToolError(`${name} returned an invalid response (${response.status})`);
+  }
+  if (!response.ok || data.success === false || (typeof data.error === "string" && data.error)) {
+    throw new ToolError(typeof data.error === "string" ? data.error : `${name} failed (${response.status})`);
+  }
+  return data;
+}
+
+const stripHtml = (value: string) =>
+  value.replace(/<br\s*\/?>/gi, "\n").replace(/<\/p>\s*<p[^>]*>/gi, "\n").replace(/<[^>]*>/g, "");
+
+const CHAPTER_COLUMNS = "id,chapter_number,title,status,updated_at";
+
+async function upsertChapter(novelId: string, number: number, patch: Json) {
+  const { data: existing, error: findError } = await admin
+    .from("chapters")
+    .select("id")
+    .eq("novel_id", novelId)
+    .eq("chapter_number", number)
+    .is("deleted_at", null)
+    .maybeSingle();
+  check(findError);
+  if (existing) {
+    if (Object.keys(patch).length === 0) throw new ToolError("Nothing to update");
+    const { data, error } = await admin.from("chapters").update(patch).eq("id", existing.id).select(CHAPTER_COLUMNS).single();
+    check(error);
+    return { created: false, chapter: data };
+  }
+  if (!patch.title) throw new ToolError("title is required when creating a chapter");
+  const { data, error } = await admin
+    .from("chapters")
+    .insert({ novel_id: novelId, chapter_number: number, ...patch })
+    .select(CHAPTER_COLUMNS)
+    .single();
+  check(error);
+  return { created: true, chapter: data };
+}
+
+async function loadChapter(userId: string, novelId: string, number: number) {
+  await assertOwnsNovel(userId, novelId);
+  const { data, error } = await admin
+    .from("chapters")
+    .select("id,chapter_number,title,content,source_content,source_url,status")
+    .eq("novel_id", novelId)
+    .eq("chapter_number", number)
+    .is("deleted_at", null)
+    .maybeSingle();
+  check(error);
+  if (!data) throw new ToolError("Chapter not found");
+  return data;
+}
+
+async function extractAndSaveGlossary(userId: string, novel: NovelContext, text: string) {
+  const extracted = await callFunction("ai-glossary-extract", {
+    text,
+    originalLanguage: originalLanguageOf(novel),
+    translatedLanguage: translatedLanguageOf(novel),
+  });
+  const entries = (Array.isArray(extracted.entries) ? extracted.entries : [])
+    .filter(
+      (e: { original_word?: unknown; replacement_word?: unknown }) =>
+        typeof e.original_word === "string" &&
+        typeof e.replacement_word === "string" &&
+        e.original_word.trim().length >= 2 &&
+        e.original_word.trim().length <= 6 &&
+        e.replacement_word.trim(),
+    )
+    .map((e: { original_word: string; replacement_word: string }) => ({
+      source_term: e.original_word.trim(),
+      preferred_term: e.replacement_word.trim(),
+    }));
+  let saved = 0;
+  for (const entry of entries) {
+    const { error } = await admin.from("glossary_entries").insert({
+      owner_id: userId,
+      novel_id: novel.id,
+      ...entry,
+      source_language: originalLanguageOf(novel),
+      target_language: translatedLanguageOf(novel),
+    });
+    if (!error) saved += 1;
+    else if (error.code !== "23505") throw new ToolError(error.message);
+  }
+  return { found: entries.length, saved, already_existed: entries.length - saved, entries };
+}
+
+async function translateText(novel: NovelContext, number: number, title: string, text: string) {
+  const lines = stripHtml(text).split("\n");
+  if (!lines.some((line) => line.trim())) throw new ToolError("The chapter has no text to translate");
+  const result = await callFunction("ai-translate", {
+    chapterNumber: number,
+    title,
+    content: lines,
+    authorThoughts: "",
+    originalLanguage: originalLanguageOf(novel),
+    targetLanguage: translatedLanguageOf(novel) === "translated language" ? "English" : translatedLanguageOf(novel),
+  }, 170_000);
+  const chapter = result.chapter as { title: string; content: string[] } | undefined;
+  if (!chapter || !Array.isArray(chapter.content)) throw new ToolError("Translation returned no chapter");
+  return { title: chapter.title, content: chapter.content.join("\n") };
+}
+
+async function importChapter(
+  userId: string,
+  novel: NovelContext,
+  opts: { url: string; chapterNumber?: number; discoveredTitle?: string; extractGlossary: boolean; translate: boolean },
+) {
+  const scraped = await callFunction("firecrawl-scrape", { url: opts.url, cleanWithAi: false });
+  const number = opts.chapterNumber ?? (Number.isInteger(scraped.chapterNumber) ? (scraped.chapterNumber as number) : undefined);
+  if (!number || number < 1) throw new ToolError("Could not detect the chapter number; pass chapter_number");
+  const structured = await callFunction("ai-chapter-import", {
+    content: String(scraped.content || scraped.markdown || ""),
+    url: opts.url,
+    chapterFrom: number,
+    chapterTo: number,
+  });
+  const found = (Array.isArray(structured.chapters) ? structured.chapters : []).find(
+    (c: { chapter_number?: number }) => c.chapter_number === number,
+  ) as { title: string; content: string } | undefined;
+  if (!found || !found.content?.trim()) throw new ToolError(`The page did not contain chapter ${number}`);
+  const sourceContent = found.content;
+  let title = found.title || opts.discoveredTitle || `Chapter ${number}`;
+  let content = sourceContent;
+  const steps: Json = {};
+  if (opts.extractGlossary) {
+    const g = await extractAndSaveGlossary(userId, novel, sourceContent);
+    steps.glossary = { found: g.found, saved: g.saved };
+  }
+  if (opts.translate) {
+    const t = await translateText(novel, number, title, sourceContent);
+    title = t.title;
+    content = t.content;
+    steps.translated = true;
+  }
+  const saved = await upsertChapter(novel.id, number, {
+    title,
+    content,
+    source_content: sourceContent,
+    source_url: opts.url,
+    status: "draft",
+    published_at: null,
+  });
+  return { chapter_number: number, title, ...steps, ...saved };
 }
 
 const NOVEL_COLUMNS =
@@ -246,23 +442,49 @@ const tools: Tool[] = [
         visibility: { type: "string", enum: [...VISIBILITY] },
         genre: { type: "string", maxLength: 80 },
         tags: { type: "array", items: { type: "string" } },
+        author: { type: "string", maxLength: 200 },
+        cover_url: { type: "string", maxLength: 2000 },
+        abbreviation: { type: "string", maxLength: 15 },
+        original_language: { type: "string", maxLength: 40, description: "Translation novels: language of the source text" },
+        translation_language: { type: "string", maxLength: 40, description: "Translation novels: language you translate into" },
+        original_platform: { type: "string", maxLength: 2000 },
+        translator: { type: "string", maxLength: 200 },
+        translator_group: { type: "string", maxLength: 200 },
+        warning_notice: { type: "string", maxLength: 100 },
       },
       ["title"],
     ),
     run: async (userId, a) => {
+      const novelType = oneOf(a.novel_type, "novel_type", NOVEL_TYPES) ?? "Novel";
+      const translationLanguage = str(a.translation_language, "translation_language", 40, false);
       const { data, error } = await admin
         .from("novels")
         .insert({
           owner_id: userId,
           title: str(a.title, "title", 160)!.trim(),
           translation_title: str(a.translation_title, "translation_title", 160, false) ?? null,
-          novel_type: oneOf(a.novel_type, "novel_type", NOVEL_TYPES) ?? "Novel",
+          novel_type: novelType,
           description: str(a.description, "description", 5000, false) ?? "",
-          language: str(a.language, "language", 10, false) ?? "en",
+          language: str(a.language, "language", 40, false) ?? "en",
           status: oneOf(a.status, "status", STATUSES) ?? "draft",
           visibility: oneOf(a.visibility, "visibility", VISIBILITY) ?? "private",
-          genre: str(a.genre, "genre", 80, false) ?? null,
+          genre: str(a.genre, "genre", 80, false), // NOT NULL column: omit to use its default
           tags: strArray(a.tags, "tags") ?? [],
+          author: str(a.author, "author", 200, false), // NOT NULL column: omit to use its default
+          cover_url: str(a.cover_url, "cover_url", 2000, false) ?? null,
+          abbreviation: str(a.abbreviation, "abbreviation", 15, false), // NOT NULL column: omit to use its default
+          warning_notice: str(a.warning_notice, "warning_notice", 100, false), // NOT NULL column: omit to use its default
+          ...(novelType === "Translation"
+            ? {
+                original_title: str(a.title, "title", 160)!.trim(),
+                original_language: str(a.original_language, "original_language", 40, false) ?? null,
+                translation_language: translationLanguage ?? null,
+                language: translationLanguage ?? str(a.language, "language", 10, false) ?? "en",
+                original_platform: str(a.original_platform, "original_platform", 2000, false) ?? null,
+                translator: str(a.translator, "translator", 200, false) ?? null,
+                translator_group: str(a.translator_group, "translator_group", 200, false) ?? null,
+              }
+            : {}),
         })
         .select(NOVEL_COLUMNS)
         .single();
@@ -296,7 +518,7 @@ const tools: Tool[] = [
       if (a.description !== undefined) patch.description = str(a.description, "description", 5000, false) ?? "";
       if (a.status !== undefined) patch.status = oneOf(a.status, "status", STATUSES);
       if (a.visibility !== undefined) patch.visibility = oneOf(a.visibility, "visibility", VISIBILITY);
-      if (a.genre !== undefined) patch.genre = str(a.genre, "genre", 80, false) ?? null;
+      if (a.genre !== undefined) patch.genre = str(a.genre, "genre", 80);
       if (a.tags !== undefined) patch.tags = strArray(a.tags, "tags");
       if (Object.keys(patch).length === 0) throw new ToolError("Nothing to update");
       const { data, error } = await admin
@@ -344,29 +566,7 @@ const tools: Tool[] = [
         patch.status = oneOf(a.status, "status", ["draft", "published"] as const);
         patch.published_at = patch.status === "published" ? new Date().toISOString() : null;
       }
-      const { data: existing, error: findError } = await admin
-        .from("chapters")
-        .select("id")
-        .eq("novel_id", novelId)
-        .eq("chapter_number", number)
-        .is("deleted_at", null)
-        .maybeSingle();
-      check(findError);
-      const columns = "id,chapter_number,title,status,updated_at";
-      if (existing) {
-        if (Object.keys(patch).length === 0) throw new ToolError("Nothing to update");
-        const { data, error } = await admin.from("chapters").update(patch).eq("id", existing.id).select(columns).single();
-        check(error);
-        return { created: false, chapter: data };
-      }
-      if (!patch.title) throw new ToolError("title is required when creating a chapter");
-      const { data, error } = await admin
-        .from("chapters")
-        .insert({ novel_id: novelId, chapter_number: number, ...patch })
-        .select(columns)
-        .single();
-      check(error);
-      return { created: true, chapter: data };
+      return await upsertChapter(novelId, number, patch);
     },
   },
   {
@@ -435,6 +635,350 @@ const tools: Tool[] = [
       return { deleted: true };
     },
   },
+
+  {
+    name: "scrape_url",
+    title: "Fetch a webpage as text",
+    description:
+      "Fetch a chapter webpage with Firecrawl and return its readable text. Set clean_with_ai to strip ads/navigation with the server's AI.",
+    readOnly: true,
+    openWorld: true,
+    inputSchema: schema(
+      { url: { type: "string" }, clean_with_ai: { type: "boolean", default: false } },
+      ["url"],
+    ),
+    run: async (_userId, a) => {
+      const r = await callFunction("firecrawl-scrape", {
+        url: str(a.url, "url", 2000),
+        cleanWithAi: a.clean_with_ai === true,
+      }, 170_000);
+      return {
+        title: r.title,
+        chapter_number: r.chapterNumber,
+        chapter_title: r.chapterTitle,
+        content: r.content,
+      };
+    },
+  },
+  {
+    name: "extract_novel_metadata",
+    title: "Extract novel info from a URL",
+    description:
+      "Read a novel's information page and return structured metadata (title, translated title, author, genre, synopsis, cover...). Does not create anything: pass the result to create_novel.",
+    readOnly: true,
+    openWorld: true,
+    inputSchema: schema({ url: { type: "string" } }, ["url"]),
+    run: async (_userId, a) => {
+      const r = await callFunction("ai-novel-import", { url: str(a.url, "url", 2000) });
+      return { novel: r.novel, missing_fields: r.missingFields };
+    },
+  },
+  {
+    name: "discover_chapter_links",
+    title: "Find chapter links on an index page",
+    description: "List the individual chapter links on a novel's index/table-of-contents page, optionally within a chapter range.",
+    readOnly: true,
+    openWorld: true,
+    inputSchema: schema(
+      {
+        url: { type: "string" },
+        chapter_from: { type: "integer", minimum: 1 },
+        chapter_to: { type: "integer", minimum: 1 },
+      },
+      ["url"],
+    ),
+    run: async (_userId, a) => {
+      const r = await callFunction("ai-discover-chapter-links", {
+        url: str(a.url, "url", 2000),
+        chapterFrom: int(a.chapter_from, "chapter_from", 1, 100000, false) ?? null,
+        chapterTo: int(a.chapter_to, "chapter_to", 1, 100000, false) ?? null,
+      }, 170_000);
+      return { chapter_count: r.chapter_count, chapters: r.chapters };
+    },
+  },
+  {
+    name: "import_chapter_from_url",
+    title: "Import a chapter from a webpage",
+    description:
+      "Fetch one chapter page, extract the chapter text, and save it as a draft (replacing that chapter number if it exists). " +
+      "Optionally extract glossary terms and translate it. Translation makes this slow, so keep chapters to one per call.",
+    readOnly: false,
+    destructive: true,
+    openWorld: true,
+    inputSchema: schema(
+      {
+        novel_id: idProp("Novel UUID"),
+        url: { type: "string" },
+        chapter_number: { type: "integer", minimum: 1, description: "Detected from the page when omitted" },
+        extract_glossary: { type: "boolean", default: false },
+        translate: { type: "boolean", default: false },
+      },
+      ["novel_id", "url"],
+    ),
+    run: async (userId, a) => {
+      const novel = await getNovelContext(userId, uuid(a.novel_id, "novel_id"));
+      return await importChapter(userId, novel, {
+        url: str(a.url, "url", 2000)!,
+        chapterNumber: int(a.chapter_number, "chapter_number", 1, 100000, false),
+        extractGlossary: a.extract_glossary === true,
+        translate: a.translate === true,
+      });
+    },
+  },
+  {
+    name: "import_novel_chapters",
+    title: "Import a range of chapters",
+    description:
+      "Find chapter links on an index page and import up to 3 chapters per call as drafts (replacing existing numbers). " +
+      "Glossary extraction and translation are skipped by default. Call again with the returned next_chapter_from to continue.",
+    readOnly: false,
+    destructive: true,
+    openWorld: true,
+    inputSchema: schema(
+      {
+        novel_id: idProp("Novel UUID"),
+        index_url: { type: "string", description: "Novel page listing the chapters" },
+        chapter_from: { type: "integer", minimum: 1 },
+        chapter_to: { type: "integer", minimum: 1 },
+        skip_glossary_extraction: { type: "boolean", default: true },
+        skip_translation: { type: "boolean", default: true },
+      },
+      ["novel_id", "index_url", "chapter_from", "chapter_to"],
+    ),
+    run: async (userId, a) => {
+      const novel = await getNovelContext(userId, uuid(a.novel_id, "novel_id"));
+      const from = int(a.chapter_from, "chapter_from", 1, 100000)!;
+      const to = int(a.chapter_to, "chapter_to", 1, 100000)!;
+      if (to < from) throw new ToolError("chapter_to must be >= chapter_from");
+      const discovered = await callFunction("ai-discover-chapter-links", {
+        url: str(a.index_url, "index_url", 2000),
+        chapterFrom: from,
+        chapterTo: to,
+      }, 170_000);
+      const links = (Array.isArray(discovered.chapters) ? discovered.chapters : []) as {
+        chapter_number: number;
+        title?: string;
+        url: string;
+      }[];
+      if (!links.length) throw new ToolError("No chapter links were found in that range");
+      const batch = links.slice(0, 3);
+      const results: Json[] = [];
+      for (const link of batch) {
+        try {
+          results.push({
+            ok: true,
+            ...(await importChapter(userId, novel, {
+              url: link.url,
+              chapterNumber: link.chapter_number,
+              discoveredTitle: link.title,
+              extractGlossary: a.skip_glossary_extraction === false,
+              translate: a.skip_translation === false,
+            })),
+          });
+        } catch (error) {
+          results.push({
+            ok: false,
+            chapter_number: link.chapter_number,
+            error: error instanceof ToolError ? error.message : "Chapter import failed",
+          });
+        }
+      }
+      return {
+        imported: results.filter((r) => r.ok).length,
+        failed: results.filter((r) => !r.ok).length,
+        results,
+        remaining: links.length - batch.length,
+        next_chapter_from: links.length > batch.length ? links[batch.length].chapter_number : null,
+      };
+    },
+  },
+  {
+    name: "translate_chapter",
+    title: "Translate a chapter",
+    description:
+      "Translate a chapter with the server's AI into the novel's translation language, preserving line count, and save it. " +
+      "The original text is kept in source_content. Overwrites the chapter's current content.",
+    readOnly: false,
+    destructive: true,
+    inputSchema: schema(
+      {
+        novel_id: idProp("Novel UUID"),
+        chapter_number: { type: "integer", minimum: 1 },
+        save: { type: "boolean", default: true, description: "false returns the translation without saving" },
+      },
+      ["novel_id", "chapter_number"],
+    ),
+    run: async (userId, a) => {
+      const novelId = uuid(a.novel_id, "novel_id");
+      const number = int(a.chapter_number, "chapter_number", 1, 100000)!;
+      const novel = await getNovelContext(userId, novelId);
+      const chapter = await loadChapter(userId, novelId, number);
+      const original = chapter.source_content?.trim() ? chapter.source_content : chapter.content;
+      const translated = await translateText(novel, number, chapter.title, original);
+      if (a.save === false) return { saved: false, ...translated };
+      await upsertChapter(novelId, number, {
+        title: translated.title,
+        content: translated.content,
+        source_content: chapter.source_content?.trim() ? chapter.source_content : chapter.content,
+      });
+      return { saved: true, chapter_number: number, title: translated.title, content_length: translated.content.length };
+    },
+  },
+  {
+    name: "extract_glossary",
+    title: "Extract glossary terms with AI",
+    description:
+      "Run AI glossary extraction on a chapter's original text and add the new terms to the novel's glossary (existing terms are skipped).",
+    readOnly: false,
+    inputSchema: schema(
+      { novel_id: idProp("Novel UUID"), chapter_number: { type: "integer", minimum: 1 } },
+      ["novel_id", "chapter_number"],
+    ),
+    run: async (userId, a) => {
+      const novelId = uuid(a.novel_id, "novel_id");
+      const novel = await getNovelContext(userId, novelId);
+      const chapter = await loadChapter(userId, novelId, int(a.chapter_number, "chapter_number", 1, 100000)!);
+      const text = stripHtml(chapter.source_content?.trim() ? chapter.source_content : chapter.content);
+      return await extractAndSaveGlossary(userId, novel, text);
+    },
+  },
+  {
+    name: "apply_glossary",
+    title: "Apply glossary to a chapter",
+    description:
+      "Replace every glossary source term in a chapter's content with its preferred term (novel glossary plus your global terms) and save it.",
+    readOnly: false,
+    destructive: true,
+    inputSchema: schema(
+      {
+        novel_id: idProp("Novel UUID"),
+        chapter_number: { type: "integer", minimum: 1 },
+        dry_run: { type: "boolean", default: false, description: "Only report how many replacements would be made" },
+      },
+      ["novel_id", "chapter_number"],
+    ),
+    run: async (userId, a) => {
+      const novelId = uuid(a.novel_id, "novel_id");
+      const chapter = await loadChapter(userId, novelId, int(a.chapter_number, "chapter_number", 1, 100000)!);
+      const { data: terms, error } = await admin
+        .from("glossary_entries")
+        .select("source_term,preferred_term")
+        .eq("owner_id", userId)
+        .or(`novel_id.eq.${novelId},novel_id.is.null`)
+        .limit(5000);
+      check(error);
+      if (!terms?.length) throw new ToolError("The glossary is empty");
+      let content = chapter.content;
+      let replacements = 0;
+      for (const term of terms) {
+        const pattern = new RegExp(`${term.source_term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}[ \\t]*`, "g");
+        content = content.replace(pattern, () => {
+          replacements += 1;
+          return `${term.preferred_term} `;
+        });
+      }
+      if (a.dry_run === true || content === chapter.content) return { saved: false, replacements };
+      await upsertChapter(novelId, chapter.chapter_number, { content });
+      return { saved: true, replacements };
+    },
+  },
+  {
+    name: "delete_glossary_terms",
+    title: "Delete several glossary terms",
+    description:
+      "Delete glossary terms by id list, or every term of a novel with delete_all (requires confirm: true). This cannot be undone.",
+    readOnly: false,
+    destructive: true,
+    inputSchema: schema({
+      entry_ids: { type: "array", items: { type: "string" }, maxItems: 500 },
+      novel_id: idProp("Required with delete_all"),
+      delete_all: { type: "boolean", default: false },
+      confirm: { type: "boolean", description: "Must be true when delete_all is true" },
+    }),
+    run: async (userId, a) => {
+      if (a.delete_all === true) {
+        if (a.confirm !== true) throw new ToolError("delete_all requires confirm: true");
+        const novelId = uuid(a.novel_id, "novel_id");
+        await assertOwnsNovel(userId, novelId);
+        const { data, error } = await admin
+          .from("glossary_entries")
+          .delete()
+          .eq("owner_id", userId)
+          .eq("novel_id", novelId)
+          .select("id");
+        check(error);
+        return { deleted: data?.length ?? 0 };
+      }
+      const ids = Array.isArray(a.entry_ids) ? a.entry_ids.map((id) => uuid(id, "entry_ids")) : [];
+      if (!ids.length) throw new ToolError("Pass entry_ids, or delete_all with confirm");
+      const { data, error } = await admin
+        .from("glossary_entries")
+        .delete()
+        .eq("owner_id", userId)
+        .in("id", ids)
+        .select("id");
+      check(error);
+      return { deleted: data?.length ?? 0 };
+    },
+  },
+  {
+    name: "delete_chapter",
+    title: "Move a chapter to trash",
+    description: "Move a chapter to the trash (it can be restored with restore_chapter).",
+    readOnly: false,
+    inputSchema: schema(
+      { novel_id: idProp("Novel UUID"), chapter_number: { type: "integer", minimum: 1 } },
+      ["novel_id", "chapter_number"],
+    ),
+    run: async (userId, a) => {
+      const chapter = await loadChapter(userId, uuid(a.novel_id, "novel_id"), int(a.chapter_number, "chapter_number", 1, 100000)!);
+      const { error } = await admin.from("chapters").update({ deleted_at: new Date().toISOString() }).eq("id", chapter.id);
+      check(error);
+      return { trashed: true, chapter_number: chapter.chapter_number, title: chapter.title };
+    },
+  },
+  {
+    name: "list_trash_chapters",
+    title: "List trashed chapters",
+    description: "List chapters of a novel that are in the trash.",
+    readOnly: true,
+    inputSchema: schema({ novel_id: idProp("Novel UUID") }, ["novel_id"]),
+    run: async (userId, a) => {
+      const novelId = uuid(a.novel_id, "novel_id");
+      await assertOwnsNovel(userId, novelId);
+      const { data, error } = await admin
+        .from("chapters")
+        .select("id,chapter_number,title,status,deleted_at")
+        .eq("novel_id", novelId)
+        .not("deleted_at", "is", null)
+        .order("deleted_at", { ascending: false });
+      check(error);
+      return data;
+    },
+  },
+  {
+    name: "restore_chapter",
+    title: "Restore a trashed chapter",
+    description: "Restore a chapter from the trash by its id (from list_trash_chapters). Fails if that chapter number is now in use.",
+    readOnly: false,
+    inputSchema: schema({ novel_id: idProp("Novel UUID"), chapter_id: idProp("Chapter UUID") }, ["novel_id", "chapter_id"]),
+    run: async (userId, a) => {
+      const novelId = uuid(a.novel_id, "novel_id");
+      await assertOwnsNovel(userId, novelId);
+      const { data, error } = await admin
+        .from("chapters")
+        .update({ deleted_at: null })
+        .eq("id", uuid(a.chapter_id, "chapter_id"))
+        .eq("novel_id", novelId)
+        .not("deleted_at", "is", null)
+        .select(CHAPTER_COLUMNS)
+        .maybeSingle();
+      if (error?.code === "23505") throw new ToolError("That chapter number is already used by another chapter");
+      check(error);
+      if (!data) throw new ToolError("Trashed chapter not found");
+      return data;
+    },
+  },
 ];
 
 const toolByName = new Map(tools.map((t) => [t.name, t]));
@@ -494,7 +1038,7 @@ async function handleMessage(userId: string, msg: Json): Promise<Json | null> {
             title: t.title,
             readOnlyHint: t.readOnly,
             destructiveHint: t.destructive ?? false,
-            openWorldHint: false,
+            openWorldHint: t.openWorld ?? false,
           },
         })),
       });

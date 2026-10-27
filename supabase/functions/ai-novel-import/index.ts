@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { getCaller } from "../_shared/internal-auth.ts";
 import { getAiProviders, providerEndpoint } from "../_shared/ai-provider.ts";
 
 const corsHeaders = {
@@ -38,7 +39,7 @@ Deno.serve(async (req) => {
       global: { headers: { Authorization: authorization } },
     });
     const { data: userData, error: userError } =
-      await userClient.auth.getUser();
+      await getCaller(req, userClient);
     if (userError || !userData.user)
       return json({ success: false, error: "Unauthorized" }, 401);
 

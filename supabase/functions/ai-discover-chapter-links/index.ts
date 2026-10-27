@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { getCaller } from "../_shared/internal-auth.ts";
 import { createRequestAbort } from "../_shared/request-abort.ts";
 import {
   getAiProviders,
@@ -115,7 +116,7 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_ANON_KEY")!,
       { global: { headers: { Authorization: auth } } },
     );
-    const { data: authData, error: authError } = await client.auth.getUser();
+    const { data: authData, error: authError } = await getCaller(req, client);
     if (authError || !authData.user)
       return json({ error: "Unauthorized" }, 401);
     const body = await req.json().catch(() => null);
