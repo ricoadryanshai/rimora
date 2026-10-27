@@ -145,7 +145,24 @@ async function callFunction(name: string, body: Json, timeoutMs = 140_000): Prom
 }
 
 const stripHtml = (value: string) =>
-  value.replace(/<br\s*\/?>/gi, "\n").replace(/<\/p>\s*<p[^>]*>/gi, "\n").replace(/<[^>]*>/g, "");
+  value
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/p>\s*<p[^>]*>/gi, "\n")
+    .replace(/<[^>]*>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&amp;/g, "&");
+
+// Chapters are stored as HTML with <br> line breaks (what the editor produces).
+// Plain text with newlines is converted; text that already contains tags is kept.
+const toChapterHtml = (value: string, knownPlain = false) =>
+  !knownPlain && /<\/?[a-z][^>]*>/i.test(value)
+    ? value
+    : value
+        .split(/\r?\n/)
+        .map((line) => line.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"))
+        .join("<br>");
 
 const CHAPTER_COLUMNS = "id,chapter_number,title,status,updated_at";
 
@@ -272,7 +289,7 @@ async function importChapter(
   }
   const saved = await upsertChapter(novel.id, number, {
     title,
-    content,
+    content: toChapterHtml(content, true),
     source_content: sourceContent,
     source_url: opts.url,
     status: "draft",
@@ -538,7 +555,7 @@ const tools: Tool[] = [
     title: "Create or update chapter",
     description:
       "Create the chapter if that number does not exist yet, otherwise overwrite the provided fields. " +
-      "content is the translated/working text; source_content is the original text.",
+      "content is the translated/working text; source_content is the original text. Plain-text newlines in content are stored as <br> line breaks.",
     readOnly: false,
     destructive: true,
     inputSchema: schema(
@@ -559,7 +576,7 @@ const tools: Tool[] = [
       const number = int(a.chapter_number, "chapter_number", 1, 100000)!;
       const patch: Json = {};
       if (a.title !== undefined) patch.title = str(a.title, "title", 200)!.trim();
-      if (a.content !== undefined) patch.content = str(a.content, "content", MAX_TEXT, false) ?? "";
+      if (a.content !== undefined) patch.content = toChapterHtml(str(a.content, "content", MAX_TEXT, false) ?? "");
       if (a.source_content !== undefined) patch.source_content = str(a.source_content, "source_content", MAX_TEXT, false) ?? null;
       if (a.source_url !== undefined) patch.source_url = str(a.source_url, "source_url", 2000, false) ?? null;
       if (a.status !== undefined) {
@@ -818,8 +835,8 @@ const tools: Tool[] = [
       if (a.save === false) return { saved: false, ...translated };
       await upsertChapter(novelId, number, {
         title: translated.title,
-        content: translated.content,
-        source_content: chapter.source_content?.trim() ? chapter.source_content : chapter.content,
+        content: toChapterHtml(translated.content, true),
+        source_content: chapter.source_content?.trim() ? chapter.source_content : stripHtml(chapter.content),
       });
       return { saved: true, chapter_number: number, title: translated.title, content_length: translated.content.length };
     },

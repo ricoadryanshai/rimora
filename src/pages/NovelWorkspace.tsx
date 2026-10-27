@@ -19,6 +19,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { rimora } from "@/lib/rimora";
+import { plainTextToChapterHtml } from "@/lib/chapter-text";
 import { invokeAiFunction } from "@/lib/ai-request";
 import { useAiTask } from "@/hooks/use-ai-task";
 import { useToast } from "@/hooks/use-toast";
@@ -400,7 +401,7 @@ const NovelWorkspace = () => {
               novel_id: novelId,
               chapter_number: item.chapter_number,
               title: finalTitle,
-              content: finalContent,
+              content: plainTextToChapterHtml(finalContent, true),
               source_content: sourceContent,
               source_url: item.source_url,
               status: "draft",

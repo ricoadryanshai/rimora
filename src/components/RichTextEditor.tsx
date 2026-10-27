@@ -174,7 +174,7 @@ const RichTextEditor = ({
         role="textbox"
         aria-multiline="true"
         data-placeholder={placeholder}
-        className={`min-h-[138px] px-3 py-2 text-sm leading-6 outline-none empty:before:pointer-events-none empty:before:text-muted-foreground empty:before:content-[attr(data-placeholder)] ${className ?? ""}`}
+        className={`min-h-[138px] whitespace-pre-wrap px-3 py-2 text-sm leading-6 outline-none empty:before:pointer-events-none empty:before:text-muted-foreground empty:before:content-[attr(data-placeholder)] ${className ?? ""}`}
         onInput={(event) => onChange(event.currentTarget.innerHTML)}
         suppressContentEditableWarning
       />

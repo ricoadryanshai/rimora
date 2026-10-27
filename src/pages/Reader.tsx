@@ -284,7 +284,7 @@ const Reader = () => {
             </p>
             <article
               style={{ fontSize }}
-              className="mt-12 leading-8 [&_blockquote]:border-l-2 [&_blockquote]:border-primary [&_blockquote]:pl-4 [&_h3]:font-display [&_h3]:text-xl [&_h3]:font-semibold [&_li]:ml-6 [&_ol]:list-decimal [&_p]:mb-5 [&_ul]:list-disc"
+              className={`mt-12 leading-8 ${chapter.content.includes("<") ? "" : "whitespace-pre-wrap"} [&_blockquote]:border-l-2 [&_blockquote]:border-primary [&_blockquote]:pl-4 [&_h3]:font-display [&_h3]:text-xl [&_h3]:font-semibold [&_li]:ml-6 [&_ol]:list-decimal [&_p]:mb-5 [&_ul]:list-disc`}
             >
               <RichText content={chapter.content} />
             </article>
