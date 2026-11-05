@@ -2,6 +2,7 @@
 // Auth: personal access token created in Rimora Settings, sent as `Authorization: Bearer <token>`
 // or, for clients that cannot set headers (claude.ai connector dialog), as `?token=<token>`.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { findReplaceMode, replaceLiteral, validateReplacement } from "./find-replace.ts";
 
 const PROTOCOL_VERSION = "2025-06-18";
 const MAX_TEXT = 200_000;
@@ -857,6 +858,67 @@ const tools: Tool[] = [
       const chapter = await loadChapter(userId, novelId, int(a.chapter_number, "chapter_number", 1, 100000)!);
       const text = stripHtml(chapter.source_content?.trim() ? chapter.source_content : chapter.content);
       return await extractAndSaveGlossary(userId, novel, text);
+    },
+  },
+  {
+    name: "find_replace_chapter",
+    title: "Find and replace in a chapter",
+    description:
+      "Replace all exact, case-sensitive literal matches in one chapter. Provide text for an unsaved draft (returned without saving), or novel_id and chapter_number for a saved chapter (saved unless dry_run is true).",
+    readOnly: false,
+    destructive: true,
+    inputSchema: schema(
+      {
+        novel_id: idProp("Novel UUID; use with chapter_number for a saved chapter"),
+        chapter_number: { type: "integer", minimum: 1, description: "Chapter number for saved mode" },
+        text: { type: "string", description: "Unsaved chapter draft text for draft mode" },
+        find: { type: "string", minLength: 1 },
+        replace: { type: "string" },
+        dry_run: { type: "boolean", default: false, description: "For saved mode, report count without saving" },
+      },
+      ["find", "replace"],
+    ),
+    run: async (userId, a) => {
+      const mode = (() => {
+        try {
+          return findReplaceMode(a);
+        } catch (error) {
+          throw new ToolError(error instanceof Error ? error.message : "Invalid mode arguments");
+        }
+      })();
+      const find = str(a.find, "find", MAX_TEXT)!;
+      let replacement: string;
+      try {
+        replacement = validateReplacement(a.replace);
+      } catch (error) {
+        throw new ToolError(error instanceof Error ? error.message : "replace must be a string");
+      }
+      if (replacement.length > MAX_TEXT) throw new ToolError(`replace is too long (max ${MAX_TEXT} characters)`);
+      let content: string;
+      let novelId: string | undefined;
+      let chapterNumber: number | undefined;
+      if (mode === "draft") {
+        if (typeof a.text !== "string") throw new ToolError("text must be a string");
+        if (a.text.length > MAX_TEXT) throw new ToolError(`text is too long (max ${MAX_TEXT} characters)`);
+        content = a.text;
+      } else {
+        novelId = uuid(a.novel_id, "novel_id");
+        chapterNumber = int(a.chapter_number, "chapter_number", 1, 100000)!;
+        const chapter = await loadChapter(userId, novelId, chapterNumber);
+        content = chapter.content;
+      }
+      let result: { text: string; replacements: number };
+      try {
+        result = replaceLiteral(content, find, replacement);
+      } catch (error) {
+        throw new ToolError(error instanceof Error ? error.message : "Find and replace failed");
+      }
+      if (mode === "draft") return { saved: false, ...result };
+      if (a.dry_run === true || result.replacements === 0) {
+        return { saved: false, chapter_number: chapterNumber, replacements: result.replacements };
+      }
+      await upsertChapter(novelId!, chapterNumber!, { content: result.text });
+      return { saved: true, chapter_number: chapterNumber, replacements: result.replacements };
     },
   },
   {
